@@ -33,7 +33,7 @@ app.use(errorHandler);
 runMigrations()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`Backend RH-ATA corriendo en puerto ${PORT}`);
+      console.log(`Backend Elys corriendo en puerto ${PORT}`);
     });
   })
   .catch(err => {

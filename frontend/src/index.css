@@ -1,6 +1,15 @@
 @import "tailwindcss";
 
+:root {
+  --color-primary:   #cccad8;
+  --color-accent:    #aba3ba;
+  --color-dark:      #887482;
+  --color-sage:      #ced1ca;
+  --color-cream:     #f5f2f0;
+}
+
 body {
   margin: 0;
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--color-cream);
 }
