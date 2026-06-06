@@ -1,104 +1,122 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCitas } from '../api/citas';
-import { getEmpleados } from '../api/empleados';
+import { Calendar, Users, CreditCard, Clock, FileText, Sparkles } from 'lucide-react';
 import logoGioval from '../assets/gioval-logo.png';
-import badgeGioval from '../assets/gioval-badge.png';
-import gvGioval from '../assets/gioval-gv.png';
 
-function StatCard({ label, value, sub, color }) {
-  return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border flex flex-col gap-1"
-         style={{ borderColor: 'var(--color-sage)' }}>
-      <div className="text-3xl font-bold" style={{ color: color || 'var(--color-dark)' }}>
-        {value ?? '—'}
-      </div>
-      <div className="text-sm font-medium" style={{ color: 'var(--color-dark)' }}>{label}</div>
-      {sub && <div className="text-xs" style={{ color: 'var(--color-accent)' }}>{sub}</div>}
-    </div>
-  );
-}
-
-function QuickLink({ to, icon, label }) {
-  const navigate = useNavigate();
-  return (
-    <button onClick={() => navigate(to)}
-            className="bg-white rounded-xl p-4 shadow-sm border flex items-center gap-3 hover:shadow-md transition-shadow text-left w-full"
-            style={{ borderColor: 'var(--color-sage)' }}>
-      <span className="text-xl">{icon}</span>
-      <span className="text-sm font-medium" style={{ color: 'var(--color-dark)' }}>{label}</span>
-    </button>
-  );
-}
+const modulos = [
+  {
+    key: 'citas',
+    label: 'Citas',
+    desc: 'Agenda diaria y semanal, nueva cita, historial de pacientes',
+    to: '/citas',
+    Icon: Calendar,
+    from: '#887482',
+    to_color: '#aba3ba',
+    shadow: 'rgba(136,116,130,0.25)',
+  },
+  {
+    key: 'empleados',
+    label: 'Empleados',
+    desc: 'Expedientes, documentos, contratos y control de personal',
+    to: '/empleados',
+    Icon: Users,
+    from: '#a0b8a8',
+    to_color: '#ced1ca',
+    shadow: 'rgba(160,184,168,0.25)',
+  },
+  {
+    key: 'pagos',
+    label: 'Pagos',
+    desc: 'Nómina, control de pagos y registros financieros',
+    to: '/pagos',
+    Icon: CreditCard,
+    from: '#9a98b8',
+    to_color: '#cccad8',
+    shadow: 'rgba(154,152,184,0.25)',
+  },
+  {
+    key: 'checador',
+    label: 'Checador',
+    desc: 'Asistencia, entradas, salidas y mapeo de dispositivos',
+    to: '/checador/mapeo',
+    Icon: Clock,
+    from: '#c4b8ae',
+    to_color: '#ded7ce',
+    shadow: 'rgba(196,184,174,0.25)',
+  },
+  {
+    key: 'formatos',
+    label: 'Formatos',
+    desc: 'Documentos oficiales, contratos y archivos del consultorio',
+    to: '/formatos',
+    Icon: FileText,
+    from: '#bfb9b3',
+    to_color: '#f5f2f0',
+    shadow: 'rgba(191,185,179,0.2)',
+  },
+  {
+    key: 'tratamientos',
+    label: 'Tratamientos',
+    desc: 'Catálogo de procedimientos, duración y estado',
+    to: '/tratamientos',
+    Icon: Sparkles,
+    from: '#6a5462',
+    to_color: '#887482',
+    shadow: 'rgba(106,84,98,0.25)',
+    adminOnly: true,
+  },
+];
 
 export default function DashboardPage() {
-  const nombre = localStorage.getItem('nombre');
+  const navigate = useNavigate();
   const rol = localStorage.getItem('rol');
-  const [citasHoy, setCitasHoy] = useState(null);
-  const [citasSemana, setCitasSemana] = useState(null);
-  const [empleados, setEmpleados] = useState(null);
-  const today = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  useEffect(() => {
-    const fecha = new Date().toLocaleDateString('sv-SE');
-    getCitas({ fecha }).then(d => setCitasHoy(d.length)).catch(() => setCitasHoy(0));
-
-    const hoy = new Date();
-    const dia = hoy.getDay() || 7;
-    const lunes = new Date(hoy); lunes.setDate(hoy.getDate() - dia + 1);
-    const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
-    const desde = lunes.toLocaleDateString('sv-SE');
-    const hasta = domingo.toLocaleDateString('sv-SE');
-    getCitas({ desde, hasta }).then(d => setCitasSemana(d.length)).catch(() => setCitasSemana(0));
-
-    getEmpleados().then(d => setEmpleados(d.filter(e => e.estatus === 'activo').length)).catch(() => setEmpleados(0));
-  }, []);
+  const visibles = modulos.filter(m => !m.adminOnly || rol === 'admin');
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="min-h-[75vh] flex flex-col items-center justify-center py-8">
 
-      {/* Hero banner */}
-      <div className="relative rounded-2xl overflow-hidden mb-8 flex items-center justify-between px-10 py-8"
-           style={{ backgroundColor: 'var(--color-primary)', minHeight: 160 }}>
-        {/* Logo principal */}
-        <img src={logoGioval} alt="gioval" className="h-16 object-contain" style={{ filter: 'brightness(0) invert(1) opacity(0.9)' }} />
-
-        {/* Saludo */}
-        <div className="flex flex-col items-center text-center flex-1 px-8">
-          <p className="text-xs uppercase tracking-widest mb-1" style={{ color: 'var(--color-dark)', opacity: 0.65 }}>
-            Bienvenida
-          </p>
-          <p className="font-semibold text-lg" style={{ color: 'var(--color-dark)' }}>{nombre}</p>
-          <p className="text-xs capitalize mt-1" style={{ color: 'var(--color-dark)', opacity: 0.55 }}>{today}</p>
-        </div>
-
-        {/* Badge decorativo */}
-        <img src={badgeGioval} alt="" className="h-20 object-contain opacity-25" />
+      {/* Logo + subtítulo */}
+      <div className="text-center mb-12">
+        <img src={logoGioval} alt="gioval · Medicina Estética"
+             className="h-20 object-contain mx-auto mb-5 drop-shadow-sm" />
+        <p className="text-sm font-medium tracking-wide"
+           style={{ color: 'var(--color-dark)', opacity: 0.55 }}>
+          Selecciona un módulo para continuar
+        </p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <StatCard label="Citas hoy" value={citasHoy} sub="agendadas para hoy" color="var(--color-dark)" />
-        <StatCard label="Citas esta semana" value={citasSemana} sub="lunes a domingo" color="var(--color-accent)" />
-        <StatCard label="Empleadas activas" value={empleados} sub="en el sistema" color="var(--color-sage-dark, #7a9e8a)" />
-      </div>
+      {/* Grid de módulos */}
+      <div className={`grid gap-5 w-full max-w-5xl px-4 ${
+        visibles.length <= 4
+          ? 'grid-cols-2 md:grid-cols-4'
+          : 'grid-cols-2 md:grid-cols-3'
+      }`}>
+        {visibles.map(m => (
+          <button
+            key={m.key}
+            onClick={() => navigate(m.to)}
+            className="bg-white rounded-2xl p-7 text-center transition-all duration-200 hover:-translate-y-2 hover:shadow-xl active:scale-95 border"
+            style={{
+              borderColor: 'var(--color-sage)',
+              boxShadow: `0 4px 16px ${m.shadow}`,
+            }}
+          >
+            {/* Icono con gradiente de paleta GIOVAL */}
+            <div
+              className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-md"
+              style={{ background: `linear-gradient(135deg, ${m.from}, ${m.to_color})` }}
+            >
+              <m.Icon className="w-7 h-7 text-white" strokeWidth={1.6} />
+            </div>
 
-      {/* Accesos rápidos */}
-      <div className="mb-6">
-        <h2 className="text-sm uppercase tracking-widest mb-3 font-medium" style={{ color: 'var(--color-dark)', opacity: 0.6 }}>
-          Accesos rápidos
-        </h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <QuickLink to="/citas" icon="📅" label="Ver agenda" />
-          <QuickLink to="/citas" icon="＋" label="Nueva cita" />
-          <QuickLink to="/" icon="👥" label="Empleadas" />
-          {rol === 'admin' && <QuickLink to="/tratamientos" icon="✦" label="Tratamientos" />}
-        </div>
-      </div>
-
-      {/* Marca decorativa */}
-      <div className="flex justify-end mt-10 opacity-10">
-        <img src={gvGioval} alt="" className="h-32 object-contain" />
+            <h2 className="text-base font-semibold mb-1.5" style={{ color: 'var(--color-dark)' }}>
+              {m.label}
+            </h2>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--color-accent)' }}>
+              {m.desc}
+            </p>
+          </button>
+        ))}
       </div>
     </div>
   );
