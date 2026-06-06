@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getCitas } from '../api/citas';
 import { getEmpleados } from '../api/empleados';
+import { syncPull, syncPushAll, syncStatus } from '../api/sync';
 import CalendarioDia from '../components/CalendarioDia';
 import CalendarioSemana from '../components/CalendarioSemana';
 import CitaModal from '../components/CitaModal';
@@ -27,6 +28,9 @@ export default function CitasPage() {
   const [empleadas, setEmpleadas] = useState([]);
   const [modal, setModal] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [gcConfigured, setGcConfigured] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState(null);
 
   const cargarCitas = useCallback(async () => {
     setLoading(true);
@@ -46,7 +50,35 @@ export default function CitasPage() {
     getEmpleados()
       .then(data => setEmpleadas(data.filter(e => e.estatus === 'activo')))
       .catch(console.error);
+    syncStatus().then(d => setGcConfigured(d.configured)).catch(() => {});
   }, []);
+
+  async function handleSyncPull() {
+    setSyncing(true); setSyncMsg(null);
+    try {
+      const r = await syncPull();
+      setSyncMsg(`✓ ${r.created} nuevas, ${r.updated} actualizadas desde Google Calendar`);
+      cargarCitas();
+    } catch (e) {
+      setSyncMsg(`✗ ${e.response?.data?.error || 'Error al sincronizar'}`);
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setSyncMsg(null), 5000);
+    }
+  }
+
+  async function handleSyncPush() {
+    setSyncing(true); setSyncMsg(null);
+    try {
+      const r = await syncPushAll();
+      setSyncMsg(`✓ ${r.pushed} citas enviadas a Google Calendar`);
+    } catch (e) {
+      setSyncMsg(`✗ ${e.response?.data?.error || 'Error al enviar'}`);
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setSyncMsg(null), 5000);
+    }
+  }
 
   function handleSaved() {
     setModal(null);
@@ -62,7 +94,35 @@ export default function CitasPage() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between mb-4 gap-3">
-        <h1 className="text-xl font-bold" style={{ color: 'var(--color-dark)' }}>Control de Citas</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-bold" style={{ color: 'var(--color-dark)' }}>Control de Citas</h1>
+          {/* Botón Google Calendar sync */}
+          {gcConfigured ? (
+            <div className="flex items-center gap-1">
+              <button onClick={handleSyncPull} disabled={syncing}
+                      title="Importar citas de Google Calendar"
+                      className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border disabled:opacity-50 hover:opacity-80 transition-opacity"
+                      style={{ borderColor: '#4285f4', color: '#4285f4', backgroundColor: '#f0f4ff' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19.5 3h-2V1.5h-1.5V3h-8V1.5H6.5V3h-2C3.67 3 3 3.67 3 4.5v15C3 20.33 3.67 21 4.5 21h15c.83 0 1.5-.67 1.5-1.5v-15C21 3.67 20.33 3 19.5 3zm0 16.5h-15V8.5h15v11z"/>
+                </svg>
+                {syncing ? 'Sincronizando...' : '↓ Importar'}
+              </button>
+              <button onClick={handleSyncPush} disabled={syncing}
+                      title="Enviar citas del app a Google Calendar"
+                      className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border disabled:opacity-50 hover:opacity-80 transition-opacity"
+                      style={{ borderColor: '#4285f4', color: '#4285f4', backgroundColor: '#f0f4ff' }}>
+                ↑ Exportar
+              </button>
+            </div>
+          ) : (
+            <span className="text-xs px-2 py-1 rounded-lg border"
+                  style={{ borderColor: 'var(--color-sage)', color: 'var(--color-accent)' }}
+                  title="Google Calendar pendiente de configuración">
+              📅 Google Calendar: pendiente
+            </span>
+          )}
+        </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           {/* Toggle vista */}
@@ -108,6 +168,16 @@ export default function CitasPage() {
       </div>
 
       {loading && <p className="text-sm text-gray-400 mb-2">Cargando...</p>}
+      {syncMsg && (
+        <div className="mb-3 px-4 py-2 rounded-lg text-sm"
+             style={{
+               backgroundColor: syncMsg.startsWith('✓') ? '#f0fdf4' : '#fef2f2',
+               color: syncMsg.startsWith('✓') ? '#16a34a' : '#dc2626',
+               border: `1px solid ${syncMsg.startsWith('✓') ? '#bbf7d0' : '#fecaca'}`,
+             }}>
+          {syncMsg}
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden"
            style={{ borderColor: 'var(--color-sage)' }}>
