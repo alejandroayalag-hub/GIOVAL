@@ -41,11 +41,9 @@ function Layout() {
     <div className="min-h-screen" style={{ backgroundColor: 'var(--color-cream)' }}>
       <nav className="px-6 py-3 flex items-center gap-3 shadow-sm border-b"
            style={{ backgroundColor: 'var(--color-primary)', borderColor: 'var(--color-sage)' }}>
-        <div className="flex flex-col leading-tight mr-4">
-          <span className="font-bold text-base tracking-wide" style={{ color: 'var(--color-dark)' }}>Elys</span>
-          <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--color-dark)', opacity: 0.6 }}>
-            Clínica de Belleza
-          </span>
+        <div className="flex flex-col leading-none mr-4">
+          <span className="gioval-wordmark" style={{ fontSize: '1.6rem' }}>gioval</span>
+          <span className="gioval-sub" style={{ fontSize: '0.5rem', marginTop: '2px' }}>Medicina Estética</span>
         </div>
         <div className="flex gap-1 flex-1 flex-wrap">
           <NavItem to="/citas">Citas</NavItem>
