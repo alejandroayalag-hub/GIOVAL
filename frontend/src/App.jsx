@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, NavLink, useNavigate } from 'react-router-dom';
+import DashboardPage from './pages/DashboardPage';
 import EmpleadosPage from './pages/EmpleadosPage';
 import EmpleadoDetallePage from './pages/EmpleadoDetallePage';
 import EmpleadoFormPage from './pages/EmpleadoFormPage';
@@ -9,6 +10,7 @@ import CitasPage from './pages/CitasPage';
 import TratamientosPage from './pages/TratamientosPage';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import logoGioval from './assets/gioval-logo.png';
 
 function NavItem({ to, end, children }) {
   return (
@@ -39,35 +41,41 @@ function Layout() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--color-cream)' }}>
-      <nav className="px-6 py-3 flex items-center gap-3 shadow-sm border-b"
+      <nav className="px-6 py-2 flex items-center gap-3 shadow-sm border-b"
            style={{ backgroundColor: 'var(--color-primary)', borderColor: 'var(--color-sage)' }}>
-        <div className="flex flex-col leading-none mr-4">
-          <span className="gioval-wordmark" style={{ fontSize: '1.6rem' }}>gioval</span>
-          <span className="gioval-sub" style={{ fontSize: '0.5rem', marginTop: '2px' }}>Medicina Estética</span>
-        </div>
+        {/* Logo imagen real */}
+        <NavLink to="/" className="mr-4 flex-shrink-0">
+          <img src={logoGioval} alt="gioval" className="h-9 object-contain"
+               style={{ filter: 'brightness(0.4) sepia(1) saturate(0.5)' }} />
+        </NavLink>
+
         <div className="flex gap-1 flex-1 flex-wrap">
+          <NavItem to="/" end>Inicio</NavItem>
           <NavItem to="/citas">Citas</NavItem>
-          <NavItem to="/" end>Empleados</NavItem>
+          <NavItem to="/empleados">Empleados</NavItem>
           <NavItem to="/pagos">Pagos</NavItem>
           <NavItem to="/checador/mapeo">Checador</NavItem>
           <NavItem to="/formatos">Formatos</NavItem>
           {rol === 'admin' && <NavItem to="/tratamientos">Tratamientos</NavItem>}
         </div>
+
         <div className="flex items-center gap-3">
           <span className="text-xs" style={{ color: 'var(--color-dark)', opacity: 0.7 }}>
             {nombre} {rol === 'admin' ? '· Admin' : '· Asistente'}
           </span>
           <button onClick={logout}
-                  className="text-xs border rounded px-2 py-1 transition-colors hover:opacity-75"
+                  className="text-xs border rounded px-2 py-1 hover:opacity-75"
                   style={{ borderColor: 'var(--color-dark)', color: 'var(--color-dark)' }}>
             Salir
           </button>
         </div>
       </nav>
+
       <main className="max-w-7xl mx-auto p-6">
         <Routes>
+          <Route path="/" element={<DashboardPage />} />
           <Route path="/citas" element={<CitasPage />} />
-          <Route path="/" element={<EmpleadosPage />} />
+          <Route path="/empleados" element={<EmpleadosPage />} />
           <Route path="/empleados/nuevo" element={<EmpleadoFormPage />} />
           <Route path="/empleados/:id" element={<EmpleadoDetallePage />} />
           <Route path="/empleados/:id/editar" element={<EmpleadoFormPage />} />

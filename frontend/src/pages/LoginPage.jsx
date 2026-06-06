@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import logoGioval from '../assets/gioval-logo.png';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -30,10 +31,9 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-cream)' }}>
       <div className="bg-white rounded-2xl shadow-sm p-10 w-full max-w-sm" style={{ border: '1px solid var(--color-primary)' }}>
 
-        {/* Logo area */}
+        {/* Logo */}
         <div className="flex flex-col items-center mb-10">
-          <span className="gioval-wordmark" style={{ fontSize: '3rem' }}>gioval</span>
-          <span className="gioval-sub" style={{ fontSize: '0.6rem', marginTop: '4px' }}>Medicina Estética</span>
+          <img src={logoGioval} alt="gioval · Medicina Estética" className="w-56 object-contain" />
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
