@@ -1,55 +1,74 @@
 import { BrowserRouter, Routes, Route, NavLink, useNavigate } from 'react-router-dom';
-import logoAta from './assets/logo-ata.png';
 import EmpleadosPage from './pages/EmpleadosPage';
 import EmpleadoDetallePage from './pages/EmpleadoDetallePage';
 import EmpleadoFormPage from './pages/EmpleadoFormPage';
 import MapeoChecadorPage from './pages/MapeoChecadorPage';
 import PagosPage from './pages/PagosPage';
 import FormatosPage from './pages/FormatosPage';
+import CitasPage from './pages/CitasPage';
+import TratamientosPage from './pages/TratamientosPage';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
+
+function NavItem({ to, end, children }) {
+  return (
+    <NavLink to={to} end={end}
+             className={({ isActive }) =>
+               `text-sm px-3 py-1 rounded-lg transition-colors ${isActive ? 'font-semibold' : 'hover:opacity-75'}`
+             }
+             style={({ isActive }) => ({
+               backgroundColor: isActive ? 'var(--color-accent)' : 'transparent',
+               color: isActive ? 'white' : 'var(--color-dark)',
+             })}>
+      {children}
+    </NavLink>
+  );
+}
 
 function Layout() {
   const navigate = useNavigate();
   const nombre = localStorage.getItem('nombre');
+  const rol = localStorage.getItem('rol');
 
   function logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('nombre');
+    localStorage.removeItem('rol');
     navigate('/login');
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 px-6 py-2 flex items-center gap-4 shadow-sm">
-        <img src={logoAta} alt="Grupo ATA" className="h-14 object-contain" />
-        <div className="flex flex-col leading-tight">
-          <span className="font-bold text-gray-800 text-base tracking-wide">Grupo ATA</span>
-          <span className="text-xs text-gray-500 uppercase tracking-widest">Recursos Humanos</span>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-cream)' }}>
+      <nav className="px-6 py-3 flex items-center gap-3 shadow-sm border-b"
+           style={{ backgroundColor: 'var(--color-primary)', borderColor: 'var(--color-sage)' }}>
+        <div className="flex flex-col leading-tight mr-4">
+          <span className="font-bold text-base tracking-wide" style={{ color: 'var(--color-dark)' }}>Elys</span>
+          <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--color-dark)', opacity: 0.6 }}>
+            Clínica de Belleza
+          </span>
         </div>
-        <div className="ml-6 flex gap-4 flex-1">
-          <NavLink to="/" end className={({ isActive }) => isActive ? 'text-blue-700 font-medium text-sm' : 'text-gray-600 hover:text-blue-700 text-sm'}>
-            Empleados
-          </NavLink>
-          <NavLink to="/pagos" className={({ isActive }) => isActive ? 'text-blue-700 font-medium text-sm' : 'text-gray-600 hover:text-blue-700 text-sm'}>
-            Pagos
-          </NavLink>
-          <NavLink to="/checador/mapeo" className={({ isActive }) => isActive ? 'text-blue-700 font-medium text-sm' : 'text-gray-600 hover:text-blue-700 text-sm'}>
-            Checador
-          </NavLink>
-          <NavLink to="/formatos" className={({ isActive }) => isActive ? 'text-blue-700 font-medium text-sm' : 'text-gray-600 hover:text-blue-700 text-sm'}>
-            Formatos
-          </NavLink>
+        <div className="flex gap-1 flex-1 flex-wrap">
+          <NavItem to="/citas">Citas</NavItem>
+          <NavItem to="/" end>Empleados</NavItem>
+          <NavItem to="/pagos">Pagos</NavItem>
+          <NavItem to="/checador/mapeo">Checador</NavItem>
+          <NavItem to="/formatos">Formatos</NavItem>
+          {rol === 'admin' && <NavItem to="/tratamientos">Tratamientos</NavItem>}
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">{nombre}</span>
-          <button onClick={logout} className="text-xs text-red-500 hover:text-red-700 border border-red-200 rounded px-2 py-1">
-            Cerrar sesión
+          <span className="text-xs" style={{ color: 'var(--color-dark)', opacity: 0.7 }}>
+            {nombre} {rol === 'admin' ? '· Admin' : '· Asistente'}
+          </span>
+          <button onClick={logout}
+                  className="text-xs border rounded px-2 py-1 transition-colors hover:opacity-75"
+                  style={{ borderColor: 'var(--color-dark)', color: 'var(--color-dark)' }}>
+            Salir
           </button>
         </div>
       </nav>
-      <main className="max-w-6xl mx-auto p-6">
+      <main className="max-w-7xl mx-auto p-6">
         <Routes>
+          <Route path="/citas" element={<CitasPage />} />
           <Route path="/" element={<EmpleadosPage />} />
           <Route path="/empleados/nuevo" element={<EmpleadoFormPage />} />
           <Route path="/empleados/:id" element={<EmpleadoDetallePage />} />
@@ -57,6 +76,7 @@ function Layout() {
           <Route path="/pagos" element={<PagosPage />} />
           <Route path="/checador/mapeo" element={<MapeoChecadorPage />} />
           <Route path="/formatos" element={<FormatosPage />} />
+          {rol === 'admin' && <Route path="/tratamientos" element={<TratamientosPage />} />}
         </Routes>
       </main>
     </div>
