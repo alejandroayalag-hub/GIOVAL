@@ -22,6 +22,9 @@ exports.createCategoria = async (req, res, next) => {
 
 exports.updateCategoria = async (req, res, next) => {
   try {
+    const { tipo } = req.body;
+    if (tipo && !['ingreso','egreso','ambos'].includes(tipo))
+      return res.status(400).json({ error: 'tipo inválido' });
     const cat = await Categoria.update(req.params.id, req.body);
     if (!cat) return res.status(404).json({ error: 'Categoría no encontrada' });
     res.json(cat);
@@ -82,6 +85,8 @@ exports.createMovimiento = async (req, res, next) => {
 
 exports.updateMovimiento = async (req, res, next) => {
   try {
+    if (req.body.monto !== undefined && parseFloat(req.body.monto) <= 0)
+      return res.status(400).json({ error: 'monto debe ser mayor a 0' });
     const existing = await Movimiento.findById(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Movimiento no encontrado' });
     if (await CorteCaja.estaCerrado(existing.fecha))
