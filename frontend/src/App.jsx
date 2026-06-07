@@ -8,6 +8,8 @@ import PagosPage from './pages/PagosPage';
 import FormatosPage from './pages/FormatosPage';
 import CitasPage from './pages/CitasPage';
 import TratamientosPage from './pages/TratamientosPage';
+import PacientesPage from './pages/PacientesPage';
+import PacienteDetallePage from './pages/PacienteDetallePage';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import logoGioval from './assets/gioval-logo.png';
@@ -52,6 +54,7 @@ function Layout() {
         <div className="flex gap-1 flex-1 flex-wrap">
           <NavItem to="/" end>Inicio</NavItem>
           <NavItem to="/citas">Citas</NavItem>
+          <NavItem to="/pacientes">Pacientes</NavItem>
           <NavItem to="/empleados">Empleados</NavItem>
           <NavItem to="/pagos">Pagos</NavItem>
           <NavItem to="/checador/mapeo">Checador</NavItem>
@@ -75,6 +78,8 @@ function Layout() {
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/citas" element={<CitasPage />} />
+          <Route path="/pacientes" element={<PacientesPage />} />
+          <Route path="/pacientes/:id" element={<PacienteDetallePage />} />
           <Route path="/empleados" element={<EmpleadosPage />} />
           <Route path="/empleados/nuevo" element={<EmpleadoFormPage />} />
           <Route path="/empleados/:id" element={<EmpleadoDetallePage />} />

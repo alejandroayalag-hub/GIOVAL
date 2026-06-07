@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getTratamientosActivos } from '../api/tratamientos';
 import { getEmpleados } from '../api/empleados';
 import { createCita, updateCita, deleteCita } from '../api/citas';
+import { buscarPacientes, getPaciente } from '../api/pacientes';
+import PacienteMiniModal from './PacienteMiniModal';
 
 const ESTATUSES = ['pendiente', 'realizada', 'cancelada'];
 
@@ -24,11 +26,29 @@ export default function CitaModal({ cita, fechaHoraInicial, empleadaIdInicial, o
   const [empleadas, setEmpleadas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [pacienteQuery, setPacienteQuery] = useState('');
+  const [pacienteSugerencias, setPacienteSugerencias] = useState([]);
+  const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
+  const [miniModal, setMiniModal] = useState(false);
+  const searchRef = useRef(null);
 
   useEffect(() => {
     getTratamientosActivos().then(setTratamientos).catch(console.error);
     getEmpleados().then(data => setEmpleadas(data.filter(e => e.estatus === 'activo'))).catch(console.error);
+    if (cita?.paciente_id) {
+      getPaciente(cita.paciente_id)
+        .then(p => setPacienteSeleccionado(p))
+        .catch(() => setPacienteQuery(cita.nombre_paciente || ''));
+    }
   }, []);
+
+  useEffect(() => {
+    if (pacienteQuery.length < 2) { setPacienteSugerencias([]); return; }
+    const timer = setTimeout(() => {
+      buscarPacientes(pacienteQuery).then(setPacienteSugerencias).catch(console.error);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [pacienteQuery]);
 
   const puedeEliminar = rol === 'admin' || cita?.estatus !== 'realizada';
   const puedeEditar = esNueva || rol === 'admin' || cita?.estatus !== 'realizada';
@@ -45,6 +65,7 @@ export default function CitaModal({ cita, fechaHoraInicial, empleadaIdInicial, o
         ...form,
         tratamiento_id: form.tratamiento_id || null,
         empleada_id: form.empleada_id || null,
+        paciente_id: pacienteSeleccionado?.id || undefined,
       };
       if (esNueva) {
         await createCita(payload);
@@ -90,13 +111,64 @@ export default function CitaModal({ cita, fechaHoraInicial, empleadaIdInicial, o
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Paciente *</label>
-            <input
-              type="text" required disabled={!puedeEditar}
-              value={form.nombre_paciente}
-              onChange={e => set('nombre_paciente', e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm disabled:bg-gray-50"
-              style={{ borderColor: 'var(--color-primary)' }}
-            />
+            <div className="relative">
+              <input
+                type="text"
+                disabled={!puedeEditar}
+                value={pacienteSeleccionado
+                  ? [pacienteSeleccionado.apellido_paterno, pacienteSeleccionado.apellido_materno, pacienteSeleccionado.nombre].filter(Boolean).join(' ')
+                  : pacienteQuery}
+                onChange={e => {
+                  setPacienteSeleccionado(null);
+                  setPacienteQuery(e.target.value);
+                }}
+                placeholder="Buscar paciente por nombre o teléfono…"
+                className="w-full border rounded-lg px-3 py-2 text-sm disabled:bg-gray-50"
+                style={{ borderColor: 'var(--color-primary)' }}
+                ref={searchRef}
+              />
+              {pacienteSeleccionado && (
+                <button type="button"
+                        onClick={() => { setPacienteSeleccionado(null); setPacienteQuery(''); }}
+                        className="absolute right-2 top-2 text-gray-400 hover:text-gray-600 text-xs">✕</button>
+              )}
+              {!pacienteSeleccionado && pacienteQuery.length >= 2 && (
+                <div className="absolute z-20 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto"
+                     style={{ borderColor: 'var(--color-sage)' }}>
+                  {pacienteSugerencias.length === 0 ? (
+                    <div className="p-3">
+                      <p className="text-xs text-gray-500 mb-2">Sin resultados para "{pacienteQuery}"</p>
+                      <button type="button"
+                              onClick={() => setMiniModal(true)}
+                              className="text-xs font-medium"
+                              style={{ color: 'var(--color-accent)' }}>
+                        + Registrar paciente nuevo
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      {pacienteSugerencias.map(p => (
+                        <button key={p.id} type="button"
+                                onClick={() => { setPacienteSeleccionado(p); setPacienteQuery(''); setPacienteSugerencias([]); }}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-0"
+                                style={{ borderColor: 'var(--color-sage)' }}>
+                          <span className="font-medium">
+                            {[p.apellido_paterno, p.apellido_materno, p.nombre].filter(Boolean).join(' ')}
+                          </span>
+                          {p.telefono && <span className="text-gray-400 text-xs ml-2">{p.telefono}</span>}
+                        </button>
+                      ))}
+                      <button type="button"
+                              onClick={() => setMiniModal(true)}
+                              className="w-full text-left px-3 py-2 text-xs"
+                              style={{ color: 'var(--color-accent)' }}>
+                        + Registrar paciente nuevo
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Teléfono</label>
@@ -187,6 +259,17 @@ export default function CitaModal({ cita, fechaHoraInicial, empleadaIdInicial, o
           </div>
         </form>
       </div>
+      {miniModal && (
+        <PacienteMiniModal
+          onClose={() => setMiniModal(false)}
+          onCreated={(p) => {
+            setPacienteSeleccionado(p);
+            setPacienteSugerencias([]);
+            setPacienteQuery('');
+            setMiniModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
