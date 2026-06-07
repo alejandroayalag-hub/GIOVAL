@@ -29,8 +29,10 @@ app.use('/api/formatos',  authMiddleware, require('./routes/formatos'));
 app.use('/api/checadas', require('./routes/checadas'));
 app.use('/api/citas',         authMiddleware, require('./routes/citas'));
 app.use('/api/tratamientos',  authMiddleware, require('./routes/tratamientos'));
-app.use('/api/pacientes',     authMiddleware, require('./routes/pacientes'));
-app.use('/api/sync',          authMiddleware, require('./routes/sync'));
+app.use('/api/pacientes',          authMiddleware, require('./routes/pacientes'));
+app.use('/api/historias-clinicas', authMiddleware, require('./routes/historias-clinicas'));
+app.use('/api/notas-visita',       authMiddleware, require('./routes/notas-visita'));
+app.use('/api/sync',               authMiddleware, require('./routes/sync'));
 
 app.use(errorHandler);
 
