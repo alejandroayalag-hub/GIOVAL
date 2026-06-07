@@ -50,22 +50,26 @@ const Paciente = {
 
   async create(data) {
     const { apellido_paterno, apellido_materno, nombre, fecha_registro, fecha_nacimiento,
-            edad, sexo, ocupacion, estado_civil, telefono, email, direccion, anotaciones, created_by } = data;
+            edad, sexo, ocupacion, estado_civil, telefono, email,
+            direccion, colonia, ciudad, codigo_postal, anotaciones, created_by } = data;
     const { rows } = await pool.query(
       `INSERT INTO pacientes
          (apellido_paterno, apellido_materno, nombre, fecha_registro, fecha_nacimiento,
-          edad, sexo, ocupacion, estado_civil, telefono, email, direccion, anotaciones, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+          edad, sexo, ocupacion, estado_civil, telefono, email,
+          direccion, colonia, ciudad, codigo_postal, anotaciones, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
        RETURNING *`,
       [apellido_paterno, apellido_materno, nombre, fecha_registro, fecha_nacimiento,
-       edad, sexo, ocupacion, estado_civil, telefono, email, direccion, anotaciones, created_by]
+       edad, sexo, ocupacion, estado_civil, telefono, email,
+       direccion, colonia, ciudad, codigo_postal, anotaciones, created_by]
     );
     return rows[0];
   },
 
   async update(id, data) {
     const { apellido_paterno, apellido_materno, nombre, fecha_registro, fecha_nacimiento,
-            edad, sexo, ocupacion, estado_civil, telefono, email, direccion, anotaciones } = data;
+            edad, sexo, ocupacion, estado_civil, telefono, email,
+            direccion, colonia, ciudad, codigo_postal, anotaciones } = data;
     const { rows } = await pool.query(
       `UPDATE pacientes SET
          apellido_paterno = COALESCE($1, apellido_paterno),
@@ -80,11 +84,23 @@ const Paciente = {
          telefono         = COALESCE($10, telefono),
          email            = COALESCE($11, email),
          direccion        = COALESCE($12, direccion),
-         anotaciones      = COALESCE($13, anotaciones),
+         colonia          = COALESCE($13, colonia),
+         ciudad           = COALESCE($14, ciudad),
+         codigo_postal    = COALESCE($15, codigo_postal),
+         anotaciones      = COALESCE($16, anotaciones),
          updated_at       = NOW()
-       WHERE id = $14 RETURNING *`,
+       WHERE id = $17 RETURNING *`,
       [apellido_paterno, apellido_materno, nombre, fecha_registro, fecha_nacimiento,
-       edad, sexo, ocupacion, estado_civil, telefono, email, direccion, anotaciones, id]
+       edad, sexo, ocupacion, estado_civil, telefono, email,
+       direccion, colonia, ciudad, codigo_postal, anotaciones, id]
+    );
+    return rows[0];
+  },
+
+  async updateFoto(id, fotoPath) {
+    const { rows } = await pool.query(
+      'UPDATE pacientes SET foto = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+      [fotoPath, id]
     );
     return rows[0];
   },

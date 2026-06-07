@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPaciente } from '../api/pacientes';
+import { getPaciente, uploadFotoPaciente } from '../api/pacientes';
 import { getHistoria } from '../api/historiasClinicas';
 import { getNotasByPaciente } from '../api/notasVisita';
 import { getConsentimiento, getFirmadosByPaciente } from '../api/consentimientos';
@@ -82,8 +82,32 @@ export default function PacienteDetallePage() {
       <div className="bg-white rounded-2xl shadow-sm border p-6 mb-6 flex items-start justify-between"
            style={{ borderColor: 'var(--color-sage)' }}>
         <div className="flex items-center gap-4">
-          <img src={logoGioval} alt="gioval" className="h-10 object-contain"
-               style={{ filter: 'brightness(0.4) sepia(1) saturate(0.5)' }} />
+          {/* Foto de paciente */}
+          <label className="relative cursor-pointer flex-shrink-0 group">
+            <div className="w-16 h-16 rounded-full overflow-hidden border-2 flex items-center justify-center bg-gray-100"
+                 style={{ borderColor: 'var(--color-sage)' }}>
+              {paciente.foto
+                ? <img src={`${import.meta.env.VITE_API_URL?.replace('/api','') || 'http://localhost:3008'}/${paciente.foto}`}
+                       alt="foto" className="w-full h-full object-cover" />
+                : <span className="text-2xl font-bold" style={{ color: 'var(--color-accent)' }}>
+                    {paciente.apellido_paterno?.[0]}{paciente.nombre?.[0]}
+                  </span>
+              }
+            </div>
+            <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+              <span className="text-white text-xs">Foto</span>
+            </div>
+            <input type="file" accept="image/*" className="hidden"
+                   onChange={async e => {
+                     const file = e.target.files?.[0];
+                     if (!file) return;
+                     try {
+                       const updated = await uploadFotoPaciente(paciente.id, file);
+                       setPaciente(p => ({ ...p, foto: updated.foto }));
+                     } catch { alert('Error al subir foto'); }
+                   }} />
+          </label>
+
           <div>
             <h1 className="text-xl font-bold" style={{ color: 'var(--color-dark)' }}>{nombreCompleto()}</h1>
             <p className="text-sm text-gray-500">
@@ -91,6 +115,11 @@ export default function PacienteDetallePage() {
               {paciente.sexo ? ` · ${paciente.sexo}` : ''}
               {paciente.ocupacion ? ` · ${paciente.ocupacion}` : ''}
             </p>
+            {(paciente.ciudad || paciente.colonia) && (
+              <p className="text-xs text-gray-400 mt-0.5">
+                {[paciente.colonia, paciente.ciudad, paciente.codigo_postal].filter(Boolean).join(' · ')}
+              </p>
+            )}
           </div>
         </div>
         <button onClick={() => setEditModal(true)}

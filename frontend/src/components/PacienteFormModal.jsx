@@ -5,7 +5,9 @@ const EMPTY = {
   apellido_paterno: '', apellido_materno: '', nombre: '',
   fecha_registro: new Date().toISOString().split('T')[0],
   fecha_nacimiento: '', edad: '', sexo: '', ocupacion: '',
-  estado_civil: '', telefono: '', email: '', direccion: '', anotaciones: '',
+  estado_civil: '', telefono: '', email: '',
+  direccion: '', colonia: '', ciudad: '', codigo_postal: '',
+  anotaciones: '',
 };
 
 export default function PacienteFormModal({ paciente, onClose, onSaved }) {
@@ -45,6 +47,8 @@ export default function PacienteFormModal({ paciente, onClose, onSaved }) {
           {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
 
           <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
+
+            {/* Datos personales */}
             {[
               ['apellido_paterno', 'Apellido paterno *', true],
               ['apellido_materno', 'Apellido materno', false],
@@ -99,10 +103,41 @@ export default function PacienteFormModal({ paciente, onClose, onSaved }) {
                      style={{ borderColor: 'var(--color-primary)' }} />
             </div>
 
+            {/* Domicilio */}
+            <div className="col-span-2 mt-1">
+              <p className="text-xs font-semibold uppercase tracking-wide mb-2"
+                 style={{ color: 'var(--color-accent)' }}>Domicilio</p>
+            </div>
+
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Dirección</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Calle y número</label>
               <input type="text" value={form.direccion}
                      onChange={e => set('direccion', e.target.value)}
+                     placeholder="Av. Ejemplo 123 Int. 4"
+                     className="w-full border rounded-lg px-3 py-2 text-sm"
+                     style={{ borderColor: 'var(--color-primary)' }} />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Colonia</label>
+              <input type="text" value={form.colonia}
+                     onChange={e => set('colonia', e.target.value)}
+                     className="w-full border rounded-lg px-3 py-2 text-sm"
+                     style={{ borderColor: 'var(--color-primary)' }} />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Ciudad</label>
+              <input type="text" value={form.ciudad}
+                     onChange={e => set('ciudad', e.target.value)}
+                     className="w-full border rounded-lg px-3 py-2 text-sm"
+                     style={{ borderColor: 'var(--color-primary)' }} />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Código postal</label>
+              <input type="text" maxLength="5" value={form.codigo_postal}
+                     onChange={e => set('codigo_postal', e.target.value)}
                      className="w-full border rounded-lg px-3 py-2 text-sm"
                      style={{ borderColor: 'var(--color-primary)' }} />
             </div>

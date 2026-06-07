@@ -1,3 +1,4 @@
+const fs = require('fs');
 const Paciente = require('../models/paciente');
 const pool = require('../db/pool');
 
@@ -46,6 +47,17 @@ exports.update = async (req, res, next) => {
     const paciente = await Paciente.update(req.params.id, req.body);
     if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' });
     res.json(paciente);
+  } catch (err) { next(err); }
+};
+
+exports.uploadFoto = async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
+    const paciente = await Paciente.findById(req.params.id);
+    if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' });
+    if (paciente.foto && fs.existsSync(paciente.foto)) fs.unlinkSync(paciente.foto);
+    const updated = await Paciente.updateFoto(req.params.id, req.file.path);
+    res.json(updated);
   } catch (err) { next(err); }
 };
 
