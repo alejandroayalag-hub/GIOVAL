@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getTratamientos, createTratamiento, updateTratamiento } from '../api/tratamientos';
+import ConsentimientoEditModal from '../components/ConsentimientoEditModal';
 
 function agrupar(items) {
   const cats = {};
@@ -21,6 +22,7 @@ export default function TratamientosPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [expandidas, setExpandidas] = useState({});
+  const [consentModal, setConsentModal] = useState(null);
 
   const cargar = () => getTratamientos().then(setItems).catch(console.error);
   useEffect(() => { cargar(); }, []);
@@ -160,6 +162,11 @@ export default function TratamientosPage() {
                                             style={{ borderColor: 'var(--color-accent)', color: 'var(--color-dark)' }}>
                                       Editar
                                     </button>
+                                    <button onClick={() => setConsentModal(t)}
+                                            className="text-xs px-2 py-1 rounded border"
+                                            style={{ borderColor: 'var(--color-sage)', color: 'var(--color-dark)' }}>
+                                      CI
+                                    </button>
                                     <button onClick={() => toggleActivo(t)}
                                             className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-400">
                                       {t.activo ? 'Off' : 'On'}
@@ -179,6 +186,13 @@ export default function TratamientosPage() {
           );
         })}
       </div>
+      {consentModal && (
+        <ConsentimientoEditModal
+          tratamiento={consentModal}
+          onClose={() => setConsentModal(null)}
+          onSaved={() => setConsentModal(null)}
+        />
+      )}
     </div>
   );
 }

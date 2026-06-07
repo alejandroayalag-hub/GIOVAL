@@ -3,9 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getPaciente } from '../api/pacientes';
 import { getHistoria } from '../api/historiasClinicas';
 import { getNotasByPaciente } from '../api/notasVisita';
+import { getConsentimiento, getFirmadosByPaciente } from '../api/consentimientos';
 import HistoriaClinicaForm from '../components/HistoriaClinicaForm';
 import NotaVisitaModal from '../components/NotaVisitaModal';
 import PacienteFormModal from '../components/PacienteFormModal';
+import ConsentimientoFirmaModal from '../components/ConsentimientoFirmaModal';
 import logoGioval from '../assets/gioval-logo.png';
 
 const ESTATUS_COLOR = {
@@ -34,18 +36,22 @@ export default function PacienteDetallePage() {
   const [notaModal, setNotaModal] = useState(null);
   const [editModal, setEditModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [consentsFirmados, setConsentsFirmados] = useState([]);
+  const [consentModal, setConsentModal] = useState(null);
 
   async function cargar() {
     setLoading(true);
     try {
-      const [p, h, n] = await Promise.all([
+      const [p, h, n, cf] = await Promise.all([
         getPaciente(id),
         getHistoria(id),
         getNotasByPaciente(id),
+        getFirmadosByPaciente(id),
       ]);
       setPaciente(p);
       setHistoria(h);
       setNotas(n);
+      setConsentsFirmados(cf);
     } catch (err) {
       console.error(err);
     } finally { setLoading(false); }
@@ -101,6 +107,9 @@ export default function PacienteDetallePage() {
         </TabBtn>
         <TabBtn active={tab === 'notas'} onClick={() => setTab('notas')}>
           Notas de Visita {notas.length ? `(${notas.length})` : ''}
+        </TabBtn>
+        <TabBtn active={tab === 'consentimientos'} onClick={() => setTab('consentimientos')}>
+          Consentimientos {consentsFirmados.length ? `(${consentsFirmados.length})` : ''}
         </TabBtn>
       </div>
 
@@ -189,6 +198,67 @@ export default function PacienteDetallePage() {
         </div>
       )}
 
+      {tab === 'consentimientos' && (
+        <div>
+          {(() => {
+            const citasRealizadas = (paciente.citas || []).filter(c => c.estatus === 'realizada');
+            const citasSinConsent = citasRealizadas.filter(c =>
+              !consentsFirmados.some(cf => cf.cita_id === c.id)
+            );
+            if (!citasSinConsent.length) return null;
+            return (
+              <div className="mb-4 p-4 rounded-xl border" style={{ borderColor: 'var(--color-sage)', backgroundColor: 'var(--color-cream)' }}>
+                <p className="text-sm font-medium mb-2" style={{ color: 'var(--color-dark)' }}>
+                  Citas sin consentimiento firmado:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {citasSinConsent.map(c => (
+                    <button key={c.id}
+                            onClick={async () => {
+                              if (!c.tratamiento_id) return;
+                              try {
+                                const consent = await getConsentimiento(c.tratamiento_id);
+                                if (consent?.id) setConsentModal({ consentimiento: consent, cita: c });
+                              } catch {}
+                            }}
+                            className="text-xs px-3 py-1.5 rounded-lg text-white"
+                            style={{ backgroundColor: 'var(--color-accent)' }}>
+                      Firmar — {c.tratamiento_nombre || 'Cita'} · {new Date(c.fecha_hora).toLocaleDateString('es-MX')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
+          {consentsFirmados.length === 0 ? (
+            <p className="text-sm text-gray-400">Sin consentimientos firmados.</p>
+          ) : (
+            <div className="space-y-3">
+              {consentsFirmados.map(cf => (
+                <div key={cf.id} className="bg-white rounded-xl border p-4"
+                     style={{ borderColor: 'var(--color-sage)' }}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: 'var(--color-dark)' }}>
+                        {cf.titulo || cf.tratamiento_nombre || 'Consentimiento'}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Firmado el {new Date(cf.fecha_firmado).toLocaleDateString('es-MX', { dateStyle: 'long' })}
+                      </p>
+                    </div>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Firmado</span>
+                  </div>
+                  <div className="mt-3 border rounded-lg p-2 inline-block" style={{ borderColor: 'var(--color-sage)' }}>
+                    <img src={cf.firma_imagen} alt="firma" className="h-12 object-contain" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {notaModal && (
         <NotaVisitaModal
           cita={notaModal.cita}
@@ -204,6 +274,16 @@ export default function PacienteDetallePage() {
           paciente={paciente}
           onClose={() => setEditModal(false)}
           onSaved={() => { setEditModal(false); cargar(); }}
+        />
+      )}
+
+      {consentModal && (
+        <ConsentimientoFirmaModal
+          consentimiento={consentModal.consentimiento}
+          paciente={paciente}
+          cita={consentModal.cita}
+          onClose={() => setConsentModal(null)}
+          onFirmado={() => { setConsentModal(null); cargar(); }}
         />
       )}
     </div>

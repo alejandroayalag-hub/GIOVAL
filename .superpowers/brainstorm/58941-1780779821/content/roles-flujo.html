@@ -1,0 +1,107 @@
+<h2>Roles y flujo de trabajo — GIOVAL</h2>
+<p class="subtitle">Confirma que el flujo y los accesos estén correctos antes de diseñar los formularios</p>
+
+<!-- FLUJO DE VISITA -->
+<div class="section">
+  <h3>Flujo de una visita</h3>
+  <div style="display:flex;align-items:stretch;gap:0;margin-top:12px;overflow-x:auto">
+
+    <div style="flex:1;min-width:160px;background:#f5f0f8;border-radius:12px 0 0 12px;padding:16px;border:2px solid #cccad8">
+      <div style="background:#887482;color:white;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:700;display:inline-block;margin-bottom:8px">RECEPCIONISTA</div>
+      <p style="font-size:13px;font-weight:600;margin:0 0 6px">Agenda & Recepción</p>
+      <ul style="font-size:12px;color:#666;padding-left:16px;margin:0;line-height:1.8">
+        <li>Agenda cita</li>
+        <li>Registra paciente nuevo</li>
+        <li>Llena datos personales</li>
+        <li>Gestiona contacto</li>
+      </ul>
+    </div>
+
+    <div style="display:flex;align-items:center;padding:0 4px;color:#aba3ba;font-size:20px">→</div>
+
+    <div style="flex:1;min-width:160px;background:#f0f5f0;border-radius:0;padding:16px;border:2px solid #ced1ca;border-left:none;border-right:none">
+      <div style="background:#7a9e8a;color:white;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:700;display:inline-block;margin-bottom:8px">ENFERMERA</div>
+      <p style="font-size:13px;font-weight:600;margin:0 0 6px">Preparación & Triage</p>
+      <ul style="font-size:12px;color:#666;padding-left:16px;margin:0;line-height:1.8">
+        <li>Recibe al paciente</li>
+        <li>Peso, talla, medidas</li>
+        <li>Signos vitales</li>
+        <li>Determina tipo ↓</li>
+      </ul>
+    </div>
+
+    <div style="display:flex;align-items:center;padding:0 4px;color:#aba3ba;font-size:20px">→</div>
+
+    <!-- BIFURCACIÓN -->
+    <div style="flex:1.5;min-width:200px;display:flex;flex-direction:column;gap:8px">
+      <div style="flex:1;background:#fdf5f0;padding:14px;border-radius:0;border:2px solid #e8c8b8;border-left:none">
+        <div style="background:#c07840;color:white;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:700;display:inline-block;margin-bottom:6px">ESTETICISTA</div>
+        <p style="font-size:12px;font-weight:600;margin:0 0 4px">Tratamiento Cosmético</p>
+        <p style="font-size:11px;color:#888;margin:0">Faciales, limpiezas, tratamientos de belleza</p>
+      </div>
+      <div style="flex:1;background:#f5f0f8;padding:14px;border-radius:0 12px 12px 0;border:2px solid #cccad8;border-left:none">
+        <div style="background:#887482;color:white;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:700;display:inline-block;margin-bottom:6px">DOCTORA + ENFERMERA</div>
+        <p style="font-size:12px;font-weight:600;margin:0 0 4px">Tratamiento Estético/Médico</p>
+        <p style="font-size:11px;color:#888;margin:0">Botox, rellenos, peeling, procedimientos</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- TABLA DE ACCESOS -->
+<div class="section">
+  <h3>Acceso por rol al expediente de paciente</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:12px">
+    <thead>
+      <tr style="background:#f5f2f0">
+        <th style="padding:10px 12px;text-align:left;border-bottom:2px solid #ced1ca">Sección</th>
+        <th style="padding:10px;text-align:center;border-bottom:2px solid #ced1ca">Recepcionista</th>
+        <th style="padding:10px;text-align:center;border-bottom:2px solid #ced1ca">Enfermera</th>
+        <th style="padding:10px;text-align:center;border-bottom:2px solid #ced1ca">Esteticista</th>
+        <th style="padding:10px;text-align:center;border-bottom:2px solid #ced1ca">Doctora / Admin</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom:1px solid #ede8e4">
+        <td style="padding:10px 12px;font-weight:600">📋 Datos personales</td>
+        <td style="text-align:center;color:#16a34a;font-size:16px">✏️ edita</td>
+        <td style="text-align:center;color:#888;font-size:16px">👁 ve</td>
+        <td style="text-align:center;color:#888;font-size:16px">👁 ve</td>
+        <td style="text-align:center;color:#16a34a;font-size:16px">✏️ edita</td>
+      </tr>
+      <tr style="border-bottom:1px solid #ede8e4;background:#fafafa">
+        <td style="padding:10px 12px;font-weight:600">📏 Signos vitales y medidas</td>
+        <td style="text-align:center;color:#ccc;font-size:16px">—</td>
+        <td style="text-align:center;color:#16a34a;font-size:16px">✏️ edita</td>
+        <td style="text-align:center;color:#888;font-size:16px">👁 ve</td>
+        <td style="text-align:center;color:#16a34a;font-size:16px">✏️ edita</td>
+      </tr>
+      <tr style="border-bottom:1px solid #ede8e4">
+        <td style="padding:10px 12px;font-weight:600">🏥 Historial médico (Dra.)</td>
+        <td style="text-align:center;color:#ccc;font-size:16px">—</td>
+        <td style="text-align:center;color:#888;font-size:16px">👁 ve</td>
+        <td style="text-align:center;color:#ccc;font-size:16px">—</td>
+        <td style="text-align:center;color:#16a34a;font-size:16px">✏️ edita</td>
+      </tr>
+      <tr style="border-bottom:1px solid #ede8e4;background:#fafafa">
+        <td style="padding:10px 12px;font-weight:600">📅 Agenda / Citas</td>
+        <td style="text-align:center;color:#16a34a;font-size:16px">✏️ edita</td>
+        <td style="text-align:center;color:#888;font-size:16px">👁 ve</td>
+        <td style="text-align:center;color:#888;font-size:16px">👁 ve</td>
+        <td style="text-align:center;color:#16a34a;font-size:16px">✏️ edita</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 12px;font-weight:600">📝 Consentimiento + Historial</td>
+        <td style="text-align:center;color:#ccc;font-size:16px">—</td>
+        <td style="text-align:center;color:#888;font-size:16px">👁 ve</td>
+        <td style="text-align:center;color:#16a34a;font-size:16px">✏️ edita (cosmético)</td>
+        <td style="text-align:center;color:#16a34a;font-size:16px">✏️ edita (todo)</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div style="margin-top:16px;padding:14px;background:#fef9f5;border-radius:12px;border:1px solid #f0e0d0;font-size:13px;color:#887482">
+  💬 <b>Dime en el chat:</b> ¿El flujo y los accesos son correctos? ¿Hay algo que cambiar? Por ejemplo: "la enfermera también puede ver el historial médico" o "la esteticista no necesita ver signos vitales"
+</div>
