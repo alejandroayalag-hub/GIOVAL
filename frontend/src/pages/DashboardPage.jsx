@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, CreditCard, Clock, FileText, Sparkles } from 'lucide-react';
+import { Calendar, Users, Sparkles, UserRound } from 'lucide-react';
 import logoGioval from '../assets/gioval-logo.png';
 
 const modulos = [
@@ -14,9 +14,19 @@ const modulos = [
     shadow: 'rgba(136,116,130,0.25)',
   },
   {
+    key: 'pacientes',
+    label: 'Pacientes',
+    desc: 'Expedientes clínicos, historia y notas de visita',
+    to: '/pacientes',
+    Icon: UserRound,
+    from: '#9a98b8',
+    to_color: '#cccad8',
+    shadow: 'rgba(154,152,184,0.25)',
+  },
+  {
     key: 'empleados',
     label: 'Empleados',
-    desc: 'Expedientes, documentos, contratos y control de personal',
+    desc: 'Expedientes, pagos, checador, formatos y control de personal',
     to: '/empleados',
     Icon: Users,
     from: '#a0b8a8',
@@ -24,39 +34,9 @@ const modulos = [
     shadow: 'rgba(160,184,168,0.25)',
   },
   {
-    key: 'pagos',
-    label: 'Pagos',
-    desc: 'Nómina, control de pagos y registros financieros',
-    to: '/pagos',
-    Icon: CreditCard,
-    from: '#9a98b8',
-    to_color: '#cccad8',
-    shadow: 'rgba(154,152,184,0.25)',
-  },
-  {
-    key: 'checador',
-    label: 'Checador',
-    desc: 'Asistencia, entradas, salidas y mapeo de dispositivos',
-    to: '/checador/mapeo',
-    Icon: Clock,
-    from: '#c4b8ae',
-    to_color: '#ded7ce',
-    shadow: 'rgba(196,184,174,0.25)',
-  },
-  {
-    key: 'formatos',
-    label: 'Formatos',
-    desc: 'Documentos oficiales, contratos y archivos del consultorio',
-    to: '/formatos',
-    Icon: FileText,
-    from: '#bfb9b3',
-    to_color: '#f5f2f0',
-    shadow: 'rgba(191,185,179,0.2)',
-  },
-  {
     key: 'tratamientos',
     label: 'Tratamientos',
-    desc: 'Catálogo de procedimientos, duración y estado',
+    desc: 'Catálogo de servicios, duración y estado',
     to: '/tratamientos',
     Icon: Sparkles,
     from: '#6a5462',
