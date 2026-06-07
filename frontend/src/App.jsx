@@ -99,12 +99,7 @@ function Layout() {
           <NavItem to="/" end>Inicio</NavItem>
           <NavItem to="/citas">Citas</NavItem>
           <NavItem to="/pacientes">Pacientes</NavItem>
-          <NavDropdown label="Empleados" basePaths={['/empleados', '/pagos', '/checador', '/formatos']}>
-            <DropItem to="/empleados">Empleados</DropItem>
-            <DropItem to="/pagos">Pagos</DropItem>
-            <DropItem to="/checador/mapeo">Checador</DropItem>
-            <DropItem to="/formatos">Formatos</DropItem>
-          </NavDropdown>
+          <NavItem to="/empleados">Empleados</NavItem>
           {rol === 'admin' && <NavItem to="/tratamientos">Tratamientos</NavItem>}
         </div>
 

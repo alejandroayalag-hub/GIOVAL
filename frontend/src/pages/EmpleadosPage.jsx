@@ -2,6 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getEmpleados } from '../api/empleados';
 
+const ACCESOS = [
+  { to: '/pagos',          label: 'Pagos',    icon: '💳' },
+  { to: '/checador/mapeo', label: 'Checador', icon: '🕐' },
+  { to: '/formatos',       label: 'Formatos', icon: '📄' },
+];
+
 const ESTATUS_COLOR = {
   activo: 'bg-green-100 text-green-800',
   inactivo: 'bg-yellow-100 text-yellow-800',
@@ -25,6 +31,16 @@ export default function EmpleadosPage() {
 
   return (
     <div>
+      <div className="flex gap-3 mb-6">
+        {ACCESOS.map(a => (
+          <Link key={a.to} to={a.to}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-colors hover:opacity-80"
+                style={{ borderColor: 'var(--color-sage)', backgroundColor: 'var(--color-primary)', color: 'var(--color-dark)' }}>
+            <span>{a.icon}</span>{a.label}
+          </Link>
+        ))}
+      </div>
+
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold text-gray-800">Empleados</h1>
         <Link to="/empleados/nuevo"
