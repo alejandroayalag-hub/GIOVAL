@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, NavLink, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
 import DashboardPage from './pages/DashboardPage';
 import EmpleadosPage from './pages/EmpleadosPage';
 import EmpleadoDetallePage from './pages/EmpleadoDetallePage';
@@ -24,6 +25,49 @@ function NavItem({ to, end, children }) {
                backgroundColor: isActive ? 'var(--color-accent)' : 'transparent',
                color: isActive ? 'white' : 'var(--color-dark)',
              })}>
+      {children}
+    </NavLink>
+  );
+}
+
+function NavDropdown({ label, basePaths, children }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const location = useLocation();
+  const isActive = basePaths.some(p => location.pathname.startsWith(p));
+
+  useEffect(() => {
+    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen(o => !o)}
+              className={`text-sm px-3 py-1 rounded-lg transition-colors flex items-center gap-1 ${isActive ? 'font-semibold' : 'hover:opacity-75'}`}
+              style={{ backgroundColor: isActive ? 'var(--color-accent)' : 'transparent', color: isActive ? 'white' : 'var(--color-dark)' }}>
+        {label}
+        <span className="text-xs opacity-70">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 bg-white rounded-xl shadow-lg border py-1 min-w-36"
+             style={{ borderColor: 'var(--color-sage)' }}
+             onClick={() => setOpen(false)}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DropItem({ to, children }) {
+  return (
+    <NavLink to={to}
+             className={({ isActive }) =>
+               `block px-4 py-2 text-sm transition-colors ${isActive ? 'font-semibold' : 'hover:opacity-75'}`
+             }
+             style={({ isActive }) => ({ color: isActive ? 'var(--color-accent)' : 'var(--color-dark)' })}>
       {children}
     </NavLink>
   );
@@ -55,10 +99,12 @@ function Layout() {
           <NavItem to="/" end>Inicio</NavItem>
           <NavItem to="/citas">Citas</NavItem>
           <NavItem to="/pacientes">Pacientes</NavItem>
-          <NavItem to="/empleados">Empleados</NavItem>
-          <NavItem to="/pagos">Pagos</NavItem>
-          <NavItem to="/checador/mapeo">Checador</NavItem>
-          <NavItem to="/formatos">Formatos</NavItem>
+          <NavDropdown label="Empleados" basePaths={['/empleados', '/pagos', '/checador', '/formatos']}>
+            <DropItem to="/empleados">Empleados</DropItem>
+            <DropItem to="/pagos">Pagos</DropItem>
+            <DropItem to="/checador/mapeo">Checador</DropItem>
+            <DropItem to="/formatos">Formatos</DropItem>
+          </NavDropdown>
           {rol === 'admin' && <NavItem to="/tratamientos">Tratamientos</NavItem>}
         </div>
 
