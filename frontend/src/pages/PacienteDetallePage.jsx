@@ -201,15 +201,15 @@ export default function PacienteDetallePage() {
       {tab === 'consentimientos' && (
         <div>
           {(() => {
-            const citasRealizadas = (paciente.citas || []).filter(c => c.estatus === 'realizada');
-            const citasSinConsent = citasRealizadas.filter(c =>
+            const citasPendientes = (paciente.citas || []).filter(c => c.estatus === 'pendiente');
+            const citasSinConsent = citasPendientes.filter(c =>
               !consentsFirmados.some(cf => cf.cita_id === c.id)
             );
             if (!citasSinConsent.length) return null;
             return (
               <div className="mb-4 p-4 rounded-xl border" style={{ borderColor: 'var(--color-sage)', backgroundColor: 'var(--color-cream)' }}>
                 <p className="text-sm font-medium mb-2" style={{ color: 'var(--color-dark)' }}>
-                  Citas sin consentimiento firmado:
+                  Firmar antes del procedimiento:
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {citasSinConsent.map(c => (
