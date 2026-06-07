@@ -26,21 +26,23 @@ const Paciente = {
   async findById(id) {
     const { rows } = await pool.query(
       `SELECT p.*,
-              json_agg(DISTINCT jsonb_build_object(
-                'id', c.id, 'fecha_hora', c.fecha_hora, 'estatus', c.estatus,
-                'tratamiento_nombre', t.nombre, 'empleada_nombre', e.nombre
-              ) ORDER BY c.fecha_hora DESC) FILTER (WHERE c.id IS NOT NULL) AS citas,
-              json_agg(DISTINCT jsonb_build_object(
-                'id', nv.id, 'cita_id', nv.cita_id, 'evolucion', nv.evolucion,
-                'diagnostico', nv.diagnostico, 'created_at', nv.created_at
-              ) ORDER BY nv.created_at DESC) FILTER (WHERE nv.id IS NOT NULL) AS notas
+        (SELECT json_agg(row_to_json(cs) ORDER BY cs.fecha_hora DESC)
+         FROM (
+           SELECT c.id, c.fecha_hora, c.estatus,
+                  t.nombre AS tratamiento_nombre, e.nombre AS empleada_nombre
+           FROM citas c
+           LEFT JOIN tratamientos t ON t.id = c.tratamiento_id
+           LEFT JOIN empleados e ON e.id = c.empleada_id
+           WHERE c.paciente_id = p.id
+         ) cs) AS citas,
+        (SELECT json_agg(row_to_json(ns) ORDER BY ns.created_at DESC)
+         FROM (
+           SELECT nv.id, nv.cita_id, nv.evolucion, nv.diagnostico, nv.created_at
+           FROM notas_visita nv
+           WHERE nv.paciente_id = p.id
+         ) ns) AS notas
        FROM pacientes p
-       LEFT JOIN citas c ON c.paciente_id = p.id
-       LEFT JOIN tratamientos t ON t.id = c.tratamiento_id
-       LEFT JOIN empleados e ON e.id = c.empleada_id
-       LEFT JOIN notas_visita nv ON nv.paciente_id = p.id
-       WHERE p.id = $1
-       GROUP BY p.id`,
+       WHERE p.id = $1`,
       [id]
     );
     return rows[0];
