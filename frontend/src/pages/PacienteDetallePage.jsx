@@ -104,12 +104,10 @@ export default function PacienteDetallePage() {
         </TabBtn>
       </div>
 
-      {tab === 'historia' && historia && (
-        <HistoriaClinicaForm
-          pacienteId={id}
-          historia={historia}
-          onSaved={setHistoria}
-        />
+      {tab === 'historia' && (
+        historia
+          ? <HistoriaClinicaForm pacienteId={id} historia={historia} onSaved={setHistoria} />
+          : <p className="text-sm text-gray-400 mt-4">No se encontró la historia clínica. Recarga la página o contacta al administrador.</p>
       )}
 
       {tab === 'citas' && (

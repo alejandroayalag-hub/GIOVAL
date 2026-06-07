@@ -10,6 +10,12 @@ const HistoriaClinica = {
   },
 
   async upsert(pacienteId, data, userId) {
+    // Garantiza que el registro exista antes de actualizar
+    await pool.query(
+      'INSERT INTO historias_clinicas (paciente_id, created_by) VALUES ($1, $2) ON CONFLICT (paciente_id) DO NOTHING',
+      [pacienteId, userId]
+    );
+
     const campos = [
       'ah_diabetes','ah_cardiopatias','ah_hematologicas','ah_hipertension',
       'ah_nefropatias','ah_oncologicos','ah_endocrinologicas','ah_otras','ah_otras_texto',

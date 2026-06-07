@@ -6,6 +6,9 @@ router.get('/', ctrl.list);
 router.post('/', ctrl.create);
 router.get('/:id', ctrl.getOne);
 router.put('/:id', ctrl.update);
-router.delete('/:id', ctrl.remove);
+router.delete('/:id', (req, res, next) => {
+  if (req.user?.rol !== 'admin') return res.status(403).json({ error: 'Solo administradores pueden eliminar pacientes' });
+  next();
+}, ctrl.remove);
 
 module.exports = router;
