@@ -35,6 +35,11 @@ app.use('/api/notas-visita',       authMiddleware, require('./routes/notas-visit
 app.use('/api/consentimientos',    authMiddleware, require('./routes/consentimientos'));
 app.use('/api/sync',               authMiddleware, require('./routes/sync'));
 
+const finanzas = require('./routes/finanzas');
+app.use('/api/categorias-movimiento', authMiddleware, finanzas.categorias);
+app.use('/api/movimientos',           authMiddleware, finanzas.movimientos);
+app.use('/api/cortes-caja',           authMiddleware, finanzas.cortes);
+
 app.use(errorHandler);
 
 runMigrations()
