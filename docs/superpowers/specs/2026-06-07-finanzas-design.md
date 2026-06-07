@@ -138,15 +138,23 @@ CREATE TABLE cortes_caja (
 ### Tab 3 — Reportes
 
 - Selector de período: mes actual, mes anterior, trimestre, rango personalizado
-- Gráfica de barras: ingresos vs egresos por mes (Recharts)
+- Gráfica de barras: ingresos vs egresos por mes (Recharts — nueva dependencia)
 - Tabla de desglose por categoría con totales del período
-- Botón "Exportar PDF" → genera PDF simple con los datos del período (usando `jsPDF` o `html2canvas`)
+- Botón "Exportar PDF" → genera PDF usando `jsPDF` + `html2canvas` (nuevas dependencias)
 
 ### Tab 4 — Categorías *(solo admin)*
 
 - Tabla: chip de color, nombre, tipo (ingreso/egreso/ambos), toggle activo/inactivo
 - Botón "Nueva categoría" → `CategoriaModal` (nombre, tipo, color picker simple)
 - Botón editar por fila
+
+---
+
+## Dependencias nuevas (frontend)
+
+```bash
+npm install recharts jspdf html2canvas
+```
 
 ---
 
