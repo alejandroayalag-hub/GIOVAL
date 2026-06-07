@@ -113,7 +113,7 @@ export default function TratamientosPage() {
 
       <div className="space-y-3">
         {Object.entries(grupos).map(([cat, subs]) => {
-          const abierta = expandidas[cat] !== false;
+          const abierta = expandidas[cat] === true;
           const totalCat = Object.values(subs).flat().length;
           const activosCat = Object.values(subs).flat().filter(t => t.activo).length;
           return (
