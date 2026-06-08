@@ -34,6 +34,7 @@ app.use('/api/historias-clinicas', authMiddleware, require('./routes/historias-c
 app.use('/api/notas-visita',       authMiddleware, require('./routes/notas-visita'));
 app.use('/api/consentimientos',    authMiddleware, require('./routes/consentimientos'));
 app.use('/api/sync',               authMiddleware, require('./routes/sync'));
+app.use('/api/usuarios',           authMiddleware, require('./routes/usuarios'));
 
 const finanzas = require('./routes/finanzas');
 app.use('/api/categorias-movimiento', authMiddleware, finanzas.categorias);
