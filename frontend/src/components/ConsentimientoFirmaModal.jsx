@@ -2,6 +2,24 @@ import { useRef, useState } from 'react';
 import SignaturePad from './SignaturePad';
 import { firmarConsentimiento } from '../api/consentimientos';
 
+function calcEdad(fechaNac) {
+  if (!fechaNac) return null;
+  const hoy = new Date();
+  const nac = new Date(fechaNac);
+  let edad = hoy.getFullYear() - nac.getFullYear();
+  if (hoy.getMonth() < nac.getMonth() || (hoy.getMonth() === nac.getMonth() && hoy.getDate() < nac.getDate())) edad--;
+  return edad;
+}
+
+function fmtFecha(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function expId(id) {
+  return String(id || 0).padStart(6, '0');
+}
+
 export default function ConsentimientoFirmaModal({ consentimiento, paciente, cita, onClose, onFirmado }) {
   const sigRef = useRef(null);
   const [loading, setLoading] = useState(false);
@@ -9,6 +27,11 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
 
   const nombreCompleto = [paciente.apellido_paterno, paciente.apellido_materno, paciente.nombre]
     .filter(Boolean).join(' ');
+
+  const domicilio = [paciente.direccion, paciente.colonia].filter(Boolean).join(', ');
+  const ciudadEstado = [paciente.ciudad, paciente.estado].filter(Boolean).join(', ');
+  const edad = calcEdad(paciente.fecha_nacimiento);
+  const procedimiento = cita?.tratamiento_nombre || '';
 
   async function handleFirmar() {
     if (sigRef.current?.isEmpty()) {
@@ -23,7 +46,7 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
         paciente_id: paciente.id,
         cita_id: cita?.id || null,
         nombre_paciente: nombreCompleto,
-        tratamiento_nombre: consentimiento.titulo || '',
+        tratamiento_nombre: procedimiento || consentimiento.titulo || '',
         firma_imagen,
       });
       onFirmado?.();
@@ -45,13 +68,53 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
             <h2 className="font-bold text-base" style={{ color: 'var(--color-dark)' }}>
               {consentimiento.titulo || 'Consentimiento Informado'}
             </h2>
-            <p className="text-xs text-gray-500 mt-0.5">{nombreCompleto}</p>
+            {procedimiento && procedimiento !== consentimiento.titulo && (
+              <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--color-accent)' }}>
+                Procedimiento: {procedimiento}
+              </p>
+            )}
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
         </div>
 
         {/* Contenido scrollable */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+
+          {/* Datos del paciente (encabezado pre-llenado) */}
+          <div className="rounded-xl border p-4 text-xs" style={{ borderColor: 'var(--color-sage)', backgroundColor: 'var(--color-cream)' }}>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-accent)' }}>
+              Datos del paciente
+            </p>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
+              <div><span className="text-gray-400">Nombre completo:</span> <span className="font-medium" style={{ color: 'var(--color-dark)' }}>{nombreCompleto}</span></div>
+              <div><span className="text-gray-400">No. Expediente:</span> <span className="font-medium" style={{ color: 'var(--color-dark)' }}>GVL-{expId(paciente.id)}</span></div>
+              <div>
+                <span className="text-gray-400">Fecha de nacimiento:</span>{' '}
+                <span className="font-medium" style={{ color: 'var(--color-dark)' }}>
+                  {fmtFecha(paciente.fecha_nacimiento)}{edad !== null ? ` (${edad} años)` : ''}
+                </span>
+              </div>
+              <div><span className="text-gray-400">Teléfono:</span> <span className="font-medium" style={{ color: 'var(--color-dark)' }}>{paciente.telefono || '—'}</span></div>
+              {paciente.email && (
+                <div className="col-span-2"><span className="text-gray-400">Correo:</span> <span className="font-medium" style={{ color: 'var(--color-dark)' }}>{paciente.email}</span></div>
+              )}
+              {domicilio && (
+                <div className="col-span-2"><span className="text-gray-400">Domicilio:</span> <span className="font-medium" style={{ color: 'var(--color-dark)' }}>{domicilio}{ciudadEstado ? `, ${ciudadEstado}` : ''}</span></div>
+              )}
+              <div className="col-span-2 mt-1 pt-1 border-t" style={{ borderColor: 'var(--color-sage)' }}>
+                <span className="text-gray-400">Médico tratante:</span>{' '}
+                <span className="font-medium" style={{ color: 'var(--color-dark)' }}>
+                  Dra. Itzel Giovanna Valencia López · Medicina Estética
+                </span>
+              </div>
+              <div className="col-span-2">
+                <span className="text-gray-400">Fecha:</span>{' '}
+                <span className="font-medium" style={{ color: 'var(--color-dark)' }}>
+                  {new Date().toLocaleDateString('es-MX', { dateStyle: 'long' })}
+                </span>
+              </div>
+            </div>
+          </div>
 
           {/* Texto del consentimiento */}
           {consentimiento.texto_consentimiento && (
@@ -69,7 +132,7 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
           {consentimiento.cuidados_pre && (
             <div className="rounded-xl p-4 border" style={{ borderColor: 'var(--color-sage)', backgroundColor: 'var(--color-cream)' }}>
               <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-accent)' }}>
-                Cuidados previos
+                Indicaciones previas al procedimiento
               </h3>
               <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
                 {consentimiento.cuidados_pre}
@@ -81,7 +144,7 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
           {consentimiento.cuidados_post && (
             <div className="rounded-xl p-4 border" style={{ borderColor: 'var(--color-sage)', backgroundColor: 'var(--color-cream)' }}>
               <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-accent)' }}>
-                Cuidados posteriores
+                Cuidados posteriores al procedimiento
               </h3>
               <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
                 {consentimiento.cuidados_post}
@@ -92,10 +155,11 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
           {/* Declaración + Firma */}
           <div className="border-t pt-4" style={{ borderColor: 'var(--color-sage)' }}>
             <p className="text-sm text-gray-600 mb-1">
-              He leído y entendido el presente consentimiento. Acepto el procedimiento de forma voluntaria.
+              Yo, <strong>{nombreCompleto}</strong>, declaro haber leído y comprendido el presente consentimiento
+              informado. Acepto de forma voluntaria el procedimiento indicado.
             </p>
             <p className="text-xs text-gray-400 mb-3">
-              Paciente: <strong>{nombreCompleto}</strong> · {new Date().toLocaleDateString('es-MX', { dateStyle: 'long' })}
+              {new Date().toLocaleDateString('es-MX', { dateStyle: 'long' })}
             </p>
 
             <SignaturePad ref={sigRef} height={180} />
