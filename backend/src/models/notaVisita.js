@@ -51,6 +51,10 @@ const NotaVisita = {
     );
     return rows[0];
   },
+
+  async remove(id) {
+    await pool.query('DELETE FROM notas_visita WHERE id = $1', [id]);
+  },
 };
 
 module.exports = NotaVisita;
