@@ -11,6 +11,7 @@ import CitasPage from './pages/CitasPage';
 import TratamientosPage from './pages/TratamientosPage';
 import PacientesPage from './pages/PacientesPage';
 import PacienteDetallePage from './pages/PacienteDetallePage';
+import FinanzasPage from './pages/FinanzasPage';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import logoGioval from './assets/gioval-logo.png';
@@ -101,6 +102,7 @@ function Layout() {
           <NavItem to="/pacientes">Pacientes</NavItem>
           <NavItem to="/empleados">Empleados</NavItem>
           {rol === 'admin' && <NavItem to="/tratamientos">Tratamientos</NavItem>}
+          {rol === 'admin' && <NavItem to="/finanzas">Finanzas</NavItem>}
         </div>
 
         <div className="flex items-center gap-3">
@@ -129,6 +131,7 @@ function Layout() {
           <Route path="/checador/mapeo" element={<MapeoChecadorPage />} />
           <Route path="/formatos" element={<FormatosPage />} />
           {rol === 'admin' && <Route path="/tratamientos" element={<TratamientosPage />} />}
+          {rol === 'admin' && <Route path="/finanzas" element={<FinanzasPage />} />}
         </Routes>
       </main>
     </div>

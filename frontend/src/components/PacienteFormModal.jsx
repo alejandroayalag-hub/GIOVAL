@@ -5,8 +5,11 @@ const EMPTY = {
   apellido_paterno: '', apellido_materno: '', nombre: '',
   fecha_registro: new Date().toISOString().split('T')[0],
   fecha_nacimiento: '', edad: '', sexo: '', ocupacion: '',
-  estado_civil: '', telefono: '', email: '',
-  direccion: '', colonia: '', ciudad: '', codigo_postal: '',
+  estado_civil: '', escolaridad: '', grupo_etnico: '',
+  telefono: '', telefono_alterno: '', email: '',
+  direccion: '', colonia: '', ciudad: '', estado: '', codigo_postal: '',
+  contacto_emergencia: '', parentesco_emergencia: '', telefono_emergencia: '',
+  referido_por: '',
   anotaciones: '',
 };
 
@@ -49,13 +52,14 @@ export default function PacienteFormModal({ paciente, onClose, onSaved }) {
           <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
 
             {/* Datos personales */}
+            {/* Datos personales */}
             {[
               ['apellido_paterno', 'Apellido paterno *', true],
               ['apellido_materno', 'Apellido materno', false],
               ['nombre', 'Nombre(s) *', true],
-              ['telefono', 'Teléfono', false],
-              ['email', 'Email', false],
-              ['ocupacion', 'Ocupación', false],
+              ['ocupacion', 'Ocupación / Profesión', false],
+              ['escolaridad', 'Escolaridad', false],
+              ['grupo_etnico', 'Grupo étnico (si aplica)', false],
             ].map(([key, label, required]) => (
               <div key={key}>
                 <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
@@ -103,6 +107,56 @@ export default function PacienteFormModal({ paciente, onClose, onSaved }) {
                      style={{ borderColor: 'var(--color-primary)' }} />
             </div>
 
+            {/* Contacto */}
+            <div className="col-span-2 mt-1">
+              <p className="text-xs font-semibold uppercase tracking-wide mb-2"
+                 style={{ color: 'var(--color-accent)' }}>Contacto</p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Teléfono principal</label>
+              <input type="text" value={form.telefono} onChange={e => set('telefono', e.target.value)}
+                     className="w-full border rounded-lg px-3 py-2 text-sm"
+                     style={{ borderColor: 'var(--color-primary)' }} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Teléfono alterno</label>
+              <input type="text" value={form.telefono_alterno} onChange={e => set('telefono_alterno', e.target.value)}
+                     className="w-full border rounded-lg px-3 py-2 text-sm"
+                     style={{ borderColor: 'var(--color-primary)' }} />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Correo electrónico</label>
+              <input type="email" value={form.email} onChange={e => set('email', e.target.value)}
+                     className="w-full border rounded-lg px-3 py-2 text-sm"
+                     style={{ borderColor: 'var(--color-primary)' }} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Contacto de emergencia</label>
+              <input type="text" value={form.contacto_emergencia} onChange={e => set('contacto_emergencia', e.target.value)}
+                     placeholder="Nombre completo"
+                     className="w-full border rounded-lg px-3 py-2 text-sm"
+                     style={{ borderColor: 'var(--color-primary)' }} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Parentesco</label>
+              <input type="text" value={form.parentesco_emergencia} onChange={e => set('parentesco_emergencia', e.target.value)}
+                     placeholder="Ej. Madre, Esposo..."
+                     className="w-full border rounded-lg px-3 py-2 text-sm"
+                     style={{ borderColor: 'var(--color-primary)' }} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Teléfono de emergencia</label>
+              <input type="text" value={form.telefono_emergencia} onChange={e => set('telefono_emergencia', e.target.value)}
+                     className="w-full border rounded-lg px-3 py-2 text-sm"
+                     style={{ borderColor: 'var(--color-primary)' }} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Referido por</label>
+              <input type="text" value={form.referido_por} onChange={e => set('referido_por', e.target.value)}
+                     className="w-full border rounded-lg px-3 py-2 text-sm"
+                     style={{ borderColor: 'var(--color-primary)' }} />
+            </div>
+
             {/* Domicilio */}
             <div className="col-span-2 mt-1">
               <p className="text-xs font-semibold uppercase tracking-wide mb-2"
@@ -127,9 +181,17 @@ export default function PacienteFormModal({ paciente, onClose, onSaved }) {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Ciudad</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Ciudad / Municipio</label>
               <input type="text" value={form.ciudad}
                      onChange={e => set('ciudad', e.target.value)}
+                     className="w-full border rounded-lg px-3 py-2 text-sm"
+                     style={{ borderColor: 'var(--color-primary)' }} />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Estado</label>
+              <input type="text" value={form.estado}
+                     onChange={e => set('estado', e.target.value)}
                      className="w-full border rounded-lg px-3 py-2 text-sm"
                      style={{ borderColor: 'var(--color-primary)' }} />
             </div>

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, Sparkles, UserRound } from 'lucide-react';
+import { Calendar, Users, Sparkles, UserRound, DollarSign } from 'lucide-react';
 import logoGioval from '../assets/gioval-logo.png';
 
 const modulos = [
@@ -42,6 +42,17 @@ const modulos = [
     from: '#6a5462',
     to_color: '#887482',
     shadow: 'rgba(106,84,98,0.25)',
+    adminOnly: true,
+  },
+  {
+    key: 'finanzas',
+    label: 'Finanzas',
+    desc: 'Ingresos, egresos y cortes de caja',
+    to: '/finanzas',
+    Icon: DollarSign,
+    from: '#4a7c6a',
+    to_color: '#7ab89a',
+    shadow: 'rgba(74,124,106,0.25)',
     adminOnly: true,
   },
 ];

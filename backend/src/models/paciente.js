@@ -49,50 +49,77 @@ const Paciente = {
   },
 
   async create(data) {
-    const { apellido_paterno, apellido_materno, nombre, fecha_registro, fecha_nacimiento,
-            edad, sexo, ocupacion, estado_civil, telefono, email,
-            direccion, colonia, ciudad, codigo_postal, anotaciones, created_by } = data;
+    const {
+      apellido_paterno, apellido_materno, nombre, fecha_registro, fecha_nacimiento,
+      edad, sexo, ocupacion, estado_civil, escolaridad, grupo_etnico,
+      telefono, telefono_alterno, email,
+      direccion, colonia, ciudad, estado, codigo_postal,
+      contacto_emergencia, parentesco_emergencia, telefono_emergencia,
+      referido_por, anotaciones, created_by
+    } = data;
     const { rows } = await pool.query(
       `INSERT INTO pacientes
          (apellido_paterno, apellido_materno, nombre, fecha_registro, fecha_nacimiento,
-          edad, sexo, ocupacion, estado_civil, telefono, email,
-          direccion, colonia, ciudad, codigo_postal, anotaciones, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+          edad, sexo, ocupacion, estado_civil, escolaridad, grupo_etnico,
+          telefono, telefono_alterno, email,
+          direccion, colonia, ciudad, estado, codigo_postal,
+          contacto_emergencia, parentesco_emergencia, telefono_emergencia,
+          referido_por, anotaciones, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)
        RETURNING *`,
       [apellido_paterno, apellido_materno, nombre, fecha_registro, fecha_nacimiento,
-       edad, sexo, ocupacion, estado_civil, telefono, email,
-       direccion, colonia, ciudad, codigo_postal, anotaciones, created_by]
+       edad, sexo, ocupacion, estado_civil, escolaridad, grupo_etnico,
+       telefono, telefono_alterno, email,
+       direccion, colonia, ciudad, estado, codigo_postal,
+       contacto_emergencia, parentesco_emergencia, telefono_emergencia,
+       referido_por, anotaciones, created_by]
     );
     return rows[0];
   },
 
   async update(id, data) {
-    const { apellido_paterno, apellido_materno, nombre, fecha_registro, fecha_nacimiento,
-            edad, sexo, ocupacion, estado_civil, telefono, email,
-            direccion, colonia, ciudad, codigo_postal, anotaciones } = data;
+    const {
+      apellido_paterno, apellido_materno, nombre, fecha_registro, fecha_nacimiento,
+      edad, sexo, ocupacion, estado_civil, escolaridad, grupo_etnico,
+      telefono, telefono_alterno, email,
+      direccion, colonia, ciudad, estado, codigo_postal,
+      contacto_emergencia, parentesco_emergencia, telefono_emergencia,
+      referido_por, anotaciones
+    } = data;
     const { rows } = await pool.query(
       `UPDATE pacientes SET
-         apellido_paterno = COALESCE($1, apellido_paterno),
-         apellido_materno = COALESCE($2, apellido_materno),
-         nombre           = COALESCE($3, nombre),
-         fecha_registro   = COALESCE($4, fecha_registro),
-         fecha_nacimiento = COALESCE($5, fecha_nacimiento),
-         edad             = COALESCE($6, edad),
-         sexo             = COALESCE($7, sexo),
-         ocupacion        = COALESCE($8, ocupacion),
-         estado_civil     = COALESCE($9, estado_civil),
-         telefono         = COALESCE($10, telefono),
-         email            = COALESCE($11, email),
-         direccion        = COALESCE($12, direccion),
-         colonia          = COALESCE($13, colonia),
-         ciudad           = COALESCE($14, ciudad),
-         codigo_postal    = COALESCE($15, codigo_postal),
-         anotaciones      = COALESCE($16, anotaciones),
-         updated_at       = NOW()
-       WHERE id = $17 RETURNING *`,
+         apellido_paterno        = COALESCE($1,  apellido_paterno),
+         apellido_materno        = COALESCE($2,  apellido_materno),
+         nombre                  = COALESCE($3,  nombre),
+         fecha_registro          = COALESCE($4,  fecha_registro),
+         fecha_nacimiento        = COALESCE($5,  fecha_nacimiento),
+         edad                    = COALESCE($6,  edad),
+         sexo                    = COALESCE($7,  sexo),
+         ocupacion               = COALESCE($8,  ocupacion),
+         estado_civil            = COALESCE($9,  estado_civil),
+         escolaridad             = COALESCE($10, escolaridad),
+         grupo_etnico            = COALESCE($11, grupo_etnico),
+         telefono                = COALESCE($12, telefono),
+         telefono_alterno        = COALESCE($13, telefono_alterno),
+         email                   = COALESCE($14, email),
+         direccion               = COALESCE($15, direccion),
+         colonia                 = COALESCE($16, colonia),
+         ciudad                  = COALESCE($17, ciudad),
+         estado                  = COALESCE($18, estado),
+         codigo_postal           = COALESCE($19, codigo_postal),
+         contacto_emergencia     = COALESCE($20, contacto_emergencia),
+         parentesco_emergencia   = COALESCE($21, parentesco_emergencia),
+         telefono_emergencia     = COALESCE($22, telefono_emergencia),
+         referido_por            = COALESCE($23, referido_por),
+         anotaciones             = COALESCE($24, anotaciones),
+         updated_at              = NOW()
+       WHERE id = $25 RETURNING *`,
       [apellido_paterno, apellido_materno, nombre, fecha_registro, fecha_nacimiento,
-       edad, sexo, ocupacion, estado_civil, telefono, email,
-       direccion, colonia, ciudad, codigo_postal, anotaciones, id]
+       edad, sexo, ocupacion, estado_civil, escolaridad, grupo_etnico,
+       telefono, telefono_alterno, email,
+       direccion, colonia, ciudad, estado, codigo_postal,
+       contacto_emergencia, parentesco_emergencia, telefono_emergencia,
+       referido_por, anotaciones, id]
     );
     return rows[0];
   },
