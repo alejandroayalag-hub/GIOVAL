@@ -21,16 +21,16 @@ const FORMA_PAGO_LABELS = { efectivo: 'Efectivo', transferencia: 'Transferencia'
 
 export default function FinanzasPage() {
   const rol = localStorage.getItem('rol');
-  const [tab, setTab]           = useState('movimientos');
-  const [categorias, setCategorias] = useState([]);
+  const [tab, setTab]               = useState('movimientos');
+  const [categorias, setCategorias]   = useState([]);
   const [movimientos, setMovimientos] = useState([]);
-  const [filtros, setFiltros]   = useState({ tipo: '', categoria_id: '', forma_pago: '', fecha_inicio: '', fecha_fin: '' });
-  const [loading, setLoading]   = useState(false);
+  const [filtros, setFiltros]         = useState({ tipo: '', categoria_id: '', forma_pago: '', fecha_inicio: '', fecha_fin: '' });
+  const [loading, setLoading]         = useState(false);
 
   // Modales
-  const [movModal, setMovModal]         = useState(null); // { tipo: 'ingreso'|'egreso', movimiento?: obj }
-  const [catModal, setCatModal]         = useState(null); // { categoria?: obj }
-  const [deletingMov, setDeletingMov]   = useState(null);
+  const [movModal, setMovModal]       = useState(null); // { tipo: 'ingreso'|'egreso', movimiento?: obj }
+  const [catModal, setCatModal]       = useState(null); // { categoria?: obj }
+  const [deletingMov, setDeletingMov] = useState(null);
 
   const cargarCategorias = () => getCategorias().then(setCategorias).catch(console.error);
   const cargarMovimientos = () => {
@@ -195,14 +195,14 @@ export default function FinanzasPage() {
                     <td className="px-4 py-2">
                       {m.categoria_nombre ? (
                         <span className="inline-flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full"
+                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                                 style={{ backgroundColor: m.categoria_color || '#887482' }} />
                           {m.categoria_nombre}
                         </span>
                       ) : <span className="text-gray-400">—</span>}
                     </td>
                     <td className="px-4 py-2 font-medium" style={{ color: 'var(--color-dark)' }}>{m.concepto}</td>
-                    <td className="px-4 py-2 text-gray-500 capitalize">{FORMA_PAGO_LABELS[m.forma_pago] || m.forma_pago}</td>
+                    <td className="px-4 py-2 text-gray-500">{FORMA_PAGO_LABELS[m.forma_pago] || m.forma_pago}</td>
                     <td className="px-4 py-2 font-semibold"
                         style={{ color: m.tipo === 'ingreso' ? '#4a7c6a' : '#c0675a' }}>
                       {fmt(m.monto)}
