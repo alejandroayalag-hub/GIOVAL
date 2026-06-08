@@ -29,6 +29,7 @@ function TabBtn({ active, onClick, children }) {
 export default function PacienteDetallePage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const rol = localStorage.getItem('rol');
   const [paciente, setPaciente] = useState(null);
   const [historia, setHistoria] = useState(null);
   const [notas, setNotas] = useState([]);
@@ -122,11 +123,13 @@ export default function PacienteDetallePage() {
             )}
           </div>
         </div>
-        <button onClick={() => setEditModal(true)}
-                className="text-sm border rounded-lg px-3 py-1"
-                style={{ borderColor: 'var(--color-primary)', color: 'var(--color-dark)' }}>
-          Editar datos
-        </button>
+        {(rol === 'admin' || rol === 'asistente_general') && (
+          <button onClick={() => setEditModal(true)}
+                  className="text-sm border rounded-lg px-3 py-1"
+                  style={{ borderColor: 'var(--color-primary)', color: 'var(--color-dark)' }}>
+            Editar datos
+          </button>
+        )}
       </div>
 
       <div className="border-b mb-6 flex gap-1" style={{ borderColor: 'var(--color-sage)' }}>
@@ -134,17 +137,21 @@ export default function PacienteDetallePage() {
         <TabBtn active={tab === 'citas'} onClick={() => setTab('citas')}>
           Citas {paciente.citas?.length ? `(${paciente.citas.length})` : ''}
         </TabBtn>
-        <TabBtn active={tab === 'notas'} onClick={() => setTab('notas')}>
-          Notas de Visita {notas.length ? `(${notas.length})` : ''}
-        </TabBtn>
-        <TabBtn active={tab === 'consentimientos'} onClick={() => setTab('consentimientos')}>
-          Consentimientos {consentsFirmados.length ? `(${consentsFirmados.length})` : ''}
-        </TabBtn>
+        {rol !== 'asistente_general' && (
+          <TabBtn active={tab === 'notas'} onClick={() => setTab('notas')}>
+            Notas de Visita {notas.length ? `(${notas.length})` : ''}
+          </TabBtn>
+        )}
+        {(rol === 'admin' || rol === 'asistente_medico') && (
+          <TabBtn active={tab === 'consentimientos'} onClick={() => setTab('consentimientos')}>
+            Consentimientos {consentsFirmados.length ? `(${consentsFirmados.length})` : ''}
+          </TabBtn>
+        )}
       </div>
 
       {tab === 'historia' && (
         historia
-          ? <HistoriaClinicaForm pacienteId={id} historia={historia} onSaved={setHistoria} />
+          ? <HistoriaClinicaForm pacienteId={id} historia={historia} onSaved={setHistoria} editableSections={rol === 'asistente_medico' ? [6, 8] : null} />
           : <p className="text-sm text-gray-400 mt-4">No se encontró la historia clínica. Recarga la página o contacta al administrador.</p>
       )}
 

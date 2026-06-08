@@ -100,8 +100,8 @@ function Layout() {
           <NavItem to="/" end>Inicio</NavItem>
           <NavItem to="/citas">Citas</NavItem>
           <NavItem to="/pacientes">Pacientes</NavItem>
-          <NavItem to="/empleados">Empleados</NavItem>
-          {rol === 'admin' && <NavItem to="/tratamientos">Tratamientos</NavItem>}
+          {rol === 'admin' && <NavItem to="/empleados">Empleados</NavItem>}
+          {(rol === 'admin' || rol === 'asistente_medico' || rol === 'cosmetista') && <NavItem to="/tratamientos">Tratamientos</NavItem>}
           {rol === 'admin' && <NavItem to="/finanzas">Finanzas</NavItem>}
         </div>
 
@@ -123,14 +123,14 @@ function Layout() {
           <Route path="/citas" element={<CitasPage />} />
           <Route path="/pacientes" element={<PacientesPage />} />
           <Route path="/pacientes/:id" element={<PacienteDetallePage />} />
-          <Route path="/empleados" element={<EmpleadosPage />} />
-          <Route path="/empleados/nuevo" element={<EmpleadoFormPage />} />
-          <Route path="/empleados/:id" element={<EmpleadoDetallePage />} />
-          <Route path="/empleados/:id/editar" element={<EmpleadoFormPage />} />
+          {rol === 'admin' && <Route path="/empleados" element={<EmpleadosPage />} />}
+          {rol === 'admin' && <Route path="/empleados/nuevo" element={<EmpleadoFormPage />} />}
+          {rol === 'admin' && <Route path="/empleados/:id" element={<EmpleadoDetallePage />} />}
+          {rol === 'admin' && <Route path="/empleados/:id/editar" element={<EmpleadoFormPage />} />}
           <Route path="/pagos" element={<PagosPage />} />
           <Route path="/checador/mapeo" element={<MapeoChecadorPage />} />
           <Route path="/formatos" element={<FormatosPage />} />
-          {rol === 'admin' && <Route path="/tratamientos" element={<TratamientosPage />} />}
+          {(rol === 'admin' || rol === 'asistente_medico' || rol === 'cosmetista') && <Route path="/tratamientos" element={<TratamientosPage />} />}
           {rol === 'admin' && <Route path="/finanzas" element={<FinanzasPage />} />}
         </Routes>
       </main>
