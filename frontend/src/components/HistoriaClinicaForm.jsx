@@ -106,7 +106,7 @@ const GLOGAU = [
 const inputCls = 'w-full border rounded-lg px-3 py-2 text-sm';
 const bStyle   = { borderColor: 'var(--color-primary)' };
 
-function Section({ title, open, onToggle, children }) {
+function Section({ title, open, onToggle, children, disabled = false }) {
   return (
     <div className="border rounded-xl overflow-hidden mb-3" style={{ borderColor: 'var(--color-sage)' }}>
       <button type="button" onClick={onToggle}
@@ -115,7 +115,11 @@ function Section({ title, open, onToggle, children }) {
         <span>{title}</span>
         <span className="text-xs">{open ? '▲' : '▼'}</span>
       </button>
-      {open && <div className="p-4">{children}</div>}
+      {open && (
+        <fieldset disabled={disabled} className={disabled ? 'opacity-60 pointer-events-none' : ''}>
+          <div className="p-4">{children}</div>
+        </fieldset>
+      )}
     </div>
   );
 }
@@ -241,7 +245,26 @@ function TratPrevTable({ tipo, rows, onChange }) {
 }
 
 // ─── Main form ────────────────────────────────────────────────────────────────
-export default function HistoriaClinicaForm({ pacienteId, historia: initial, onSaved }) {
+const CAMPOS_POR_SECCION = {
+  6: [
+    'mc_motivo_texto', 'mc_especifique',
+    'mc_envejecimiento', 'mc_manchas', 'mc_flacidez_facial', 'mc_perdida_volumen',
+    'mc_acne', 'mc_cicatrices_acne', 'mc_poros', 'mc_deshidratacion', 'mc_textura',
+    'mc_grasa_localizada', 'mc_celulitis', 'mc_estrias', 'mc_flacidez', 'mc_adiposidad',
+    'mc_perdida_peso', 'mc_control_metabolico', 'mc_obesidad', 'mc_hiperpigmentacion',
+    'mc_alopecia', 'mc_bienestar', 'mc_armonizacion', 'mc_depilacion', 'mc_mejora_piel',
+  ],
+  8: [
+    'sv_ta', 'sv_fc', 'sv_fr', 'sv_temperatura', 'sv_saturacion',
+    'sv_peso', 'sv_talla', 'sv_imc',
+    'habitus_exterior', 'fitzpatrick', 'glogau',
+    'tipo_piel', 'tipo_rostro', 'lesiones_derm', 'tipo_lesion',
+    'lesiones_descripcion', 'observaciones_generales',
+    'med_cintura', 'med_cadera', 'med_muslo', 'med_brazo',
+  ],
+};
+
+export default function HistoriaClinicaForm({ pacienteId, historia: initial, onSaved, editableSections = null }) {
   const [h, setH]     = useState(initial || {});
   const [open, setOpen] = useState({ 1: true });
   const [loading, setLoading] = useState(false);
@@ -250,6 +273,7 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
 
   const set    = (k, v) => setH(prev => ({ ...prev, [k]: v }));
   const toggle = (n)    => setOpen(prev => ({ ...prev, [n]: !prev[n] }));
+  const canEdit = (n) => editableSections === null || editableSections.includes(n);
 
   // APP helpers
   const getApp = (key) => h.app_datos?.[key] || { tiene: false, evolucion: '' };
@@ -272,10 +296,14 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
     e.preventDefault();
     setLoading(true); setError(''); setOk(false);
     try {
-      const saved = await saveHistoria(pacienteId, {
-        ...h,
-        medicamentos_actuales: meds,
-      });
+      let body = { ...h, medicamentos_actuales: meds };
+      if (editableSections !== null) {
+        const allowedFields = editableSections.flatMap(s => CAMPOS_POR_SECCION[s] || []);
+        body = Object.fromEntries(
+          Object.entries(body).filter(([k]) => allowedFields.includes(k))
+        );
+      }
+      const saved = await saveHistoria(pacienteId, body);
       setH(saved);
       setOk(true);
       if (onSaved) onSaved(saved);
@@ -288,7 +316,7 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
     <form onSubmit={handleSubmit}>
 
       {/* ── 1. Antecedentes Heredofamiliares ─────────────────────────────── */}
-      <Section title="HC-01 · 1. Antecedentes Heredofamiliares" open={!!open[1]} onToggle={() => toggle(1)}>
+      <Section title="HC-01 · 1. Antecedentes Heredofamiliares" open={!!open[1]} onToggle={() => toggle(1)} disabled={!canEdit(1)}>
         <p className="text-xs text-gray-400 mb-3">Familiares de primer grado</p>
         <div className="grid grid-cols-3 gap-2">
           {AHF_ITEMS.map(([k, label]) => (
@@ -308,7 +336,7 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
       </Section>
 
       {/* ── 2. Antecedentes Personales Patológicos ───────────────────────── */}
-      <Section title="HC-01 · 2. Antecedentes Personales Patológicos" open={!!open[2]} onToggle={() => toggle(2)}>
+      <Section title="HC-01 · 2. Antecedentes Personales Patológicos" open={!!open[2]} onToggle={() => toggle(2)} disabled={!canEdit(2)}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -352,7 +380,7 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
       </Section>
 
       {/* ── 3. Medicamentos actuales y alergias ──────────────────────────── */}
-      <Section title="HC-01 · 3. Medicamentos Actuales y Alergias" open={!!open[3]} onToggle={() => toggle(3)}>
+      <Section title="HC-01 · 3. Medicamentos Actuales y Alergias" open={!!open[3]} onToggle={() => toggle(3)} disabled={!canEdit(3)}>
         <p className="text-xs text-gray-400 mb-3">
           Incluir anticoagulantes, isotretinoína, antihipertensivos, fitoterapia, suplementos.
         </p>
@@ -368,7 +396,7 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
       </Section>
 
       {/* ── 4. Antecedentes Personales No Patológicos ────────────────────── */}
-      <Section title="HC-01 · 4. Antecedentes Personales No Patológicos" open={!!open[4]} onToggle={() => toggle(4)}>
+      <Section title="HC-01 · 4. Antecedentes Personales No Patológicos" open={!!open[4]} onToggle={() => toggle(4)} disabled={!canEdit(4)}>
         <SubHead>Actividad física</SubHead>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Tipo de ejercicio"><TI value={h.ejercicio_tipo} onChange={v => set('ejercicio_tipo', v)} /></Field>
@@ -399,7 +427,7 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
       </Section>
 
       {/* ── 5. Gineco-obstétricos ─────────────────────────────────────────── */}
-      <Section title="HC-01 · 5. Antecedentes Gineco-Obstétricos" open={!!open[5]} onToggle={() => toggle(5)}>
+      <Section title="HC-01 · 5. Antecedentes Gineco-Obstétricos" open={!!open[5]} onToggle={() => toggle(5)} disabled={!canEdit(5)}>
         <div className="grid grid-cols-3 gap-3">
           {[
             ['menarca','Menarca'], ['fum','FUM'], ['ritmo_menstrual','Ritmo menstrual'],
@@ -421,7 +449,7 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
       </Section>
 
       {/* ── 6. Motivo de consulta y objetivos (HC-02) ────────────────────── */}
-      <Section title="HC-02 · 6. Motivo de Consulta y Objetivos" open={!!open[6]} onToggle={() => toggle(6)}>
+      <Section title="HC-02 · 6. Motivo de Consulta y Objetivos" open={!!open[6]} onToggle={() => toggle(6)} disabled={!canEdit(6)}>
         <div className="mb-4">
           <Field label="Motivo de consulta en palabras del paciente">
             <TA value={h.mc_motivo_texto} onChange={v => set('mc_motivo_texto', v)} rows={3} />
@@ -454,7 +482,7 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
             set('trat_prev_corporales', TRAT_CORPORALES_NAMES.map(t => ({ tratamiento: t, producto: '', fecha: '' })));
         }
         toggle(7);
-      }}>
+      }} disabled={!canEdit(7)}>
         <SubHead>Faciales</SubHead>
         <TratPrevTable tipo="trat_prev_faciales"
                        rows={initTrat('trat_prev_faciales', TRAT_FACIALES_NAMES)}
@@ -477,7 +505,7 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
       </Section>
 
       {/* ── 8. Exploración física general (HC-02) ────────────────────────── */}
-      <Section title="HC-02 · 8. Exploración Física General" open={!!open[8]} onToggle={() => toggle(8)}>
+      <Section title="HC-02 · 8. Exploración Física General" open={!!open[8]} onToggle={() => toggle(8)} disabled={!canEdit(8)}>
         <SubHead>Signos vitales y antropometría</SubHead>
         <div className="grid grid-cols-4 gap-3 mb-4">
           {[
