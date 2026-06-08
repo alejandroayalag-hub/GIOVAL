@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getEmpleados } from '../api/empleados';
+import { getUsuarios } from '../api/usuarios';
+import UsuarioModal from '../components/usuarios/UsuarioModal';
 
 const ACCESOS = [
   { to: '/pagos',          label: 'Pagos',    icon: '💳' },
@@ -15,12 +17,18 @@ const ESTATUS_COLOR = {
 };
 
 export default function EmpleadosPage() {
+  const rol = localStorage.getItem('rol');
   const [empleados, setEmpleados] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
+  const [usuarios, setUsuarios]         = useState([]);
+  const [usuarioModal, setUsuarioModal] = useState(null); // null | {} (nuevo) | { usuario: obj } (editar)
 
   useEffect(() => {
     getEmpleados().then(setEmpleados).finally(() => setLoading(false));
+    if (rol === 'admin') {
+      getUsuarios().then(setUsuarios).catch(console.error);
+    }
   }, []);
 
   const filtrados = empleados.filter(e =>
@@ -93,6 +101,73 @@ export default function EmpleadosPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {rol === 'admin' && (
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold" style={{ color: 'var(--color-dark)' }}>
+              Usuarios del sistema
+            </h2>
+            <button onClick={() => setUsuarioModal({})}
+                    className="px-4 py-2 text-sm text-white rounded-lg font-medium"
+                    style={{ backgroundColor: 'var(--color-accent)' }}>
+              + Nuevo usuario
+            </button>
+          </div>
+          <div className="bg-white rounded-xl border overflow-hidden"
+               style={{ borderColor: 'var(--color-sage)' }}>
+            <table className="w-full text-sm">
+              <thead style={{ backgroundColor: 'var(--color-primary)' }}>
+                <tr>
+                  {['Nombre','Email','Rol','Cédula',''].map(h => (
+                    <th key={h} className="text-left px-4 py-2 text-xs font-semibold"
+                        style={{ color: 'var(--color-dark)' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {usuarios.map(u => (
+                  <tr key={u.id} className="border-t" style={{ borderColor: 'var(--color-sage)' }}>
+                    <td className="px-4 py-2 font-medium" style={{ color: 'var(--color-dark)' }}>{u.nombre}</td>
+                    <td className="px-4 py-2 text-gray-500">{u.email}</td>
+                    <td className="px-4 py-2">
+                      <span className="text-xs px-2 py-0.5 rounded-full text-white"
+                            style={{ backgroundColor: {
+                              admin: '#887482',
+                              asistente_medico: '#4a7c6a',
+                              cosmetista: '#aba3ba',
+                              asistente_general: '#6b7280',
+                            }[u.rol] || '#887482' }}>
+                        {u.rol === 'admin' ? 'Admin' :
+                         u.rol === 'asistente_medico' ? 'Asist. Médico' :
+                         u.rol === 'cosmetista' ? 'Cosmetista' : 'Asist. General'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-gray-500">{u.cedula_profesional || '—'}</td>
+                    <td className="px-4 py-2">
+                      {u.rol !== 'admin' && (
+                        <button onClick={() => setUsuarioModal({ usuario: u })}
+                                className="text-xs px-3 py-1 border rounded"
+                                style={{ borderColor: 'var(--color-sage)', color: 'var(--color-accent)' }}>
+                          Editar
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {usuarioModal !== null && (
+            <UsuarioModal
+              usuario={usuarioModal.usuario}
+              onSave={() => { setUsuarioModal(null); getUsuarios().then(setUsuarios); }}
+              onClose={() => setUsuarioModal(null)}
+            />
+          )}
         </div>
       )}
     </div>
