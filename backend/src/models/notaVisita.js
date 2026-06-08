@@ -25,14 +25,14 @@ const NotaVisita = {
 
   async create(data) {
     const { cita_id, paciente_id, evolucion, diagnostico, pronostico,
-            tratamiento_indicaciones, signos_vitales, created_by } = data;
+            tratamiento_indicaciones, signos_vitales, tipo = 'medico', created_by } = data;
     const { rows } = await pool.query(
       `INSERT INTO notas_visita
          (cita_id, paciente_id, evolucion, diagnostico, pronostico,
-          tratamiento_indicaciones, signos_vitales, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+          tratamiento_indicaciones, signos_vitales, tipo, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
       [cita_id, paciente_id, evolucion, diagnostico, pronostico,
-       tratamiento_indicaciones, signos_vitales || {}, created_by]
+       tratamiento_indicaciones, signos_vitales || {}, tipo, created_by]
     );
     return rows[0];
   },
