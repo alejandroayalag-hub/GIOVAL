@@ -18,9 +18,11 @@ function minutosDesdeInicio(fechaHora) {
 
 export default function CalendarioDia({ citas, empleadas, fecha, onSlotClick, onCitaClick }) {
   const cols = useMemo(() => {
-    if (!empleadas.length) return [{ id: null, nombre: 'Sin asignar' }];
-    return empleadas;
-  }, [empleadas]);
+    const base = empleadas.length ? empleadas : [];
+    const hayNoAsignadas = citas.some(c => !c.empleada_id);
+    if (!base.length || hayNoAsignadas) return [...base, { id: null, nombre: 'Sin asignar' }];
+    return base;
+  }, [empleadas, citas]);
 
   function handleSlotClick(empleadaId, hora) {
     const d = new Date(fecha);

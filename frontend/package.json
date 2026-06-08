@@ -30,6 +30,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
     "tailwindcss": "^4.2.2",
-    "vite": "^8.0.4"
+    "vite": "^8.0.16",
+    "vite-plugin-commonjs": "^0.10.4"
   }
 }

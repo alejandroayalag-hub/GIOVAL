@@ -57,11 +57,11 @@ exports.list = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
-    const { nombre_paciente, telefono, tratamiento_id, empleada_id, fecha_hora, notas } = req.body;
+    const { nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id, fecha_hora, notas } = req.body;
     if (!nombre_paciente || !fecha_hora) {
       return res.status(400).json({ error: 'nombre_paciente y fecha_hora son requeridos' });
     }
-    const cita = await Cita.create({ nombre_paciente, telefono, tratamiento_id, empleada_id, fecha_hora, notas, created_by: req.user.id });
+    const cita = await Cita.create({ nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id, fecha_hora, notas, created_by: req.user.id });
     res.status(201).json(cita);
     // Push a Google Calendar en background (no bloquea la respuesta al cliente)
     syncToGoogle(cita.id);

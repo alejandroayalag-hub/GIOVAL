@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { createPaciente, updatePaciente } from '../api/pacientes';
+import { useState, useEffect, useRef } from 'react';
+import { createPaciente, updatePaciente, uploadFotoPaciente } from '../api/pacientes';
 
 const EMPTY = {
   apellido_paterno: '', apellido_materno: '', nombre: '',
@@ -13,25 +13,42 @@ const EMPTY = {
   anotaciones: '',
 };
 
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3008/api').replace('/api', '');
+
 export default function PacienteFormModal({ paciente, onClose, onSaved }) {
   const [form, setForm] = useState(EMPTY);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fotoFile, setFotoFile] = useState(null);
+  const [fotoPreview, setFotoPreview] = useState(null);
+  const fotoInputRef = useRef(null);
 
   useEffect(() => {
     if (paciente) setForm({ ...EMPTY, ...paciente });
     else setForm(EMPTY);
+    setFotoFile(null);
+    setFotoPreview(null);
   }, [paciente]);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  function handleFotoChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFotoFile(file);
+    setFotoPreview(URL.createObjectURL(file));
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true); setError('');
     try {
-      const saved = paciente
+      let saved = paciente
         ? await updatePaciente(paciente.id, form)
         : await createPaciente(form);
+      if (fotoFile) {
+        saved = await uploadFotoPaciente(saved.id, fotoFile);
+      }
       onSaved(saved);
     } catch (err) {
       setError(err.response?.data?.error || 'Error al guardar');
@@ -51,7 +68,37 @@ export default function PacienteFormModal({ paciente, onClose, onSaved }) {
 
           <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
 
-            {/* Datos personales */}
+            {/* Foto */}
+            <div className="col-span-2 flex items-center gap-4 pb-3 border-b" style={{ borderColor: 'var(--color-sage)' }}>
+              <button type="button" onClick={() => fotoInputRef.current?.click()}
+                      className="relative flex-shrink-0 group focus:outline-none">
+                <div className="w-20 h-20 rounded-full overflow-hidden border-2 flex items-center justify-center bg-gray-100"
+                     style={{ borderColor: 'var(--color-sage)' }}>
+                  {fotoPreview ? (
+                    <img src={fotoPreview} alt="preview" className="w-full h-full object-cover" />
+                  ) : paciente?.foto ? (
+                    <img src={`${API_BASE}/${paciente.foto}`} alt="foto" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-3xl font-bold select-none" style={{ color: 'var(--color-accent)' }}>
+                      {form.apellido_paterno?.[0]}{form.nombre?.[0]}
+                    </span>
+                  )}
+                </div>
+                <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+              </button>
+              <div>
+                <p className="text-sm font-medium" style={{ color: 'var(--color-dark)' }}>Foto del paciente</p>
+                <p className="text-xs text-gray-400 mt-0.5">JPG o PNG · Haz clic en el círculo para seleccionar</p>
+                {fotoFile && <p className="text-xs mt-1" style={{ color: 'var(--color-accent)' }}>{fotoFile.name}</p>}
+              </div>
+              <input ref={fotoInputRef} type="file" accept="image/*" className="hidden" onChange={handleFotoChange} />
+            </div>
+
             {/* Datos personales */}
             {[
               ['apellido_paterno', 'Apellido paterno *', true],

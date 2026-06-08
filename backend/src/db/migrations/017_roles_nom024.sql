@@ -14,5 +14,5 @@ ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cedula_profesional VARCHAR(20);
 
 -- 4. Tipo de nota de visita
 ALTER TABLE notas_visita ADD COLUMN IF NOT EXISTS tipo VARCHAR(20) NOT NULL DEFAULT 'medico';
-ALTER TABLE notas_visita ADD CONSTRAINT IF NOT EXISTS notas_visita_tipo_check
+ALTER TABLE notas_visita ADD CONSTRAINT notas_visita_tipo_check
   CHECK (tipo IN ('medico', 'cosmetico'));

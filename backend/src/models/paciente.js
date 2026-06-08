@@ -28,7 +28,7 @@ const Paciente = {
       `SELECT p.*,
         (SELECT json_agg(row_to_json(cs) ORDER BY cs.fecha_hora DESC)
          FROM (
-           SELECT c.id, c.fecha_hora, c.estatus,
+           SELECT c.id, c.fecha_hora, c.estatus, c.tratamiento_id,
                   t.nombre AS tratamiento_nombre, e.nombre AS empleada_nombre
            FROM citas c
            LEFT JOIN tratamientos t ON t.id = c.tratamiento_id

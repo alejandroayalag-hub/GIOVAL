@@ -63,6 +63,10 @@ export default function CitaModal({ cita, fechaHoraInicial, empleadaIdInicial, o
     try {
       const payload = {
         ...form,
+        nombre_paciente: pacienteSeleccionado
+          ? [pacienteSeleccionado.apellido_paterno, pacienteSeleccionado.apellido_materno, pacienteSeleccionado.nombre].filter(Boolean).join(' ')
+          : form.nombre_paciente,
+        telefono: pacienteSeleccionado?.telefono || form.telefono || '',
         tratamiento_id: form.tratamiento_id || null,
         empleada_id: form.empleada_id || null,
         paciente_id: pacienteSeleccionado?.id || undefined,

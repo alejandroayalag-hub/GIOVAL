@@ -21,6 +21,7 @@ const HistoriaClinica = {
       'ah_diabetes','ah_cardiopatias','ah_hematologicas','ah_hipertension',
       'ah_nefropatias','ah_oncologicos','ah_endocrinologicas','ah_otras','ah_otras_texto',
       'ah_autoinmunes','ah_psiquiatricas_fam','ah_alergias_graves','ah_alopecia_heredit',
+      'ah_ninguna_conocida',
       // APP
       'app_datos',
       // Medicamentos

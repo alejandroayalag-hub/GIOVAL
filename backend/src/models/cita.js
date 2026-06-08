@@ -16,29 +16,30 @@ const Cita = {
   },
 
   async create(data) {
-    const { nombre_paciente, telefono, tratamiento_id, empleada_id, fecha_hora, notas, created_by } = data;
+    const { nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id, fecha_hora, notas, created_by } = data;
     const { rows } = await pool.query(
-      `INSERT INTO citas (nombre_paciente, telefono, tratamiento_id, empleada_id, fecha_hora, notas, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [nombre_paciente, telefono, tratamiento_id, empleada_id, fecha_hora, notas, created_by]
+      `INSERT INTO citas (nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id, fecha_hora, notas, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id || null, fecha_hora, notas, created_by]
     );
     return rows[0];
   },
 
   async update(id, data) {
-    const { nombre_paciente, telefono, tratamiento_id, empleada_id, fecha_hora, notas, estatus } = data;
+    const { nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id, fecha_hora, notas, estatus } = data;
     const { rows } = await pool.query(
       `UPDATE citas SET
          nombre_paciente = COALESCE($1, nombre_paciente),
          telefono        = COALESCE($2, telefono),
          tratamiento_id  = COALESCE($3, tratamiento_id),
          empleada_id     = COALESCE($4, empleada_id),
-         fecha_hora      = COALESCE($5, fecha_hora),
-         notas           = COALESCE($6, notas),
-         estatus         = COALESCE($7, estatus),
+         paciente_id     = COALESCE($5, paciente_id),
+         fecha_hora      = COALESCE($6, fecha_hora),
+         notas           = COALESCE($7, notas),
+         estatus         = COALESCE($8, estatus),
          updated_at      = NOW()
-       WHERE id = $8 RETURNING *`,
-      [nombre_paciente, telefono, tratamiento_id, empleada_id, fecha_hora, notas, estatus, id]
+       WHERE id = $9 RETURNING *`,
+      [nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id, fecha_hora, notas, estatus, id]
     );
     return rows[0];
   },

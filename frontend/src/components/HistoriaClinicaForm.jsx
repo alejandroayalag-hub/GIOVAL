@@ -15,6 +15,7 @@ const AHF_ITEMS = [
   ['ah_alergias_graves', 'Alergias graves'],
   ['ah_alopecia_heredit','Alopecia hereditaria'],
   ['ah_otras',           'Otras'],
+  ['ah_ninguna_conocida','Ninguna conocida'],
 ];
 
 // ─── APP ─────────────────────────────────────────────────────────────────────
