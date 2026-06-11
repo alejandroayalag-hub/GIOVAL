@@ -6,19 +6,24 @@ const helmet = require('helmet');
 
 const errorHandler = require('./middleware/errorHandler');
 const authMiddleware = require('./middleware/auth');
+const { requireRol } = require('./middleware/roles');
 const runMigrations = require('./db/migrate');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://62.238.3.136:8089', /^http:\/\/62\.238\.3\.136/],
+  credentials: true,
+}));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Rutas públicas
 app.use('/api/auth', require('./routes/auth'));
 app.get('/api/health', (req, res) => res.json({ ok: true }));
+app.use('/api/public', require('./routes/public'));
 
 // Rutas protegidas
 app.use('/api/empleados', authMiddleware, require('./routes/empleados'));
@@ -36,10 +41,19 @@ app.use('/api/consentimientos',    authMiddleware, require('./routes/consentimie
 app.use('/api/sync',               authMiddleware, require('./routes/sync'));
 app.use('/api/usuarios',           authMiddleware, require('./routes/usuarios'));
 
+app.use('/api/caja',         authMiddleware, require('./routes/caja'));
+app.use('/api/consultorios', authMiddleware, require('./routes/consultorios'));
+app.use('/api/flujo',        authMiddleware, require('./routes/flujo'));
+
 const finanzas = require('./routes/finanzas');
 app.use('/api/categorias-movimiento', authMiddleware, finanzas.categorias);
 app.use('/api/movimientos',           authMiddleware, finanzas.movimientos);
 app.use('/api/cortes-caja',           authMiddleware, finanzas.cortes);
+
+// Rutas admin de solicitudes de cita (landing page)
+const { listarSolicitudes, actualizarEstado } = require('./controllers/solicitudesPublicController');
+app.get('/api/solicitudes-admin', authMiddleware, requireRol('admin'), listarSolicitudes);
+app.patch('/api/solicitudes-admin/:id/estado', authMiddleware, requireRol('admin'), actualizarEstado);
 
 app.use(errorHandler);
 
