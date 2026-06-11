@@ -5,6 +5,7 @@ import { syncPull, syncPushAll, syncStatus } from '../api/sync';
 import CalendarioDia from '../components/CalendarioDia';
 import CalendarioSemana from '../components/CalendarioSemana';
 import CitaModal from '../components/CitaModal';
+import SolicitudesTab from '../components/citas/SolicitudesTab';
 
 function fechaLocal(d) {
   return d.toLocaleDateString('sv-SE');
@@ -21,6 +22,8 @@ function getLunesViernes(weekOffset) {
 }
 
 export default function CitasPage() {
+  const rol = localStorage.getItem('rol');
+  const [tab, setTab] = useState('calendario');
   const [vista, setVista] = useState('semana');
   const [fecha, setFecha] = useState(fechaLocal(new Date()));
   const [weekOffset, setWeekOffset] = useState(0);
@@ -91,8 +94,43 @@ export default function CitasPage() {
     return `${desde} — ${hasta}`;
   };
 
+  const activeTabClass = 'px-4 py-2 text-sm font-medium rounded-lg transition-colors text-white';
+  const inactiveTabClass = 'px-4 py-2 text-sm font-medium rounded-lg transition-colors border';
+
   return (
     <div>
+      {/* Tab switcher */}
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setTab('calendario')}
+          className={activeTabClass}
+          style={{
+            backgroundColor: tab === 'calendario' ? 'var(--color-accent)' : 'transparent',
+            color: tab === 'calendario' ? 'white' : 'var(--color-dark)',
+            border: tab === 'calendario' ? 'none' : '1px solid var(--color-sage)',
+          }}
+        >
+          Calendario
+        </button>
+        {rol === 'admin' && (
+          <button
+            onClick={() => setTab('solicitudes')}
+            className={activeTabClass}
+            style={{
+              backgroundColor: tab === 'solicitudes' ? 'var(--color-accent)' : 'transparent',
+              color: tab === 'solicitudes' ? 'white' : 'var(--color-dark)',
+              border: tab === 'solicitudes' ? 'none' : '1px solid var(--color-sage)',
+            }}
+          >
+            Solicitudes Landing
+          </button>
+        )}
+      </div>
+
+      {tab === 'solicitudes' ? (
+        <SolicitudesTab />
+      ) : (
+      <div>
       <div className="flex flex-wrap items-center justify-between mb-4 gap-3">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-bold" style={{ color: 'var(--color-dark)' }}>Control de Citas</h1>
@@ -207,6 +245,8 @@ export default function CitasPage() {
           onClose={() => setModal(null)}
           onSaved={handleSaved}
         />
+      )}
+      </div>
       )}
     </div>
   );
