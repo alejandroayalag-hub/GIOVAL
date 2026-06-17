@@ -35,9 +35,12 @@ app.use('/api/checadas', require('./routes/checadas'));
 app.use('/api/citas',         authMiddleware, require('./routes/citas'));
 app.use('/api/tratamientos',  authMiddleware, require('./routes/tratamientos'));
 app.use('/api/pacientes',          authMiddleware, require('./routes/pacientes'));
-app.use('/api/historias-clinicas', authMiddleware, require('./routes/historias-clinicas'));
-app.use('/api/notas-visita',       authMiddleware, require('./routes/notas-visita'));
-app.use('/api/consentimientos',    authMiddleware, require('./routes/consentimientos'));
+app.use('/api/historias-clinicas',   authMiddleware, require('./routes/historias-clinicas'));
+app.use('/api/notas-visita',         authMiddleware, require('./routes/notas-visita'));
+app.use('/api/consentimientos',      authMiddleware, require('./routes/consentimientos'));
+app.use('/api/documentos-clinicos',  authMiddleware, require('./routes/documentos-clinicos'));
+app.use('/api/fotos-cita',    authMiddleware, require('./routes/fotos-cita'));
+app.use('/api/laboratorios',  authMiddleware, require('./routes/laboratorios'));
 app.use('/api/sync',               authMiddleware, require('./routes/sync'));
 app.use('/api/usuarios',           authMiddleware, require('./routes/usuarios'));
 
