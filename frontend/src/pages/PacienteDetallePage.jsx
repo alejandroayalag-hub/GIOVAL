@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPaciente, uploadFotoPaciente } from '../api/pacientes';
+import { getFotosByCita, uploadFotoCita, deleteFotoCita, fotoUrl } from '../api/fotosCita';
 import { getHistoria } from '../api/historiasClinicas';
 import { getNotasByPaciente } from '../api/notasVisita';
 import { getConsentimiento, getFirmadosByPaciente } from '../api/consentimientos';
@@ -8,6 +9,7 @@ import HistoriaClinicaForm from '../components/HistoriaClinicaForm';
 import NotaVisitaModal from '../components/NotaVisitaModal';
 import PacienteFormModal from '../components/PacienteFormModal';
 import ConsentimientoFirmaModal from '../components/ConsentimientoFirmaModal';
+import DocumentosClinicosTab from '../components/DocumentosClinicosTab';
 import logoGioval from '../assets/gioval-logo.png';
 
 const ESTATUS_COLOR = {
@@ -39,23 +41,90 @@ export default function PacienteDetallePage() {
   const [loading, setLoading] = useState(true);
   const [consentsFirmados, setConsentsFirmados] = useState([]);
   const [consentModal, setConsentModal] = useState(null);
+  const [citaFotosOpen, setCitaFotosOpen] = useState({});
+  const [fotosByCita, setFotosByCita] = useState({});
+  const [lightbox, setLightbox] = useState(null);
 
-  async function cargar() {
-    setLoading(true);
+  async function cargar(soloMeta = false) {
+    if (!soloMeta) setLoading(true);
     try {
-      const [p, h, n, cf] = await Promise.all([
-        getPaciente(id),
-        getHistoria(id),
-        getNotasByPaciente(id),
-        getFirmadosByPaciente(id),
-      ]);
-      setPaciente(p);
-      setHistoria(h);
-      setNotas(n);
-      setConsentsFirmados(cf);
+      if (soloMeta) {
+        // Recarga ligera: solo paciente, notas y consentimientos — NO toca historia para no pisar cambios no guardados
+        const [p, n, cf] = await Promise.all([
+          getPaciente(id),
+          getNotasByPaciente(id),
+          getFirmadosByPaciente(id),
+        ]);
+        setPaciente(p);
+        setNotas(n);
+        setConsentsFirmados(cf);
+      } else {
+        const [p, h, n, cf] = await Promise.all([
+          getPaciente(id),
+          getHistoria(id),
+          getNotasByPaciente(id),
+          getFirmadosByPaciente(id),
+        ]);
+        setPaciente(p);
+        setHistoria(h);
+        setNotas(n);
+        setConsentsFirmados(cf);
+      }
     } catch (err) {
       console.error(err);
-    } finally { setLoading(false); }
+    } finally { if (!soloMeta) setLoading(false); }
+  }
+
+  async function cargarFotosCita(citaId) {
+    if (fotosByCita[citaId]) return;
+    try {
+      const data = await getFotosByCita(citaId);
+      setFotosByCita(prev => ({ ...prev, [citaId]: data }));
+    } catch (e) {
+      console.error('Error cargando fotos cita', e);
+    }
+  }
+
+  function toggleFotosCita(citaId) {
+    const abriendo = !citaFotosOpen[citaId];
+    setCitaFotosOpen(prev => ({ ...prev, [citaId]: abriendo }));
+    if (abriendo) cargarFotosCita(citaId);
+  }
+
+  async function handleUploadFoto(citaId, etapa, file) {
+    try {
+      const fd = new FormData();
+      fd.append('cita_id', citaId);
+      fd.append('paciente_id', id);
+      fd.append('etapa', etapa);
+      fd.append('archivo', file);
+      const nueva = await uploadFotoCita(fd);
+      setFotosByCita(prev => {
+        const grupo = prev[citaId] || { antes: [], durante: [], despues: [] };
+        return {
+          ...prev,
+          [citaId]: { ...grupo, [etapa]: [...(grupo[etapa] || []), nueva] },
+        };
+      });
+    } catch (e) {
+      alert(e.response?.data?.error || 'Error al subir foto');
+    }
+  }
+
+  async function handleDeleteFoto(citaId, etapa, fotoId) {
+    if (!confirm('¿Eliminar esta foto?')) return;
+    try {
+      await deleteFotoCita(fotoId);
+      setFotosByCita(prev => {
+        const grupo = prev[citaId] || { antes: [], durante: [], despues: [] };
+        return {
+          ...prev,
+          [citaId]: { ...grupo, [etapa]: grupo[etapa].filter(f => f.id !== fotoId) },
+        };
+      });
+    } catch (e) {
+      alert('Error al eliminar foto');
+    }
   }
 
   useEffect(() => { cargar(); }, [id]);
@@ -147,13 +216,20 @@ export default function PacienteDetallePage() {
             Consentimientos {consentsFirmados.length ? `(${consentsFirmados.length})` : ''}
           </TabBtn>
         )}
+        {(rol === 'admin' || rol === 'asistente_medico') && (
+          <TabBtn active={tab === 'documentos'} onClick={() => setTab('documentos')}>
+            Valoraciones y Procedimientos
+          </TabBtn>
+        )}
       </div>
 
-      {tab === 'historia' && (
-        historia
+      {/* HC siempre montada para no perder cambios no guardados al cambiar de pestaña */}
+      <div style={{ display: tab === 'historia' ? 'block' : 'none' }}>
+        {historia
           ? <HistoriaClinicaForm pacienteId={id} historia={historia} onSaved={setHistoria} editableSections={rol === 'asistente_medico' ? [6, 8] : null} />
           : <p className="text-sm text-gray-400 mt-4">No se encontró la historia clínica. Recarga la página o contacta al administrador.</p>
-      )}
+        }
+      </div>
 
       {tab === 'citas' && (
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden"
@@ -164,28 +240,103 @@ export default function PacienteDetallePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ backgroundColor: 'var(--color-primary)' }}>
-                  {['Fecha y hora','Tratamiento','Empleada','Estatus'].map(col => (
+                  {['Fecha y hora','Tratamiento','Empleada','Estatus', ...(rol === 'admin' || rol === 'asistente_medico' ? ['Fotos'] : [])].map(col => (
                     <th key={col} className="text-left px-4 py-3 text-xs font-semibold"
                         style={{ color: 'var(--color-dark)' }}>{col}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {paciente.citas.map(c => (
-                  <tr key={c.id} className="border-t" style={{ borderColor: 'var(--color-sage)' }}>
-                    <td className="px-4 py-3">
-                      {new Date(c.fecha_hora).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}
-                    </td>
-                    <td className="px-4 py-3">{c.tratamiento_nombre || '—'}</td>
-                    <td className="px-4 py-3">{c.empleada_nombre || '—'}</td>
-                    <td className="px-4 py-3">
-                      <span className="px-2 py-1 rounded-full text-xs text-white"
-                            style={{ backgroundColor: ESTATUS_COLOR[c.estatus] || '#ccc' }}>
-                        {c.estatus}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {paciente.citas.map(c => {
+                  const fotosAbiertas = citaFotosOpen[c.id];
+                  const fotosData = fotosByCita[c.id];
+                  const totalFotos = fotosData
+                    ? (fotosData.antes.length + fotosData.durante.length + fotosData.despues.length)
+                    : 0;
+                  return (
+                    <React.Fragment key={c.id}>
+                      <tr className="border-t" style={{ borderColor: 'var(--color-sage)' }}>
+                        <td className="px-4 py-3">
+                          {new Date(c.fecha_hora).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}
+                        </td>
+                        <td className="px-4 py-3">{c.tratamiento_nombre || '—'}</td>
+                        <td className="px-4 py-3">{c.empleada_nombre || '—'}</td>
+                        <td className="px-4 py-3">
+                          <span className="px-2 py-1 rounded-full text-xs text-white"
+                                style={{ backgroundColor: ESTATUS_COLOR[c.estatus] || '#ccc' }}>
+                            {c.estatus}
+                          </span>
+                        </td>
+                        {(rol === 'admin' || rol === 'asistente_medico') && (
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => toggleFotosCita(c.id)}
+                              className="text-xs px-2 py-1 rounded border transition-colors"
+                              style={{
+                                borderColor: 'var(--color-accent)',
+                                color: fotosAbiertas ? 'white' : 'var(--color-accent)',
+                                backgroundColor: fotosAbiertas ? 'var(--color-accent)' : 'transparent',
+                              }}
+                            >
+                              📷 {totalFotos > 0 ? `Fotos (${totalFotos})` : 'Fotos'}
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                      {fotosAbiertas && (rol === 'admin' || rol === 'asistente_medico') && (
+                        <tr className="border-t" style={{ borderColor: 'var(--color-sage)', backgroundColor: '#faf9fb' }}>
+                          <td colSpan={5} className="px-4 py-4">
+                            {!fotosData ? (
+                              <p className="text-xs text-gray-400">Cargando fotos…</p>
+                            ) : (
+                              <div className="grid grid-cols-3 gap-4">
+                                {['antes', 'durante', 'despues'].map(etapa => (
+                                  <div key={etapa}>
+                                    <p className="text-xs font-semibold mb-2 capitalize"
+                                       style={{ color: 'var(--color-accent)' }}>
+                                      {etapa === 'despues' ? 'Después' : etapa.charAt(0).toUpperCase() + etapa.slice(1)}
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {(fotosData[etapa] || []).map(foto => (
+                                        <div key={foto.id} className="relative group w-16 h-16 rounded overflow-hidden border"
+                                             style={{ borderColor: 'var(--color-sage)' }}>
+                                          <img
+                                            src={fotoUrl(foto.archivo)}
+                                            alt={etapa}
+                                            className="w-full h-full object-cover cursor-pointer"
+                                            onClick={() => setLightbox(fotoUrl(foto.archivo))}
+                                          />
+                                          {rol === 'admin' && (
+                                            <button
+                                              onClick={() => handleDeleteFoto(c.id, etapa, foto.id)}
+                                              className="absolute top-0 right-0 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                              ×
+                                            </button>
+                                          )}
+                                        </div>
+                                      ))}
+                                      <label className="w-16 h-16 rounded border-2 border-dashed flex items-center justify-center cursor-pointer hover:opacity-70"
+                                             style={{ borderColor: 'var(--color-accent)' }}>
+                                        <span className="text-xl" style={{ color: 'var(--color-accent)' }}>+</span>
+                                        <input type="file" accept="image/*" className="hidden"
+                                               onChange={e => {
+                                                 const file = e.target.files?.[0];
+                                                 if (file) handleUploadFoto(c.id, etapa, file);
+                                                 e.target.value = '';
+                                               }} />
+                                      </label>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -295,13 +446,17 @@ export default function PacienteDetallePage() {
         </div>
       )}
 
+      {tab === 'documentos' && (
+        <DocumentosClinicosTab pacienteId={parseInt(id)} />
+      )}
+
       {notaModal && (
         <NotaVisitaModal
           cita={notaModal.cita}
           pacienteId={parseInt(id)}
           nota={notaModal.nota}
           onClose={() => setNotaModal(null)}
-          onSaved={() => { setNotaModal(null); cargar(); }}
+          onSaved={() => { setNotaModal(null); cargar(true); }}
         />
       )}
 
@@ -309,7 +464,7 @@ export default function PacienteDetallePage() {
         <PacienteFormModal
           paciente={paciente}
           onClose={() => setEditModal(false)}
-          onSaved={() => { setEditModal(false); cargar(); }}
+          onSaved={() => { setEditModal(false); cargar(true); }}
         />
       )}
 
@@ -319,8 +474,21 @@ export default function PacienteDetallePage() {
           paciente={paciente}
           cita={consentModal.cita}
           onClose={() => setConsentModal(null)}
-          onFirmado={() => { setConsentModal(null); cargar(); }}
+          onFirmado={() => { setConsentModal(null); cargar(true); }}
         />
+      )}
+
+      {lightbox && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+             onClick={() => setLightbox(null)}>
+          <img src={lightbox} alt="foto ampliada"
+               className="max-w-full max-h-full rounded-lg shadow-2xl"
+               onClick={e => e.stopPropagation()} />
+          <button onClick={() => setLightbox(null)}
+                  className="absolute top-4 right-4 text-white text-2xl bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
+            ×
+          </button>
+        </div>
       )}
     </div>
   );
