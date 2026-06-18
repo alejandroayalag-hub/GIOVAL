@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Gioval",
+    "slug": "gioval-app",
+    "version": "1.0.0",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTabletMode": true,
+      "bundleIdentifier": "com.gioval.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Necesitamos acceso a la cámara para capturar fotos",
+        "NSLocalNetworkUsageDescription": "Necesitamos acceso a la red local"
+      }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Gioval to access your camera"
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Gioval to use Face ID"
+        }
+      ]
+    ]
+  }
+}
