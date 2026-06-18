@@ -1,8 +1,10 @@
 import { useContext, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FarmaciaContext } from '../../context/FarmaciaContext';
 import * as farmaciaAPI from '../../api/farmacia';
 
 const FarmaciaDashboard = () => {
+  const navigate = useNavigate();
   const { cajaAbierta, setCajaAbierta } = useContext(FarmaciaContext);
   const [efectivoInicial, setEfectivoInicial] = useState('');
   const [efectivoFinal, setEfectivoFinal] = useState('');
@@ -83,12 +85,12 @@ const FarmaciaDashboard = () => {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '2rem' }}>
-        <a href="#/farmacia/pos" style={{ padding: '1rem', background: '#2196F3', color: 'white', textAlign: 'center', textDecoration: 'none', borderRadius: '4px' }}>
+        <button onClick={() => navigate('/farmacia/pos')} style={{ padding: '1rem', background: '#2196F3', color: 'white', textAlign: 'center', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold' }}>
           🛒 Punto de Venta
-        </a>
-        <a href="#/farmacia/inventario" style={{ padding: '1rem', background: '#FF9800', color: 'white', textAlign: 'center', textDecoration: 'none', borderRadius: '4px' }}>
+        </button>
+        <button onClick={() => navigate('/farmacia/inventario')} style={{ padding: '1rem', background: '#FF9800', color: 'white', textAlign: 'center', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold' }}>
           📋 Inventario
-        </a>
+        </button>
       </div>
     </div>
   );
