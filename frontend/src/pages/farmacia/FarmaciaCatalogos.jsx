@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import * as pdfjs from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min?url';
 import * as farmaciaAPI from '../../api/farmacia';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 const FarmaciaCatalogos = () => {
   const [proveedores, setProveedores] = useState([]);
