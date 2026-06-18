@@ -12,8 +12,13 @@ import TratamientosPage from './pages/TratamientosPage';
 import PacientesPage from './pages/PacientesPage';
 import PacienteDetallePage from './pages/PacienteDetallePage';
 import FinanzasPage from './pages/FinanzasPage';
+import ProcedimientosPage from './pages/ProcedimientosPage';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import { FarmaciaProvider } from './context/FarmaciaContext';
+import FarmaciaDashboard from './pages/farmacia/FarmaciaDashboard';
+import FarmaciaPOS from './pages/farmacia/FarmaciaPOS';
+import FarmaciaInventario from './pages/farmacia/FarmaciaInventario';
 import logoGioval from './assets/gioval-logo.png';
 
 function NavItem({ to, end, children }) {
@@ -78,11 +83,13 @@ function Layout() {
   const navigate = useNavigate();
   const nombre = localStorage.getItem('nombre');
   const rol = localStorage.getItem('rol');
+  const puede_caja = localStorage.getItem('puede_caja') === 'true';
 
   function logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('nombre');
     localStorage.removeItem('rol');
+    localStorage.removeItem('puede_caja');
     navigate('/login');
   }
 
@@ -99,10 +106,11 @@ function Layout() {
         <div className="flex gap-1 flex-1 flex-wrap">
           <NavItem to="/" end>Inicio</NavItem>
           <NavItem to="/citas">Citas</NavItem>
+          <NavItem to="/procedimientos">En vivo</NavItem>
           <NavItem to="/pacientes">Pacientes</NavItem>
           {rol === 'admin' && <NavItem to="/empleados">Empleados</NavItem>}
           {(rol === 'admin' || rol === 'asistente_medico' || rol === 'cosmetista') && <NavItem to="/tratamientos">Tratamientos</NavItem>}
-          {rol === 'admin' && <NavItem to="/finanzas">Finanzas</NavItem>}
+          {(rol === 'admin' || puede_caja) && <NavItem to="/finanzas">Finanzas</NavItem>}
         </div>
 
         <div className="flex items-center gap-3">
@@ -121,6 +129,7 @@ function Layout() {
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/citas" element={<CitasPage />} />
+          <Route path="/procedimientos" element={<ProcedimientosPage />} />
           <Route path="/pacientes" element={<PacientesPage />} />
           <Route path="/pacientes/:id" element={<PacienteDetallePage />} />
           {rol === 'admin' && <Route path="/empleados" element={<EmpleadosPage />} />}
@@ -131,7 +140,10 @@ function Layout() {
           <Route path="/checador/mapeo" element={<MapeoChecadorPage />} />
           <Route path="/formatos" element={<FormatosPage />} />
           {(rol === 'admin' || rol === 'asistente_medico' || rol === 'cosmetista') && <Route path="/tratamientos" element={<TratamientosPage />} />}
-          {rol === 'admin' && <Route path="/finanzas" element={<FinanzasPage />} />}
+          {(rol === 'admin' || puede_caja) && <Route path="/finanzas" element={<FinanzasPage />} />}
+          <Route path="/farmacia" element={<FarmaciaDashboard />} />
+          <Route path="/farmacia/pos" element={<FarmaciaPOS />} />
+          <Route path="/farmacia/inventario" element={<FarmaciaInventario />} />
         </Routes>
       </main>
     </div>
@@ -145,7 +157,9 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/*" element={
           <ProtectedRoute>
-            <Layout />
+            <FarmaciaProvider>
+              <Layout />
+            </FarmaciaProvider>
           </ProtectedRoute>
         } />
       </Routes>
