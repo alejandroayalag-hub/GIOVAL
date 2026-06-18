@@ -80,14 +80,23 @@ const FarmaciaCatalogos = () => {
         const lineas = text.split('\n').filter(l => l.trim());
         const productos = lineas.map(linea => {
           const [codigo, nombre, precio_costo, precio_venta] = linea.split(',');
+          const pc = parseFloat(precio_costo);
+          const pv = parseFloat(precio_venta);
           return {
             codigo_proveedor: codigo?.trim() || '',
             nombre: nombre?.trim() || '',
-            precio_costo: parseFloat(precio_costo) || 0,
-            precio_venta: parseFloat(precio_venta) || 0,
-            proveedor_id: selectedProveedor?.id
+            precio_costo: isNaN(pc) ? 0 : pc,
+            precio_venta: isNaN(pv) ? 0 : pv,
+            proveedor_id: selectedProveedor?.id,
+            stock: 0,
+            stock_minimo: 5
           };
-        }).filter(p => p.nombre);
+        }).filter(p => p.nombre && p.precio_venta > 0);
+
+        if (productos.length === 0) {
+          setError('No se encontraron productos válidos. Verifica formato: código,nombre,precio_costo,precio_venta');
+          return;
+        }
 
         setProductosParseados(productos);
         setError('');
