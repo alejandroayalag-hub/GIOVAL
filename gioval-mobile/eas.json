@@ -1,0 +1,28 @@
+{
+  "cli": {
+    "version": ">= 5.0.0",
+    "promptToConfigurePushNotifications": false
+  },
+  "build": {
+    "preview": {
+      "ios": {
+        "resourceClass": "default",
+        "distribution": "internal",
+        "simulator": false
+      }
+    },
+    "production": {
+      "ios": {
+        "resourceClass": "default",
+        "distribution": "app-store"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "bundleIdentifier": "com.gioval.app"
+      }
+    }
+  }
+}
