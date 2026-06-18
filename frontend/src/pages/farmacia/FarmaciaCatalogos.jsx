@@ -155,12 +155,30 @@ const FarmaciaCatalogos = () => {
             <div style={{ background: '#f9f9f9', padding: '1rem', marginBottom: '1rem', borderRadius: '4px', border: '2px dashed #2196F3' }}>
               <h3>Subir Catálogo</h3>
               <p style={{ fontSize: '0.9rem', color: '#666' }}>Formato CSV: código,nombre,precio_costo,precio_venta</p>
-              <input
-                type="file"
-                accept=".csv,.pdf"
-                onChange={procesarArchivo}
-                style={{ marginBottom: '1rem' }}
-              />
+
+              <div style={{ marginBottom: '1rem' }}>
+                <label
+                  htmlFor="fileInput"
+                  style={{
+                    display: 'inline-block',
+                    padding: '0.75rem 1.5rem',
+                    background: '#2196F3',
+                    color: 'white',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  📁 Seleccionar Archivo CSV
+                </label>
+                <input
+                  id="fileInput"
+                  type="file"
+                  accept=".csv,.pdf"
+                  onChange={procesarArchivo}
+                  style={{ display: 'none' }}
+                />
+              </div>
 
               {productosParseados.length > 0 && (
                 <>
