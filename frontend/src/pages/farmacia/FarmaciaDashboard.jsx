@@ -84,12 +84,15 @@ const FarmaciaDashboard = () => {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginTop: '2rem' }}>
         <button onClick={() => navigate('/farmacia/pos')} style={{ padding: '1rem', background: '#2196F3', color: 'white', textAlign: 'center', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold' }}>
           🛒 Punto de Venta
         </button>
         <button onClick={() => navigate('/farmacia/inventario')} style={{ padding: '1rem', background: '#FF9800', color: 'white', textAlign: 'center', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold' }}>
           📋 Inventario
+        </button>
+        <button onClick={() => navigate('/farmacia/catalogos')} style={{ padding: '1rem', background: '#9C27B0', color: 'white', textAlign: 'center', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold' }}>
+          📚 Catálogos
         </button>
       </div>
     </div>

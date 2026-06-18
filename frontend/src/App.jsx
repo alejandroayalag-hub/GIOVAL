@@ -19,6 +19,7 @@ import { FarmaciaProvider } from './context/FarmaciaContext';
 import FarmaciaDashboard from './pages/farmacia/FarmaciaDashboard';
 import FarmaciaPOS from './pages/farmacia/FarmaciaPOS';
 import FarmaciaInventario from './pages/farmacia/FarmaciaInventario';
+import FarmaciaCatalogos from './pages/farmacia/FarmaciaCatalogos';
 import logoGioval from './assets/gioval-logo.png';
 
 function NavItem({ to, end, children }) {
@@ -144,6 +145,7 @@ function Layout() {
           <Route path="/farmacia" element={<FarmaciaDashboard />} />
           <Route path="/farmacia/pos" element={<FarmaciaPOS />} />
           <Route path="/farmacia/inventario" element={<FarmaciaInventario />} />
+          <Route path="/farmacia/catalogos" element={<FarmaciaCatalogos />} />
         </Routes>
       </main>
     </div>
