@@ -103,6 +103,113 @@ const FarmaciaCatalogos = () => {
 
       {error && <div style={{ color: '#d32f2f', padding: '1rem', background: '#ffebee', marginBottom: '1rem', borderRadius: '4px' }}>{error}</div>}
 
+      {/* Sección de Upload */}
+      <div style={{ background: '#f0f8ff', padding: '1.5rem', marginBottom: '2rem', borderRadius: '8px', border: '2px solid #2196F3' }}>
+        <h2 style={{ marginTop: 0 }}>📤 Subir Catálogo</h2>
+
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Selecciona Proveedor:</label>
+          <select
+            value={selectedProveedor?.id || ''}
+            onChange={(e) => {
+              const prov = proveedores.find(p => p.id === parseInt(e.target.value));
+              if (prov) seleccionarProveedor(prov);
+            }}
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              borderRadius: '4px',
+              border: '1px solid #ddd',
+              fontSize: '1rem'
+            }}
+          >
+            <option value="">-- Selecciona un proveedor --</option>
+            {proveedores.map(p => (
+              <option key={p.id} value={p.id}>{p.nombre}</option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ marginBottom: '1rem' }}>
+          <p style={{ fontSize: '0.9rem', color: '#666', margin: '0.5rem 0' }}>
+            <strong>Formato CSV esperado:</strong><br/>
+            código,nombre,precio_costo,precio_venta<br/>
+            <em>Ejemplo: ASPIR001,Aspirina 500mg,2.50,5.00</em>
+          </p>
+        </div>
+
+        <label
+          htmlFor="fileInput"
+          style={{
+            display: 'inline-block',
+            padding: '0.75rem 1.5rem',
+            background: '#2196F3',
+            color: 'white',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            marginRight: '1rem'
+          }}
+        >
+          📁 Seleccionar Archivo CSV
+        </label>
+        <input
+          id="fileInput"
+          type="file"
+          accept=".csv,.pdf"
+          onChange={procesarArchivo}
+          style={{ display: 'none' }}
+        />
+
+        {productosParseados.length > 0 && (
+          <>
+            <div style={{ background: '#e8f5e9', padding: '1rem', borderRadius: '4px', marginTop: '1rem', marginBottom: '1rem' }}>
+              <strong>✓ {productosParseados.length} productos listos para importar</strong>
+            </div>
+
+            <div style={{ maxHeight: '250px', overflowY: 'auto', background: 'white', padding: '1rem', borderRadius: '4px', marginBottom: '1rem', border: '1px solid #ddd' }}>
+              {productosParseados.slice(0, 15).map((p, idx) => (
+                <div key={idx} style={{ padding: '0.5rem', borderBottom: '1px solid #eee', fontSize: '0.9rem' }}>
+                  <strong>{p.nombre}</strong> ({p.codigo_proveedor}) - ${p.precio_venta}
+                </div>
+              ))}
+              {productosParseados.length > 15 && <div style={{ padding: '0.5rem', color: '#999' }}>...y {productosParseados.length - 15} más</div>}
+            </div>
+
+            <button
+              onClick={importarProductos}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: '#4CAF50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                marginRight: '0.5rem',
+                fontWeight: 'bold'
+              }}
+            >
+              ✓ Importar Productos
+            </button>
+            <button
+              onClick={() => setProductosParseados([])}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: '#f44336',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              ✕ Cancelar
+            </button>
+          </>
+        )}
+      </div>
+
+      <h2>Catálogos Registrados</h2>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
         {proveedores.length === 0 ? (
           <p style={{ color: '#999' }}>No hay proveedores registrados</p>
