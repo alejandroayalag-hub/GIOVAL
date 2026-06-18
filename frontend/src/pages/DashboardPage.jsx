@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, Sparkles, UserRound, DollarSign } from 'lucide-react';
+import { Calendar, Users, Sparkles, UserRound, DollarSign, Activity, Package } from 'lucide-react';
 import logoGioval from '../assets/gioval-logo.png';
 
 const modulos = [
@@ -53,6 +53,27 @@ const modulos = [
     from: '#4a7c6a',
     to_color: '#7ab89a',
     shadow: 'rgba(74,124,106,0.25)',
+    adminOnly: true,
+  },
+  {
+    key: 'procedimientos',
+    label: 'En vivo',
+    desc: 'Seguimiento del flujo de pacientes en tiempo real',
+    to: '/procedimientos',
+    Icon: Activity,
+    from: '#7a6ab0',
+    to_color: '#aba3ba',
+    shadow: 'rgba(122,106,176,0.25)',
+  },
+  {
+    key: 'farmacia',
+    label: 'Farmacia',
+    desc: 'Inventario, punto de venta y reportes',
+    to: '/farmacia',
+    Icon: Package,
+    from: '#8b6f47',
+    to_color: '#c4a876',
+    shadow: 'rgba(139,111,71,0.25)',
     adminOnly: true,
   },
 ];
