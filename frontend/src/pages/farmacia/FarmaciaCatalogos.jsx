@@ -1,9 +1,5 @@
 import { useState, useEffect } from 'react';
-import * as pdfjs from 'pdfjs-dist';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min?url';
 import * as farmaciaAPI from '../../api/farmacia';
-
-pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 const FarmaciaCatalogos = () => {
   const [proveedores, setProveedores] = useState([]);
@@ -55,20 +51,6 @@ const FarmaciaCatalogos = () => {
     }
   };
 
-  const extraerTextoDePDF = async (file) => {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjs.getDocument(arrayBuffer).promise;
-    let texto = '';
-
-    for (let i = 0; i < pdf.numPages; i++) {
-      const page = await pdf.getPage(i + 1);
-      const textContent = await page.getTextContent();
-      texto += textContent.items.map(item => item.str).join(' ') + '\n';
-    }
-
-    return texto;
-  };
-
   const procesarArchivo = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -91,30 +73,39 @@ const FarmaciaCatalogos = () => {
         setProductosParseados(productos);
         setError('');
       } else if (file.name.endsWith('.pdf')) {
-        setError('Extrayendo texto del PDF...');
-        const texto = await extraerTextoDePDF(file);
+        setError('⏳ Procesando PDF...');
 
-        // Buscar patrones numéricos que podrían ser precios
-        // Formato esperado: nombre precio_costo precio_venta
-        const lineas = texto.split('\n').filter(l => l.trim());
+        // Convertir PDF a texto usando una técnica simple
+        const arrayBuffer = await file.arrayBuffer();
+        // Extraer texto de forma simple del PDF (sin worker)
+        const text = new TextDecoder().decode(arrayBuffer);
+
+        // Buscar patrones de líneas con números
+        const lineas = text.split(/[\r\n]+/).filter(l => l.trim());
         const productos = [];
+        let contador = 0;
 
         for (const linea of lineas) {
-          // Buscar líneas con números (posibles precios)
+          if (linea.length < 5) continue;
+
           const numeros = linea.match(/\d+\.?\d*/g) || [];
           if (numeros.length >= 2) {
             const precioVenta = parseFloat(numeros[numeros.length - 1]);
             const precioCosto = parseFloat(numeros[numeros.length - 2]) || precioVenta * 0.4;
-            const nombre = linea.replace(/\d+\.?\d*/g, '').trim();
+            let nombre = linea.replace(/\d+\.?\d*/g, '').trim();
 
-            if (nombre.length > 2 && precioVenta > 0) {
+            // Limpiar nombre
+            nombre = nombre.replace(/[^a-zA-Z0-9áéíóúñ\s%\(\)]/g, '').trim();
+
+            if (nombre.length > 3 && precioVenta > 0 && contador < 100) {
               productos.push({
-                codigo_proveedor: `PDF-${productos.length}`,
+                codigo_proveedor: `PDF-${contador + 1}`,
                 nombre: nombre.substring(0, 100),
-                precio_costo: precioCosto,
-                precio_venta: precioVenta,
+                precio_costo: Math.round(precioCosto * 100) / 100,
+                precio_venta: Math.round(precioVenta * 100) / 100,
                 proveedor_id: selectedProveedor?.id
               });
+              contador++;
             }
           }
         }
@@ -123,7 +114,7 @@ const FarmaciaCatalogos = () => {
           setProductosParseados(productos);
           setError(`✓ Se extrajeron ${productos.length} productos del PDF`);
         } else {
-          setError('No se pudieron extraer productos del PDF. Intenta con CSV.');
+          setError('No se pudieron extraer productos. Asegúrate que el PDF sea de texto (no imagen). Intenta con CSV.');
         }
       } else {
         setError('Solo se aceptan archivos .csv o .pdf');
