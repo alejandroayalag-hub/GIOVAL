@@ -112,6 +112,7 @@ function Layout() {
           {rol === 'admin' && <NavItem to="/empleados">Empleados</NavItem>}
           {(rol === 'admin' || rol === 'asistente_medico' || rol === 'cosmetista') && <NavItem to="/tratamientos">Tratamientos</NavItem>}
           {(rol === 'admin' || puede_caja) && <NavItem to="/finanzas">Finanzas</NavItem>}
+          {rol === 'admin' && <NavItem to="/farmacia">Farmacia</NavItem>}
         </div>
 
         <div className="flex items-center gap-3">
