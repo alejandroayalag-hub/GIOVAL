@@ -9,6 +9,8 @@ const FarmaciaCatalogos = () => {
   const [error, setError] = useState('');
   const [mostrarUpload, setMostrarUpload] = useState(false);
   const [productosParseados, setProductosParseados] = useState([]);
+  const [mostrarNuevoProveedor, setMostrarNuevoProveedor] = useState(false);
+  const [nuevoProveedor, setNuevoProveedor] = useState('');
 
   useEffect(() => {
     cargarProveedores();
@@ -17,9 +19,26 @@ const FarmaciaCatalogos = () => {
   const cargarProveedores = async () => {
     try {
       const res = await farmaciaAPI.getProveedores();
-      setProveedores(res);
+      setProveedores(res || []);
     } catch (err) {
       setError('Error al cargar proveedores');
+    }
+  };
+
+  const crearProveedor = async () => {
+    if (!nuevoProveedor.trim()) {
+      setError('Escribe el nombre del proveedor');
+      return;
+    }
+    try {
+      await farmaciaAPI.createProveedor({ nombre: nuevoProveedor });
+      setNuevoProveedor('');
+      setMostrarNuevoProveedor(false);
+      setError('');
+      await cargarProveedores();
+      alert('Proveedor creado exitosamente');
+    } catch (err) {
+      setError('Error: ' + err.message);
     }
   };
 
@@ -257,11 +276,31 @@ const FarmaciaCatalogos = () => {
       </div>
 
       <h2>Catálogos Registrados</h2>
+      {mostrarNuevoProveedor && (
+        <div style={{ background: '#f0f8ff', padding: '1rem', marginBottom: '2rem', borderRadius: '8px', border: '2px solid #2196F3' }}>
+          <h3>Crear Nuevo Proveedor</h3>
+          <input
+            type="text"
+            value={nuevoProveedor}
+            onChange={(e) => setNuevoProveedor(e.target.value)}
+            placeholder="Nombre del proveedor"
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ddd', marginBottom: '1rem' }}
+            onKeyPress={(e) => e.key === 'Enter' && crearProveedor()}
+          />
+          <button onClick={crearProveedor} style={{ padding: '0.75rem 1rem', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', marginRight: '0.5rem', cursor: 'pointer' }}>✓ Crear</button>
+          <button onClick={() => setMostrarNuevoProveedor(false)} style={{ padding: '0.75rem 1rem', background: '#ccc', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
         {proveedores.length === 0 ? (
-          <p style={{ color: '#999' }}>No hay proveedores registrados</p>
+          <div>
+            <p style={{ color: '#999' }}>No hay proveedores registrados</p>
+            <button onClick={() => setMostrarNuevoProveedor(true)} style={{ padding: '0.5rem 1rem', background: '#2196F3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>+ Crear proveedor</button>
+          </div>
         ) : (
-          proveedores.map(prov => (
+          <>
+            {proveedores.map(prov => (
             <button
               key={prov.id}
               onClick={() => seleccionarProveedor(prov)}
@@ -283,6 +322,23 @@ const FarmaciaCatalogos = () => {
               </div>
             </button>
           ))
+}
+            <button
+              onClick={() => setMostrarNuevoProveedor(true)}
+              style={{
+                padding: '1.5rem',
+                background: '#e8f5e9',
+                color: '#4CAF50',
+                border: '2px dashed #4CAF50',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                textAlign: 'center',
+                fontWeight: 'bold'
+              }}
+            >
+              + Nuevo Proveedor
+            </button>
+          </>
         )}
       </div>
 
