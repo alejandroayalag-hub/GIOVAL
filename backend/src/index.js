@@ -48,6 +48,9 @@ app.use('/api/caja',         authMiddleware, require('./routes/caja'));
 app.use('/api/consultorios', authMiddleware, require('./routes/consultorios'));
 app.use('/api/flujo',        authMiddleware, require('./routes/flujo'));
 
+// Módulo Farmacia
+app.use('/api/farmacia', authMiddleware, require('./routes/farmacia'));
+
 const finanzas = require('./routes/finanzas');
 app.use('/api/categorias-movimiento', authMiddleware, finanzas.categorias);
 app.use('/api/movimientos',           authMiddleware, finanzas.movimientos);
