@@ -7,6 +7,8 @@ const FarmaciaCatalogos = () => {
   const [productosProveedor, setProductosProveedor] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [mostrarUpload, setMostrarUpload] = useState(false);
+  const [productosParseados, setProductosParseados] = useState([]);
 
   useEffect(() => {
     cargarProveedores();
@@ -49,6 +51,52 @@ const FarmaciaCatalogos = () => {
     }
   };
 
+  const procesarArchivo = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.name.endsWith('.csv')) {
+      const text = await file.text();
+      const lineas = text.split('\n').filter(l => l.trim());
+      const productos = lineas.map(linea => {
+        const [codigo, nombre, precio_costo, precio_venta] = linea.split(',');
+        return {
+          codigo_proveedor: codigo?.trim() || '',
+          nombre: nombre?.trim() || '',
+          precio_costo: parseFloat(precio_costo) || 0,
+          precio_venta: parseFloat(precio_venta) || 0,
+          proveedor_id: selectedProveedor?.id
+        };
+      }).filter(p => p.nombre);
+
+      setProductosParseados(productos);
+      setError('');
+    } else if (file.name.endsWith('.pdf')) {
+      alert('Para PDF, por favor usa formato CSV.\nFormato esperado:\ncódigo,nombre,precio_costo,precio_venta');
+    } else {
+      setError('Solo se aceptan archivos .csv o .pdf');
+    }
+  };
+
+  const importarProductos = async () => {
+    if (!selectedProveedor) {
+      setError('Selecciona un proveedor primero');
+      return;
+    }
+
+    try {
+      for (const prod of productosParseados) {
+        await farmaciaAPI.createProducto(prod);
+      }
+      alert(`${productosParseados.length} productos importados exitosamente`);
+      setProductosParseados([]);
+      setMostrarUpload(false);
+      seleccionarProveedor(selectedProveedor);
+    } catch (err) {
+      setError('Error al importar: ' + err.message);
+    }
+  };
+
   return (
     <div style={{ padding: '1rem' }}>
       <h1>Catálogos de Proveedores</h1>
@@ -86,7 +134,80 @@ const FarmaciaCatalogos = () => {
 
       {selectedProveedor && (
         <div style={{ background: 'white', padding: '1.5rem', borderRadius: '8px' }}>
-          <h2>Catálogo: {selectedProveedor.nombre}</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2>Catálogo: {selectedProveedor.nombre}</h2>
+            <button
+              onClick={() => setMostrarUpload(!mostrarUpload)}
+              style={{
+                padding: '0.5rem 1rem',
+                background: '#FF9800',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              📤 {mostrarUpload ? 'Cerrar' : 'Subir Catálogo'}
+            </button>
+          </div>
+
+          {mostrarUpload && (
+            <div style={{ background: '#f9f9f9', padding: '1rem', marginBottom: '1rem', borderRadius: '4px', border: '2px dashed #2196F3' }}>
+              <h3>Subir Catálogo</h3>
+              <p style={{ fontSize: '0.9rem', color: '#666' }}>Formato CSV: código,nombre,precio_costo,precio_venta</p>
+              <input
+                type="file"
+                accept=".csv,.pdf"
+                onChange={procesarArchivo}
+                style={{ marginBottom: '1rem' }}
+              />
+
+              {productosParseados.length > 0 && (
+                <>
+                  <div style={{ background: '#e8f5e9', padding: '1rem', borderRadius: '4px', marginBottom: '1rem' }}>
+                    <strong>✓ {productosParseados.length} productos listos para importar</strong>
+                  </div>
+
+                  <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '1rem' }}>
+                    {productosParseados.slice(0, 10).map((p, idx) => (
+                      <div key={idx} style={{ padding: '0.5rem', borderBottom: '1px solid #ddd', fontSize: '0.9rem' }}>
+                        {p.nombre} - ${p.precio_venta}
+                      </div>
+                    ))}
+                    {productosParseados.length > 10 && <div style={{ padding: '0.5rem', color: '#999' }}>...y {productosParseados.length - 10} más</div>}
+                  </div>
+
+                  <button
+                    onClick={importarProductos}
+                    style={{
+                      padding: '0.75rem 1rem',
+                      background: '#4CAF50',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      marginRight: '0.5rem'
+                    }}
+                  >
+                    ✓ Importar Productos
+                  </button>
+                  <button
+                    onClick={() => setProductosParseados([])}
+                    style={{
+                      padding: '0.75rem 1rem',
+                      background: '#f44336',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ✕ Cancelar
+                  </button>
+                </>
+              )}
+            </div>
+          )}
 
           {loading && <p>Cargando productos...</p>}
 
