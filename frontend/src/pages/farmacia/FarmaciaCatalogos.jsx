@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
+import * as pdfjs from 'pdfjs-dist';
 import * as farmaciaAPI from '../../api/farmacia';
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 const FarmaciaCatalogos = () => {
   const [proveedores, setProveedores] = useState([]);
@@ -51,30 +54,81 @@ const FarmaciaCatalogos = () => {
     }
   };
 
+  const extraerTextoDePDF = async (file) => {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjs.getDocument(arrayBuffer).promise;
+    let texto = '';
+
+    for (let i = 0; i < pdf.numPages; i++) {
+      const page = await pdf.getPage(i + 1);
+      const textContent = await page.getTextContent();
+      texto += textContent.items.map(item => item.str).join(' ') + '\n';
+    }
+
+    return texto;
+  };
+
   const procesarArchivo = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.name.endsWith('.csv')) {
-      const text = await file.text();
-      const lineas = text.split('\n').filter(l => l.trim());
-      const productos = lineas.map(linea => {
-        const [codigo, nombre, precio_costo, precio_venta] = linea.split(',');
-        return {
-          codigo_proveedor: codigo?.trim() || '',
-          nombre: nombre?.trim() || '',
-          precio_costo: parseFloat(precio_costo) || 0,
-          precio_venta: parseFloat(precio_venta) || 0,
-          proveedor_id: selectedProveedor?.id
-        };
-      }).filter(p => p.nombre);
+    try {
+      if (file.name.endsWith('.csv')) {
+        const text = await file.text();
+        const lineas = text.split('\n').filter(l => l.trim());
+        const productos = lineas.map(linea => {
+          const [codigo, nombre, precio_costo, precio_venta] = linea.split(',');
+          return {
+            codigo_proveedor: codigo?.trim() || '',
+            nombre: nombre?.trim() || '',
+            precio_costo: parseFloat(precio_costo) || 0,
+            precio_venta: parseFloat(precio_venta) || 0,
+            proveedor_id: selectedProveedor?.id
+          };
+        }).filter(p => p.nombre);
 
-      setProductosParseados(productos);
-      setError('');
-    } else if (file.name.endsWith('.pdf')) {
-      alert('Para PDF, por favor usa formato CSV.\nFormato esperado:\ncódigo,nombre,precio_costo,precio_venta');
-    } else {
-      setError('Solo se aceptan archivos .csv o .pdf');
+        setProductosParseados(productos);
+        setError('');
+      } else if (file.name.endsWith('.pdf')) {
+        setError('Extrayendo texto del PDF...');
+        const texto = await extraerTextoDePDF(file);
+
+        // Buscar patrones numéricos que podrían ser precios
+        // Formato esperado: nombre precio_costo precio_venta
+        const lineas = texto.split('\n').filter(l => l.trim());
+        const productos = [];
+
+        for (const linea of lineas) {
+          // Buscar líneas con números (posibles precios)
+          const numeros = linea.match(/\d+\.?\d*/g) || [];
+          if (numeros.length >= 2) {
+            const precioVenta = parseFloat(numeros[numeros.length - 1]);
+            const precioCosto = parseFloat(numeros[numeros.length - 2]) || precioVenta * 0.4;
+            const nombre = linea.replace(/\d+\.?\d*/g, '').trim();
+
+            if (nombre.length > 2 && precioVenta > 0) {
+              productos.push({
+                codigo_proveedor: `PDF-${productos.length}`,
+                nombre: nombre.substring(0, 100),
+                precio_costo: precioCosto,
+                precio_venta: precioVenta,
+                proveedor_id: selectedProveedor?.id
+              });
+            }
+          }
+        }
+
+        if (productos.length > 0) {
+          setProductosParseados(productos);
+          setError(`✓ Se extrajeron ${productos.length} productos del PDF`);
+        } else {
+          setError('No se pudieron extraer productos del PDF. Intenta con CSV.');
+        }
+      } else {
+        setError('Solo se aceptan archivos .csv o .pdf');
+      }
+    } catch (err) {
+      setError('Error al procesar archivo: ' + err.message);
     }
   };
 
@@ -132,9 +186,10 @@ const FarmaciaCatalogos = () => {
 
         <div style={{ marginBottom: '1rem' }}>
           <p style={{ fontSize: '0.9rem', color: '#666', margin: '0.5rem 0' }}>
-            <strong>Formato CSV esperado:</strong><br/>
-            código,nombre,precio_costo,precio_venta<br/>
-            <em>Ejemplo: ASPIR001,Aspirina 500mg,2.50,5.00</em>
+            <strong>Formatos aceptados:</strong><br/>
+            <strong>CSV:</strong> código,nombre,precio_costo,precio_venta<br/>
+            <em>Ejemplo: ASPIR001,Aspirina 500mg,2.50,5.00</em><br/><br/>
+            <strong>PDF:</strong> Se extraerá el texto automáticamente
           </p>
         </div>
 
@@ -151,7 +206,7 @@ const FarmaciaCatalogos = () => {
             marginRight: '1rem'
           }}
         >
-          📁 Seleccionar Archivo CSV
+          📁 Seleccionar Archivo (CSV o PDF)
         </label>
         <input
           id="fileInput"
