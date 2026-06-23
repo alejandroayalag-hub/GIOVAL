@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { getPaciente, uploadFotoPaciente } from '../api/pacientes';
 import { getFotosByCita, uploadFotoCita, deleteFotoCita, fotoUrl } from '../api/fotosCita';
 import { getHistoria } from '../api/historiasClinicas';
 import { getNotasByPaciente } from '../api/notasVisita';
-import { getConsentimiento, getFirmadosByPaciente } from '../api/consentimientos';
+import { getConsentimiento, getConsentimientoGeneral, getFirmadosByPaciente } from '../api/consentimientos';
 import HistoriaClinicaForm from '../components/HistoriaClinicaForm';
 import NotaVisitaModal from '../components/NotaVisitaModal';
 import PacienteFormModal from '../components/PacienteFormModal';
@@ -33,11 +33,12 @@ function TabBtn({ active, onClick, children }) {
 export default function PacienteDetallePage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const rol = localStorage.getItem('rol');
   const [paciente, setPaciente] = useState(null);
   const [historia, setHistoria] = useState(null);
   const [notas, setNotas] = useState([]);
-  const [tab, setTab] = useState('historia');
+  const [tab, setTab] = useState(location.state?.tab || 'historia');
   const [notaModal, setNotaModal] = useState(null);
   const [editModal, setEditModal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -398,6 +399,33 @@ export default function PacienteDetallePage() {
 
       {tab === 'consentimientos' && (
         <div>
+          {(() => {
+            const titulos = { 'CI-00': 'Aviso de Privacidad', 'CI-01': 'Carta Compromiso del Paciente' };
+            const generalesFaltantes = ['CI-00', 'CI-01'].filter(
+              cod => !consentsFirmados.some(cf => cf.codigo === cod)
+            );
+            if (!generalesFaltantes.length) return null;
+            const codigo = generalesFaltantes[0];
+            return (
+              <div className="mb-4 p-4 rounded-xl border-2" style={{ borderColor: 'var(--color-accent)', backgroundColor: 'var(--color-cream)' }}>
+                <p className="text-sm font-medium mb-2" style={{ color: 'var(--color-dark)' }}>
+                  {titulos[codigo]} pendiente{generalesFaltantes.length > 1 ? ` (y ${generalesFaltantes.length - 1} más)` : ''}
+                </p>
+                <button
+                  onClick={async () => {
+                    try {
+                      const consent = await getConsentimientoGeneral(codigo);
+                      if (consent?.id) setConsentModal({ consentimiento: consent, cita: null });
+                    } catch {}
+                  }}
+                  className="text-xs px-3 py-1.5 rounded-lg text-white"
+                  style={{ backgroundColor: 'var(--color-accent)' }}>
+                  Firmar ahora
+                </button>
+              </div>
+            );
+          })()}
+
           {(() => {
             const citasPendientes = (paciente.citas || []).filter(c => c.estatus === 'pendiente');
             const citasSinConsent = citasPendientes.filter(c =>

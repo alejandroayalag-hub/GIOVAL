@@ -87,7 +87,7 @@ export default function PacientesPage() {
       {modal && (
         <PacienteFormModal
           onClose={() => setModal(false)}
-          onSaved={() => { setModal(false); cargar(); }}
+          onSaved={(saved) => navigate(`/pacientes/${saved.id}`, { state: { tab: 'consentimientos' } })}
         />
       )}
     </div>
