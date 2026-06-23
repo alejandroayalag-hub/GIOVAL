@@ -24,6 +24,8 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
   const sigRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [autorizaFotos, setAutorizaFotos] = useState(null);
+  const requiereFotos = consentimiento.codigo === 'CI-01';
 
   const nombreCompleto = [paciente.apellido_paterno, paciente.apellido_materno, paciente.nombre]
     .filter(Boolean).join(' ');
@@ -34,6 +36,10 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
   const procedimiento = cita?.tratamiento_nombre || '';
 
   async function handleFirmar() {
+    if (requiereFotos && autorizaFotos === null) {
+      setError('Selecciona una opción de autorización de fotografías.');
+      return;
+    }
     if (sigRef.current?.isEmpty()) {
       setError('Por favor dibuje la firma antes de continuar.');
       return;
@@ -48,6 +54,7 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
         nombre_paciente: nombreCompleto,
         tratamiento_nombre: procedimiento || consentimiento.titulo || '',
         firma_imagen,
+        autoriza_fotos: requiereFotos ? autorizaFotos : null,
       });
       onFirmado?.();
       onClose();
@@ -149,6 +156,26 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
               <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
                 {consentimiento.cuidados_post}
               </p>
+            </div>
+          )}
+
+          {requiereFotos && (
+            <div className="rounded-xl border p-4" style={{ borderColor: 'var(--color-sage)' }}>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-accent)' }}>
+                Autorización de fotografía clínica
+              </p>
+              <div className="space-y-2 text-sm text-gray-700">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="autorizaFotos" checked={autorizaFotos === true}
+                         onChange={() => setAutorizaFotos(true)} />
+                  Autorizo el uso de mis fotografías clínicas para fines académicos y/o difusión en redes sociales
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="autorizaFotos" checked={autorizaFotos === false}
+                         onChange={() => setAutorizaFotos(false)} />
+                  NO autorizo
+                </label>
+              </div>
             </div>
           )}
 
