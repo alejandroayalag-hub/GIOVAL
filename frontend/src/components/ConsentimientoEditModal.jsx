@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
-import { getConsentimiento, saveConsentimiento } from '../api/consentimientos';
+import { getConsentimiento, saveConsentimiento, getConsentimientoGeneral, saveConsentimientoGeneral } from '../api/consentimientos';
 
-export default function ConsentimientoEditModal({ tratamiento, onClose, onSaved }) {
+export default function ConsentimientoEditModal({ tratamiento, general, onClose, onSaved }) {
+  const esGeneral = !!general;
+  const titulo = esGeneral ? general.titulo : tratamiento.nombre;
+
   const [form, setForm] = useState({
     titulo: '',
     texto_consentimiento: '',
@@ -16,17 +19,19 @@ export default function ConsentimientoEditModal({ tratamiento, onClose, onSaved 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   useEffect(() => {
-    getConsentimiento(tratamiento.id)
+    const fetcher = esGeneral ? getConsentimientoGeneral(general.codigo) : getConsentimiento(tratamiento.id);
+    fetcher
       .then(d => { if (d?.id) setForm({ titulo: d.titulo || '', texto_consentimiento: d.texto_consentimiento || '', cuidados_pre: d.cuidados_pre || '', cuidados_post: d.cuidados_post || '', activo: d.activo ?? true }); })
       .catch(() => {})
       .finally(() => setFetching(false));
-  }, [tratamiento.id]);
+  }, [esGeneral, general?.codigo, tratamiento?.id]);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true); setError('');
     try {
-      await saveConsentimiento(tratamiento.id, form);
+      if (esGeneral) await saveConsentimientoGeneral(general.codigo, form);
+      else await saveConsentimiento(tratamiento.id, form);
       onSaved?.();
       onClose();
     } catch (err) {
@@ -41,7 +46,7 @@ export default function ConsentimientoEditModal({ tratamiento, onClose, onSaved 
         <div className="p-5 border-b flex justify-between items-start" style={{ borderColor: 'var(--color-sage)' }}>
           <div>
             <h2 className="font-bold text-base" style={{ color: 'var(--color-dark)' }}>Consentimiento informado</h2>
-            <p className="text-xs text-gray-500 mt-0.5">{tratamiento.nombre}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{titulo}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
         </div>
@@ -71,23 +76,27 @@ export default function ConsentimientoEditModal({ tratamiento, onClose, onSaved 
                         style={{ borderColor: 'var(--color-primary)' }} />
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Cuidados previos al tratamiento</label>
-              <textarea rows={4} value={form.cuidados_pre}
-                        onChange={e => set('cuidados_pre', e.target.value)}
-                        placeholder="• No usar maquillaje el día del procedimiento&#10;• Evitar alcohol 24h antes…"
-                        className="w-full border rounded-lg px-3 py-2 text-sm resize-y"
-                        style={{ borderColor: 'var(--color-primary)' }} />
-            </div>
+            {!esGeneral && (
+              <>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Cuidados previos al tratamiento</label>
+                  <textarea rows={4} value={form.cuidados_pre}
+                            onChange={e => set('cuidados_pre', e.target.value)}
+                            placeholder="• No usar maquillaje el día del procedimiento&#10;• Evitar alcohol 24h antes…"
+                            className="w-full border rounded-lg px-3 py-2 text-sm resize-y"
+                            style={{ borderColor: 'var(--color-primary)' }} />
+                </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Cuidados posteriores al tratamiento</label>
-              <textarea rows={4} value={form.cuidados_post}
-                        onChange={e => set('cuidados_post', e.target.value)}
-                        placeholder="• No exponerse al sol las primeras 48h&#10;• Aplicar crema hidratante…"
-                        className="w-full border rounded-lg px-3 py-2 text-sm resize-y"
-                        style={{ borderColor: 'var(--color-primary)' }} />
-            </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Cuidados posteriores al tratamiento</label>
+                  <textarea rows={4} value={form.cuidados_post}
+                            onChange={e => set('cuidados_post', e.target.value)}
+                            placeholder="• No exponerse al sol las primeras 48h&#10;• Aplicar crema hidratante…"
+                            className="w-full border rounded-lg px-3 py-2 text-sm resize-y"
+                            style={{ borderColor: 'var(--color-primary)' }} />
+                </div>
+              </>
+            )}
 
             <div className="flex items-center gap-2">
               <input type="checkbox" id="activo" checked={form.activo}

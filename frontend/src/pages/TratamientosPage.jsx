@@ -113,6 +113,23 @@ export default function TratamientosPage() {
         </form>
       )}
 
+      {rol === 'admin' && (
+        <div className="bg-white rounded-xl shadow-sm border p-4 mb-6 flex gap-3 flex-wrap"
+             style={{ borderColor: 'var(--color-sage)' }}>
+          <p className="text-xs font-medium text-gray-600 w-full">Consentimientos Generales (se firman al registrar al paciente)</p>
+          <button onClick={() => setConsentModal({ general: { codigo: 'CI-00', titulo: 'Aviso de Privacidad Integral' } })}
+                  className="text-xs px-3 py-1.5 rounded-lg border"
+                  style={{ borderColor: 'var(--color-accent)', color: 'var(--color-accent)' }}>
+            Editar CI-00 · Aviso de Privacidad
+          </button>
+          <button onClick={() => setConsentModal({ general: { codigo: 'CI-01', titulo: 'Carta Compromiso del Paciente' } })}
+                  className="text-xs px-3 py-1.5 rounded-lg border"
+                  style={{ borderColor: 'var(--color-accent)', color: 'var(--color-accent)' }}>
+            Editar CI-01 · Carta Compromiso
+          </button>
+        </div>
+      )}
+
       <div className="space-y-3">
         {Object.entries(grupos).map(([cat, subs]) => {
           const abierta = expandidas[cat] === true;
@@ -188,7 +205,8 @@ export default function TratamientosPage() {
       </div>
       {consentModal && (
         <ConsentimientoEditModal
-          tratamiento={consentModal}
+          tratamiento={consentModal.general ? undefined : consentModal}
+          general={consentModal.general}
           onClose={() => setConsentModal(null)}
           onSaved={() => setConsentModal(null)}
         />
