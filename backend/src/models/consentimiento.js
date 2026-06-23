@@ -28,9 +28,34 @@ const Consentimiento = {
     return rows[0];
   },
 
+  async findByCodigo(codigo) {
+    const { rows } = await pool.query(
+      'SELECT * FROM consentimientos WHERE codigo = $1',
+      [codigo]
+    );
+    return rows[0] || null;
+  },
+
+  async upsertGeneral(codigo, data, userId) {
+    const { titulo, texto_consentimiento, activo } = data;
+    const { rows } = await pool.query(
+      `INSERT INTO consentimientos (codigo, titulo, texto_consentimiento, activo, updated_by)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (codigo) DO UPDATE SET
+         titulo = EXCLUDED.titulo,
+         texto_consentimiento = EXCLUDED.texto_consentimiento,
+         activo = EXCLUDED.activo,
+         updated_by = EXCLUDED.updated_by,
+         updated_at = NOW()
+       RETURNING *`,
+      [codigo, titulo, texto_consentimiento, activo ?? true, userId]
+    );
+    return rows[0];
+  },
+
   async findFirmadosByPaciente(pacienteId) {
     const { rows } = await pool.query(
-      `SELECT cf.*, c.titulo, c.cuidados_post
+      `SELECT cf.*, c.titulo, c.codigo, c.cuidados_post
        FROM consentimientos_firmados cf
        JOIN consentimientos c ON c.id = cf.consentimiento_id
        WHERE cf.paciente_id = $1
@@ -49,12 +74,12 @@ const Consentimiento = {
   },
 
   async createFirmado(data) {
-    const { consentimiento_id, paciente_id, cita_id, nombre_paciente, tratamiento_nombre, firma_imagen, firmado_por } = data;
+    const { consentimiento_id, paciente_id, cita_id, nombre_paciente, tratamiento_nombre, firma_imagen, firmado_por, autoriza_fotos } = data;
     const { rows } = await pool.query(
       `INSERT INTO consentimientos_firmados
-         (consentimiento_id, paciente_id, cita_id, nombre_paciente, tratamiento_nombre, firma_imagen, firmado_por)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [consentimiento_id, paciente_id, cita_id, nombre_paciente, tratamiento_nombre, firma_imagen, firmado_por]
+         (consentimiento_id, paciente_id, cita_id, nombre_paciente, tratamiento_nombre, firma_imagen, firmado_por, autoriza_fotos)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [consentimiento_id, paciente_id, cita_id, nombre_paciente, tratamiento_nombre, firma_imagen, firmado_por, autoriza_fotos ?? null]
     );
     return rows[0];
   },
