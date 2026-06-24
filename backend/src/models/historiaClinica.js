@@ -1,5 +1,7 @@
 const pool = require('../db/pool');
 
+const JSONB_FIELDS = new Set(['app_datos', 'medicamentos_actuales', 'trat_prev_faciales', 'trat_prev_corporales']);
+
 const HistoriaClinica = {
   async findByPaciente(pacienteId) {
     const { rows } = await pool.query(
@@ -52,7 +54,9 @@ const HistoriaClinica = {
       // Piel (legacy)
       'piel_limpieza','piel_hidratacion','piel_proteccion_solar','piel_rutina_noche',
       'piel_desmaquillar','piel_exposicion_sol','piel_retoque_protector','piel_tiempo_dedicado',
-      'procedimiento_realizar'
+      'procedimiento_realizar',
+      // Ninguna checks
+      'app_ninguna','med_ninguno','apnp_ninguna','gineco_ninguna','trat_prev_ninguno',
     ];
 
     const valores = [];
@@ -61,7 +65,10 @@ const HistoriaClinica = {
     for (const campo of campos) {
       if (data[campo] !== undefined) {
         sets.push(`${campo} = $${i}`);
-        valores.push(data[campo]);
+        const val = JSONB_FIELDS.has(campo) && data[campo] !== null && typeof data[campo] === 'object'
+          ? JSON.stringify(data[campo])
+          : data[campo];
+        valores.push(val);
         i++;
       }
     }

@@ -104,6 +104,18 @@ const GLOGAU = [
 ];
 
 // ─── UI helpers ──────────────────────────────────────────────────────────────
+function NingunaCheck({ checked, onChange, label = 'Ninguna' }) {
+  return (
+    <div className="mt-4 pt-3 border-t" style={{ borderColor: 'var(--color-sage)' }}>
+      <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer"
+             style={{ color: 'var(--color-accent)' }}>
+        <input type="checkbox" checked={!!checked} onChange={e => onChange(e.target.checked)}
+               className="accent-[var(--color-accent)] w-4 h-4" />
+        {label}
+      </label>
+    </div>
+  );
+}
 const inputCls = 'w-full border rounded-lg px-3 py-2 text-sm';
 const bStyle   = { borderColor: 'var(--color-primary)' };
 
@@ -337,6 +349,7 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
       </Section>
 
       {/* ── 2. Antecedentes Personales Patológicos ───────────────────────── */}
+
       <Section title="HC-01 · 2. Antecedentes Personales Patológicos" open={!!open[2]} onToggle={() => toggle(2)} disabled={!canEdit(2)}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -378,6 +391,9 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
             </tbody>
           </table>
         </div>
+        <NingunaCheck checked={h.app_ninguna}
+          onChange={v => set('app_ninguna', v)}
+          label="Ningún antecedente personal patológico" />
       </Section>
 
       {/* ── 3. Medicamentos actuales y alergias ──────────────────────────── */}
@@ -394,6 +410,9 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
             <TA value={h.alergias_texto} onChange={v => set('alergias_texto', v)} rows={2} />
           </Field>
         </div>
+        <NingunaCheck checked={h.med_ninguno}
+          onChange={v => set('med_ninguno', v)}
+          label="Sin medicamentos actuales / Sin alergias conocidas" />
       </Section>
 
       {/* ── 4. Antecedentes Personales No Patológicos ────────────────────── */}
@@ -425,6 +444,9 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
         <Field label="Describir un día alimentario típico">
           <TA value={h.alimentacion} onChange={v => set('alimentacion', v)} rows={3} />
         </Field>
+        <NingunaCheck checked={h.apnp_ninguna}
+          onChange={v => set('apnp_ninguna', v)}
+          label="Sin datos relevantes" />
       </Section>
 
       {/* ── 5. Gineco-obstétricos ─────────────────────────────────────────── */}
@@ -447,6 +469,9 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
             </Field>
           </div>
         </div>
+        <NingunaCheck checked={h.gineco_ninguna}
+          onChange={v => set('gineco_ninguna', v)}
+          label="No aplica / Sin antecedentes gineco-obstétricos" />
       </Section>
 
       {/* ── 6. Motivo de consulta y objetivos (HC-02) ────────────────────── */}
@@ -503,6 +528,9 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
             <TI value={h.cirugias_esteticas} onChange={v => set('cirugias_esteticas', v)} />
           </Field>
         </div>
+        <NingunaCheck checked={h.trat_prev_ninguno}
+          onChange={v => set('trat_prev_ninguno', v)}
+          label="Sin tratamientos estéticos previos" />
       </Section>
 
       {/* ── 8. Exploración física general (HC-02) ────────────────────────── */}
