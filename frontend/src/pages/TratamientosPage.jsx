@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { getTratamientos, createTratamiento, updateTratamiento } from '../api/tratamientos';
+import { useState, useEffect, useRef } from 'react';
+import { getTratamientos, createTratamiento, updateTratamiento, updatePrecioTratamiento } from '../api/tratamientos';
 import ConsentimientoEditModal from '../components/ConsentimientoEditModal';
 
 function agrupar(items) {
@@ -23,6 +23,9 @@ export default function TratamientosPage() {
   const [error, setError] = useState('');
   const [expandidas, setExpandidas] = useState({});
   const [consentModal, setConsentModal] = useState(null);
+  const [editandoPrecio, setEditandoPrecio] = useState(null); // tratamiento id
+  const [precioInput, setPrecioInput] = useState('');
+  const precioRef = useRef(null);
 
   const cargar = () => getTratamientos().then(setItems).catch(console.error);
   useEffect(() => { cargar(); }, []);
@@ -52,6 +55,22 @@ export default function TratamientosPage() {
 
   function toggleCat(cat) {
     setExpandidas(e => ({ ...e, [cat]: !e[cat] }));
+  }
+
+  function iniciarEditarPrecio(t) {
+    setEditandoPrecio(t.id);
+    setPrecioInput(t.precio !== null && t.precio !== undefined ? String(t.precio) : '');
+    setTimeout(() => precioRef.current?.focus(), 50);
+  }
+
+  async function guardarPrecio(id) {
+    const val = precioInput === '' ? null : parseFloat(precioInput);
+    if (precioInput !== '' && isNaN(val)) { setEditandoPrecio(null); return; }
+    try {
+      await updatePrecioTratamiento(id, val);
+      cargar();
+    } catch (e) { console.error(e); }
+    setEditandoPrecio(null);
   }
 
   const grupos = agrupar(items);
@@ -160,12 +179,42 @@ export default function TratamientosPage() {
                       )}
                       <table className="w-full text-sm">
                         <tbody>
-                          {tratamientos.map((t, i) => (
+                          {tratamientos.map((t) => (
                             <tr key={t.id}
                                 className={`border-t ${!t.activo ? 'opacity-40' : ''}`}
                                 style={{ borderColor: 'var(--color-sage)' }}>
                               <td className="px-5 py-2">{t.nombre}</td>
                               <td className="px-3 py-2 text-center text-gray-400 text-xs w-20">{t.duracion_min} min</td>
+                              {/* Precio */}
+                              <td className="px-3 py-2 text-right w-28">
+                                {rol === 'admin' ? (
+                                  editandoPrecio === t.id ? (
+                                    <input
+                                      ref={precioRef}
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      value={precioInput}
+                                      onChange={e => setPrecioInput(e.target.value)}
+                                      onBlur={() => guardarPrecio(t.id)}
+                                      onKeyDown={e => { if (e.key === 'Enter') guardarPrecio(t.id); if (e.key === 'Escape') setEditandoPrecio(null); }}
+                                      className="w-24 border rounded px-2 py-0.5 text-sm text-right"
+                                      style={{ borderColor: 'var(--color-accent)' }}
+                                    />
+                                  ) : (
+                                    <button
+                                      onClick={() => iniciarEditarPrecio(t)}
+                                      className="text-sm font-medium tabular-nums hover:underline"
+                                      style={{ color: t.precio ? 'var(--color-dark)' : '#aaa' }}>
+                                      {t.precio ? `$${Number(t.precio).toLocaleString('es-MX')}` : '— agregar precio —'}
+                                    </button>
+                                  )
+                                ) : (
+                                  <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--color-dark)' }}>
+                                    {t.precio ? `$${Number(t.precio).toLocaleString('es-MX')}` : '—'}
+                                  </span>
+                                )}
+                              </td>
                               <td className="px-3 py-2 text-center w-20">
                                 <span className={`text-xs px-2 py-0.5 rounded-full ${t.activo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
                                   {t.activo ? 'Activo' : 'Inactivo'}
