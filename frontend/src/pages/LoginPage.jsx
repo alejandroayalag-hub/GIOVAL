@@ -19,6 +19,7 @@ export default function LoginPage() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('nombre', data.nombre);
       localStorage.setItem('rol', data.rol);
+      localStorage.setItem('puede_caja', data.puede_caja ? 'true' : 'false');
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.error || 'Error al iniciar sesión');

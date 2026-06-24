@@ -14,6 +14,9 @@ export const createMovimiento      = (data)        => api.post('/movimientos', d
 export const updateMovimiento      = (id, data)    => api.put(`/movimientos/${id}`, data).then(r => r.data);
 export const deleteMovimiento      = (id)          => api.delete(`/movimientos/${id}`).then(r => r.data);
 
+// Caja en tiempo real
+export const getCajaHoy = () => api.get('/caja/hoy').then(r => r.data);
+
 // Cortes de caja
 export const getCorteHoy  = ()     => api.get('/cortes-caja/hoy').then(r => r.data);
 export const cerrarCorte  = (data) => api.post('/cortes-caja/cerrar', data).then(r => r.data);

@@ -1,14 +1,16 @@
 // frontend/src/pages/FinanzasPage.jsx
 import { useState, useEffect } from 'react';
-import { DollarSign, List, Scale, BarChart2, Tag, Pencil, Trash2 } from 'lucide-react';
+import { DollarSign, List, Scale, BarChart2, Tag, Pencil, Trash2, CreditCard } from 'lucide-react';
 import { getCategorias, createCategoria, updateCategoria, deleteCategoria,
          getMovimientos, createMovimiento, updateMovimiento, deleteMovimiento } from '../api/finanzas';
 import MovimientoModal from '../components/finanzas/MovimientoModal';
 import CategoriaModal  from '../components/finanzas/CategoriaModal';
 import CorteResumen    from '../components/finanzas/CorteResumen';
 import ReportesFinanzas from '../components/finanzas/ReportesFinanzas';
+import CajaPanel       from '../components/finanzas/CajaPanel';
 
 const TABS = [
+  { id: 'caja',        label: 'Caja', Icon: CreditCard, roles: ['admin','asistente_general'] },
   { id: 'movimientos', label: 'Movimientos', Icon: List },
   { id: 'corte',       label: 'Corte de Caja', Icon: Scale },
   { id: 'reportes',    label: 'Reportes', Icon: BarChart2 },
@@ -21,7 +23,8 @@ const FORMA_PAGO_LABELS = { efectivo: 'Efectivo', transferencia: 'Transferencia'
 
 export default function FinanzasPage() {
   const rol = localStorage.getItem('rol');
-  const [tab, setTab]               = useState('movimientos');
+  const puede_caja = localStorage.getItem('puede_caja') === 'true';
+  const [tab, setTab]               = useState('caja');
   const [categorias, setCategorias]   = useState([]);
   const [movimientos, setMovimientos] = useState([]);
   const [filtros, setFiltros]         = useState({ tipo: '', categoria_id: '', forma_pago: '', fecha_inicio: '', fecha_fin: '' });
@@ -77,7 +80,11 @@ export default function FinanzasPage() {
     cargarCategorias();
   }
 
-  const tabsVisibles = TABS.filter(t => !t.soloAdmin || rol === 'admin');
+  const tabsVisibles = TABS.filter(t => {
+    if (t.soloAdmin) return rol === 'admin';
+    if (t.roles) return t.roles.includes(rol) || (t.id === 'caja' && puede_caja);
+    return true;
+  });
 
   return (
     <div className="max-w-5xl">
@@ -107,6 +114,9 @@ export default function FinanzasPage() {
           </button>
         ))}
       </div>
+
+      {/* ── Tab: Caja ───────────────────────────────────────────────────────── */}
+      {tab === 'caja' && <CajaPanel />}
 
       {/* ── Tab: Movimientos ─────────────────────────────────────────────────── */}
       {tab === 'movimientos' && (

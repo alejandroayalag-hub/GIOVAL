@@ -2,15 +2,17 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
-export default function MovimientoModal({ tipo: tipoInicial, movimiento, categorias, onSave, onClose }) {
+export default function MovimientoModal({ tipo: tipoInicial, movimiento, prefill, categorias, onSave, onClose }) {
   const isEditing = Boolean(movimiento);
   const tipo = isEditing ? movimiento.tipo : tipoInicial;
 
   const [form, setForm] = useState({
-    concepto: '', categoria_id: '', monto: '',
-    forma_pago: 'efectivo',
-    fecha: new Date().toISOString().split('T')[0],
-    notas: '',
+    concepto:     prefill?.concepto     || '',
+    categoria_id: prefill?.categoria_id || '',
+    monto:        prefill?.monto        || '',
+    forma_pago:   prefill?.forma_pago   || 'efectivo',
+    fecha:        prefill?.fecha        || new Date().toISOString().split('T')[0],
+    notas:        prefill?.notas        || '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');

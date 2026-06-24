@@ -70,14 +70,14 @@ const Movimiento = {
     return rows[0];
   },
 
-  async create({ tipo, categoria_id, concepto, monto, forma_pago, fecha, notas, created_by }) {
+  async create({ tipo, categoria_id, concepto, monto, forma_pago, fecha, notas, created_by, cita_id }) {
     const { rows } = await pool.query(
-      `INSERT INTO movimientos (tipo, categoria_id, concepto, monto, forma_pago, fecha, notas, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      `INSERT INTO movimientos (tipo, categoria_id, concepto, monto, forma_pago, fecha, notas, created_by, cita_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
       [tipo, categoria_id || null, concepto, monto,
        forma_pago || 'efectivo',
        fecha || new Date().toISOString().split('T')[0],
-       notas || null, created_by]
+       notas || null, created_by, cita_id || null]
     );
     return rows[0];
   },

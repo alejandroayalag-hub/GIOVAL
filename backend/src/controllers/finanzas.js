@@ -67,7 +67,7 @@ exports.resumenMovimientos = async (req, res, next) => {
 
 exports.createMovimiento = async (req, res, next) => {
   try {
-    const { tipo, categoria_id, concepto, monto, forma_pago, fecha, notas } = req.body;
+    const { tipo, categoria_id, concepto, monto, forma_pago, fecha, notas, cita_id } = req.body;
     if (!tipo || !concepto || !monto)
       return res.status(400).json({ error: 'tipo, concepto y monto son requeridos' });
     if (!['ingreso','egreso'].includes(tipo))
@@ -77,9 +77,18 @@ exports.createMovimiento = async (req, res, next) => {
     const fechaMov = fecha || new Date().toISOString().split('T')[0];
     if (await CorteCaja.estaCerrado(fechaMov))
       return res.status(409).json({ error: 'El corte de esa fecha ya está cerrado' });
-    res.status(201).json(
-      await Movimiento.create({ tipo, categoria_id, concepto, monto, forma_pago, fecha: fechaMov, notas, created_by: req.user.id })
-    );
+    const pool = require('../db/pool');
+    const mov = await Movimiento.create({ tipo, categoria_id, concepto, monto, forma_pago, fecha: fechaMov, notas, created_by: req.user.id, cita_id });
+    if (cita_id) {
+      await pool.query('UPDATE citas SET cobrado = true WHERE id = $1', [cita_id]);
+      await pool.query(
+        `UPDATE flujo_paciente
+         SET estatus = 'completado', hora_completado = NOW(), updated_at = NOW()
+         WHERE cita_id = $1 AND estatus = 'en_caja'`,
+        [cita_id]
+      );
+    }
+    res.status(201).json(mov);
   } catch (err) { next(err); }
 };
 
