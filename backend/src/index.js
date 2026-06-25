@@ -55,6 +55,12 @@ app.use('/api/flujo',        authMiddleware, require('./routes/flujo'));
 // Módulo Farmacia
 app.use('/api/farmacia', authMiddleware, require('./routes/farmacia'));
 
+// Módulo Finanzas: Nómina y Cuentas por Pagar
+const nominaRouter          = require('./routes/nomina');
+const cuentasPorPagarRouter = require('./routes/cuentas-por-pagar');
+app.use('/api/nomina',            authMiddleware, nominaRouter);
+app.use('/api/cuentas-por-pagar', authMiddleware, cuentasPorPagarRouter);
+
 const finanzas = require('./routes/finanzas');
 app.use('/api/categorias-movimiento', authMiddleware, finanzas.categorias);
 app.use('/api/movimientos',           authMiddleware, finanzas.movimientos);
