@@ -5,7 +5,7 @@ const fmt  = n => `$${parseFloat(n || 0).toLocaleString('es-MX', { minimumFracti
 const fmtP = n => `${parseFloat(n || 0).toFixed(1)}%`;
 
 function Row({ label, value, bold, indent, positive, negative, percent }) {
-  const color = positive ? 'text-green-400' : negative ? 'text-red-400' : 'text-white';
+  const color = positive ? 'text-green-400' : negative ? 'text-red-400' : 'text-gray-300';
   return (
     <tr className="border-b border-gray-700">
       <td className={`py-2 text-sm ${indent ? 'pl-6 text-gray-400' : bold ? 'font-semibold text-gray-200' : 'text-gray-300'}`}>{label}</td>
@@ -21,12 +21,17 @@ export default function EstadoResultados() {
   const [mes, setMes]     = useState(hoy);
   const [data, setData]   = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
+    setError(null);
     setLoading(true);
     getEstadoResultados(mes)
-      .then(setData)
-      .catch(console.error)
+      .then(d => {
+        setData(d);
+        setError(null);
+      })
+      .catch(e => setError(e.message || 'Error al cargar datos'))
       .finally(() => setLoading(false));
   }, [mes]);
 
@@ -42,6 +47,8 @@ export default function EstadoResultados() {
       </div>
 
       {loading && <div className="text-center text-gray-400 py-12">Cargando…</div>}
+
+      {!loading && error && <div className="text-red-400 py-6 text-center">{error}</div>}
 
       {!loading && data && (
         <div className="rounded-xl overflow-hidden border border-gray-700">

@@ -21,12 +21,17 @@ export default function DashboardKPIs() {
   const [mes, setMes]   = useState(hoy);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
+    setError(null);
     setLoading(true);
     getDashboardKPIs(mes)
-      .then(setData)
-      .catch(console.error)
+      .then(d => {
+        setData(d);
+        setError(null);
+      })
+      .catch(e => setError(e.message || 'Error al cargar datos'))
       .finally(() => setLoading(false));
   }, [mes]);
 
@@ -43,6 +48,8 @@ export default function DashboardKPIs() {
       </div>
 
       {loading && <div className="text-center text-gray-400 py-12">Cargando KPIs…</div>}
+
+      {!loading && error && <div className="text-red-400 py-6 text-center">{error}</div>}
 
       {!loading && data && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
