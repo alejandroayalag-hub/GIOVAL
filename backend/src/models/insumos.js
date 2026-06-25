@@ -97,6 +97,7 @@ const Kit = {
       WHERE tk.tratamiento_id = $1
       GROUP BY tk.kit_id, k.nombre
     `, [tratamientoId]);
+    if (rows[0]) rows[0].costo_cabina = parseFloat(rows[0].costo_cabina);
     return rows[0] || null;
   },
 
