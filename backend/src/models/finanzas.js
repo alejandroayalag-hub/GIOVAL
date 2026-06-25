@@ -185,4 +185,69 @@ const CorteCaja = {
   },
 };
 
-module.exports = { Categoria, Movimiento, CorteCaja };
+const Reportes = {
+  async estadoResultados(mes) {
+    // mes = 'YYYY-MM'
+    const pool = require('../db/pool');
+
+    const movQ = await pool.query(`
+      SELECT
+        COALESCE(SUM(CASE WHEN m.tipo='ingreso' THEN m.monto ELSE 0 END), 0)::numeric AS ingresos_brutos,
+        COALESCE(SUM(CASE WHEN m.tipo='egreso' AND c.nombre = 'Insumos' THEN m.monto ELSE 0 END), 0)::numeric AS costo_materiales,
+        COALESCE(SUM(CASE WHEN m.tipo='egreso' AND c.nombre = 'Nómina'  THEN m.monto ELSE 0 END), 0)::numeric AS nomina_total,
+        COALESCE(SUM(CASE WHEN m.tipo='egreso' AND c.nombre IN ('Renta','Servicios') THEN m.monto ELSE 0 END), 0)::numeric AS costos_fijos,
+        COALESCE(SUM(CASE WHEN m.tipo='egreso' THEN m.monto ELSE 0 END), 0)::numeric AS total_egresos
+      FROM movimientos m
+      LEFT JOIN categorias_movimiento c ON c.id = m.categoria_id
+      WHERE TO_CHAR(m.fecha, 'YYYY-MM') = $1
+    `, [mes]);
+
+    const citasQ = await pool.query(`
+      SELECT COUNT(*)::integer AS servicios_realizados
+      FROM citas
+      WHERE estatus = 'realizada' AND TO_CHAR(fecha_hora, 'YYYY-MM') = $1
+    `, [mes]);
+
+    const r = movQ.rows[0];
+    const ingresos_brutos    = parseFloat(r.ingresos_brutos);
+    const costo_materiales   = parseFloat(r.costo_materiales);
+    const nomina_total       = parseFloat(r.nomina_total);
+    const costos_fijos       = parseFloat(r.costos_fijos);
+    const total_egresos      = parseFloat(r.total_egresos);
+    const iva_estimado       = +(ingresos_brutos * 0.16).toFixed(2);
+    const ingresos_netos     = +(ingresos_brutos - iva_estimado).toFixed(2);
+    const utilidad_bruta     = +(ingresos_netos - costo_materiales).toFixed(2);
+    const utilidad_operativa = +(utilidad_bruta - costos_fijos - nomina_total).toFixed(2);
+    const servicios          = citasQ.rows[0].servicios_realizados;
+    const ticket_promedio    = servicios > 0 ? +(ingresos_brutos / servicios).toFixed(2) : 0;
+    const margen_bruto       = ingresos_netos > 0 ? +((utilidad_bruta / ingresos_netos) * 100).toFixed(1) : 0;
+    const margen_neto        = ingresos_netos > 0 ? +((utilidad_operativa / ingresos_netos) * 100).toFixed(1) : 0;
+
+    return {
+      mes,
+      ingresos_brutos, iva_estimado, ingresos_netos,
+      costo_materiales, utilidad_bruta,
+      costos_fijos, nomina_total, utilidad_operativa,
+      total_egresos,
+      servicios_realizados: servicios,
+      ticket_promedio, margen_bruto, margen_neto,
+    };
+  },
+
+  async dashboardKPIs(mes) {
+    const er = await Reportes.estadoResultados(mes);
+    return {
+      ingresos_netos:       er.ingresos_netos,
+      total_egresos:        er.total_egresos,
+      utilidad_bruta:       er.utilidad_bruta,
+      ticket_promedio:      er.ticket_promedio,
+      servicios_realizados: er.servicios_realizados,
+      margen_bruto:         er.margen_bruto,
+      nomina_total:         er.nomina_total,
+      costo_materiales:     er.costo_materiales,
+      ingresos_brutos:      er.ingresos_brutos,
+    };
+  },
+};
+
+module.exports = { Categoria, Movimiento, CorteCaja, Reportes };

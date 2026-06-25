@@ -145,3 +145,20 @@ exports.getCorte = async (req, res, next) => {
     res.json(corte);
   } catch (err) { next(err); }
 };
+
+// ── Reportes avanzados ────────────────────────────────────────────────────────
+const { Reportes } = require('../models/finanzas');
+
+exports.estadoResultados = async (req, res, next) => {
+  try {
+    const mes = req.query.mes || new Date().toISOString().slice(0, 7);
+    res.json(await Reportes.estadoResultados(mes));
+  } catch (err) { next(err); }
+};
+
+exports.dashboardKPIs = async (req, res, next) => {
+  try {
+    const mes = req.query.mes || new Date().toISOString().slice(0, 7);
+    res.json(await Reportes.dashboardKPIs(mes));
+  } catch (err) { next(err); }
+};

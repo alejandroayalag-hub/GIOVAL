@@ -26,4 +26,8 @@ cortes.get('/',        ctrl.listCortes);
 cortes.post('/cerrar', soloAdmin, ctrl.cerrarCorte);
 cortes.get('/:id',     ctrl.getCorte);
 
-module.exports = { categorias, movimientos, cortes };
+const reportes = Router();
+reportes.get('/estado-resultados', ctrl.estadoResultados);
+reportes.get('/dashboard',         ctrl.dashboardKPIs);
+
+module.exports = { categorias, movimientos, cortes, reportes };

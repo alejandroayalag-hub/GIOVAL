@@ -55,6 +55,7 @@ const finanzas = require('./routes/finanzas');
 app.use('/api/categorias-movimiento', authMiddleware, finanzas.categorias);
 app.use('/api/movimientos',           authMiddleware, finanzas.movimientos);
 app.use('/api/cortes-caja',           authMiddleware, finanzas.cortes);
+app.use('/api/finanzas',              authMiddleware, finanzas.reportes);
 
 // Rutas admin de solicitudes de cita (landing page)
 const { listarSolicitudes, actualizarEstado } = require('./controllers/solicitudesPublicController');
