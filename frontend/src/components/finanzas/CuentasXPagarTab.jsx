@@ -84,6 +84,7 @@ export default function CuentasXPagarTab() {
             { label: 'Total pendiente', val: fmt(resumen.total_pendiente), color: '#c0675a' },
             { label: 'Pendientes',      val: resumen.count_pendiente,      color: '#c0675a' },
             { label: 'Parciales',       val: resumen.count_parcial,        color: '#d4a03a' },
+            { label: 'Liquidadas',       val: resumen.count_liquidada,      color: '#4a7c6a' },
             { label: 'Vencidas',        val: resumen.count_vencidas,       color: resumen.count_vencidas > 0 ? '#c0675a' : '#4a7c6a' },
           ].map(({ label, val, color }) => (
             <div key={label} className="rounded-xl bg-gray-800 border border-gray-700 p-3">
