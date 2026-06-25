@@ -1,5 +1,5 @@
 // backend/src/controllers/finanzas.js
-const { Categoria, Movimiento, CorteCaja } = require('../models/finanzas');
+const { Categoria, Movimiento, CorteCaja, Reportes } = require('../models/finanzas');
 
 // ── Categorías ────────────────────────────────────────────────────────────────
 
@@ -147,7 +147,6 @@ exports.getCorte = async (req, res, next) => {
 };
 
 // ── Reportes avanzados ────────────────────────────────────────────────────────
-const { Reportes } = require('../models/finanzas');
 
 exports.estadoResultados = async (req, res, next) => {
   try {

@@ -188,8 +188,6 @@ const CorteCaja = {
 const Reportes = {
   async estadoResultados(mes) {
     // mes = 'YYYY-MM'
-    const pool = require('../db/pool');
-
     const movQ = await pool.query(`
       SELECT
         COALESCE(SUM(CASE WHEN m.tipo='ingreso' THEN m.monto ELSE 0 END), 0)::numeric AS ingresos_brutos,
