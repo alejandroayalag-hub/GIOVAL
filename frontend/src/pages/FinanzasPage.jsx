@@ -8,9 +8,13 @@ import CategoriaModal  from '../components/finanzas/CategoriaModal';
 import CorteResumen    from '../components/finanzas/CorteResumen';
 import ReportesFinanzas from '../components/finanzas/ReportesFinanzas';
 import CajaPanel       from '../components/finanzas/CajaPanel';
+import DashboardKPIs    from '../components/finanzas/DashboardKPIs';
+import EstadoResultados from '../components/finanzas/EstadoResultados';
 
 const TABS = [
   { id: 'caja',        label: 'Caja', Icon: CreditCard, roles: ['admin','asistente_general'] },
+  { id: 'dashboard',   label: 'Dashboard KPIs',       Icon: BarChart2,  soloAdmin: true },
+  { id: 'estado',      label: 'Estado de Resultados', Icon: DollarSign, soloAdmin: true },
   { id: 'movimientos', label: 'Movimientos', Icon: List },
   { id: 'corte',       label: 'Corte de Caja', Icon: Scale },
   { id: 'reportes',    label: 'Reportes', Icon: BarChart2 },
@@ -117,6 +121,12 @@ export default function FinanzasPage() {
 
       {/* ── Tab: Caja ───────────────────────────────────────────────────────── */}
       {tab === 'caja' && <CajaPanel />}
+
+      {/* ── Tab: Dashboard KPIs (solo admin) ────────────────────────────────── */}
+      {tab === 'dashboard' && <DashboardKPIs />}
+
+      {/* ── Tab: Estado de Resultados (solo admin) ───────────────────────────── */}
+      {tab === 'estado' && <EstadoResultados />}
 
       {/* ── Tab: Movimientos ─────────────────────────────────────────────────── */}
       {tab === 'movimientos' && (
