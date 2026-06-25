@@ -43,7 +43,7 @@ export default function WelcomePage() {
     return <Navigate to="/" replace />;
   }
 
-  const nombre = localStorage.getItem('nombre') || 'bienvenida';
+  const nombre = localStorage.getItem('nombre') || '';
   const hora = new Date().getHours();
   const saludo = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
 
@@ -82,15 +82,17 @@ export default function WelcomePage() {
           }}>
             {saludo},
           </p>
-          <p style={{
-            fontFamily: "'Megante', Georgia, serif",
-            fontSize: '2.8rem',
-            color: '#887482',
-            lineHeight: 1.2,
-            margin: '0 0 2rem',
-          }}>
-            {nombre}
-          </p>
+          {nombre && (
+            <p style={{
+              fontFamily: "'Megante', Georgia, serif",
+              fontSize: '2.8rem',
+              color: '#887482',
+              lineHeight: 1.2,
+              margin: '0 0 2rem',
+            }}>
+              {nombre}
+            </p>
+          )}
         </div>
 
         {/* Divider */}
