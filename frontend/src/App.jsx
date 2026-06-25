@@ -20,6 +20,7 @@ import FarmaciaDashboard from './pages/farmacia/FarmaciaDashboard';
 import FarmaciaPOS from './pages/farmacia/FarmaciaPOS';
 import FarmaciaInventario from './pages/farmacia/FarmaciaInventario';
 import FarmaciaCatalogos from './pages/farmacia/FarmaciaCatalogos';
+import WelcomePage from './pages/WelcomePage';
 import logoGioval from './assets/gioval-logo.png';
 
 function NavItem({ to, end, children }) {
@@ -129,6 +130,7 @@ function Layout() {
 
       <main className="max-w-7xl mx-auto p-6">
         <Routes>
+          <Route path="/bienvenida" element={<WelcomePage />} />
           <Route path="/" element={<DashboardPage />} />
           <Route path="/citas" element={<CitasPage />} />
           <Route path="/procedimientos" element={<ProcedimientosPage />} />

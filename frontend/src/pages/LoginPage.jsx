@@ -20,7 +20,7 @@ export default function LoginPage() {
       localStorage.setItem('nombre', data.nombre);
       localStorage.setItem('rol', data.rol);
       localStorage.setItem('puede_caja', data.puede_caja ? 'true' : 'false');
-      navigate('/');
+      navigate('/bienvenida');
     } catch (err) {
       setError(err.response?.data?.error || 'Error al iniciar sesión');
     } finally {
