@@ -65,6 +65,7 @@ const Kit = {
 
     const { rows: items } = await pool.query(`
       SELECT kii.id, kii.insumo_id, i.codigo, i.nombre, kii.cantidad, kii.unidad,
+             i.costo_unidad::numeric AS costo_unidad,
              (kii.cantidad * i.costo_unidad)::numeric AS costo_sesion
       FROM kit_insumo_items kii
       JOIN insumos i ON i.id = kii.insumo_id
