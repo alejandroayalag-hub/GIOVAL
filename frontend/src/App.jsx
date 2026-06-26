@@ -21,7 +21,9 @@ import FarmaciaPOS from './pages/farmacia/FarmaciaPOS';
 import FarmaciaInventario from './pages/farmacia/FarmaciaInventario';
 import FarmaciaCatalogos from './pages/farmacia/FarmaciaCatalogos';
 import WelcomePage from './pages/WelcomePage';
-import logoGV from './assets/gioval-gv.png';
+import logoGioval from './assets/gioval-logo.png';
+import logoGV    from './assets/gioval-gv.png';
+import logoBadge from './assets/gioval-badge.png';
 
 function NavItem({ to, end, children }) {
   return (
@@ -101,7 +103,8 @@ function Layout() {
            style={{ backgroundColor: 'var(--color-primary)', borderColor: 'var(--color-sage)' }}>
         {/* Logo imagen real */}
         <NavLink to="/" className="mr-4 flex-shrink-0">
-          <img src={logoGV} alt="gv" className="h-9 w-9 object-contain" />
+          <img src={logoGioval} alt="gioval" className="h-9 object-contain"
+               style={{ filter: 'brightness(0.4) sepia(1) saturate(0.5)' }} />
         </NavLink>
 
         <div className="flex gap-1 flex-1 flex-wrap">
@@ -127,7 +130,17 @@ function Layout() {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto p-6">
+      {/* GV watermark */}
+      <img src={logoGV} alt="" aria-hidden="true"
+           style={{ position: 'fixed', bottom: '-60px', right: '-60px', width: '420px',
+                    opacity: 0.05, pointerEvents: 'none', zIndex: 0, userSelect: 'none' }} />
+
+      {/* Badge esquina inferior derecha */}
+      <img src={logoBadge} alt="Gioval Medicina Estética"
+           style={{ position: 'fixed', bottom: '20px', right: '20px', width: '72px',
+                    opacity: 0.75, pointerEvents: 'none', zIndex: 50 }} />
+
+      <main className="max-w-7xl mx-auto p-6" style={{ position: 'relative', zIndex: 1 }}>
         <Routes>
           <Route path="/bienvenida" element={<WelcomePage />} />
           <Route path="/" element={<DashboardPage />} />
