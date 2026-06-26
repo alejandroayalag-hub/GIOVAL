@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { getKits, getKit, updateKitItem } from '../../api/insumos';
+import { getKits, getKit, updateKitItem, updateInsumo } from '../../api/insumos';
 
 const fmt = n => `$${parseFloat(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
 
@@ -10,7 +10,7 @@ export default function KitsTab() {
   const [detail,   setDetail]   = useState({});
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(null);
-  const [editing,  setEditing]  = useState(null); // { kitId, itemId, value }
+  const [editing,  setEditing]  = useState(null); // { kitId, itemId, field, value }
 
   useEffect(() => {
     setError(null);
@@ -33,12 +33,15 @@ export default function KitsTab() {
     }
   }
 
-  async function saveItem(kitId, itemId, cantidad) {
-    const val = parseFloat(cantidad);
+  async function saveItem(kitId, itemId, insumoId, field, rawVal) {
+    const val = parseFloat(rawVal);
     if (!val || val <= 0) { setEditing(null); return; }
     try {
-      await updateKitItem(kitId, itemId, { cantidad: val });
-      // Refresh kit detail + header cost
+      if (field === 'cantidad') {
+        await updateKitItem(kitId, itemId, { cantidad: val });
+      } else {
+        await updateInsumo(insumoId, { costo_unidad: val });
+      }
       const data = await getKit(kitId);
       setDetail(p => ({ ...p, [kitId]: data }));
       setKits(ks => ks.map(k => k.id === kitId ? { ...k, costo_cabina: data.costo_cabina } : k));
@@ -80,45 +83,47 @@ export default function KitsTab() {
                 <thead className="text-gray-400 border-b border-gray-700">
                   <tr>
                     <th className="py-1.5 text-left">Insumo</th>
-                    <th className="py-1.5 text-right">Costo/Unidad</th>
-                    <th className="py-1.5 text-right cursor-pointer select-none">
-                      Cantidad <span className="text-gray-600">(editable)</span>
-                    </th>
+                    <th className="py-1.5 text-right">Costo/Unidad <span className="text-gray-600">(editable)</span></th>
+                    <th className="py-1.5 text-right">Cantidad <span className="text-gray-600">(editable)</span></th>
                     <th className="py-1.5 text-right">Unidad</th>
                     <th className="py-1.5 text-right">Costo/Sesión</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
                   {detail[kit.id].items.map(item => {
-                    const isEditing = editing?.kitId === kit.id && editing?.itemId === item.id;
                     return (
                       <tr key={item.id}>
                         <td className="py-1.5 text-gray-300">{item.nombre}</td>
-                        <td className="py-1.5 text-right text-gray-400">{fmt(item.costo_unidad)}</td>
-                        <td className="py-1.5 text-right">
-                          {isEditing ? (
-                            <input
-                              type="number"
-                              step="0.01"
-                              min="0.01"
-                              autoFocus
-                              defaultValue={editing.value}
-                              className="w-20 bg-gray-700 text-white text-right text-xs px-1 py-0.5 rounded border border-purple-400 outline-none"
-                              onBlur={e => saveItem(kit.id, item.id, e.target.value)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') e.target.blur();
-                                if (e.key === 'Escape') setEditing(null);
-                              }}
-                            />
-                          ) : (
-                            <span
-                              className="cursor-pointer hover:text-white text-gray-400 underline decoration-dotted"
-                              onClick={() => setEditing({ kitId: kit.id, itemId: item.id, value: item.cantidad })}
-                            >
-                              {item.cantidad}
-                            </span>
-                          )}
-                        </td>
+                        {['costo_unidad', 'cantidad'].map(field => {
+                          const isEditingCell = editing?.kitId === kit.id && editing?.itemId === item.id && editing?.field === field;
+                          const val = field === 'costo_unidad' ? item.costo_unidad : item.cantidad;
+                          return (
+                            <td key={field} className="py-1.5 text-right">
+                              {isEditingCell ? (
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0.01"
+                                  autoFocus
+                                  defaultValue={editing.value}
+                                  className="w-20 bg-gray-700 text-white text-right text-xs px-1 py-0.5 rounded border border-purple-400 outline-none"
+                                  onBlur={e => saveItem(kit.id, item.id, item.insumo_id, field, e.target.value)}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') e.target.blur();
+                                    if (e.key === 'Escape') setEditing(null);
+                                  }}
+                                />
+                              ) : (
+                                <span
+                                  className="cursor-pointer hover:text-white text-gray-400 underline decoration-dotted"
+                                  onClick={() => setEditing({ kitId: kit.id, itemId: item.id, field, value: val })}
+                                >
+                                  {field === 'costo_unidad' ? fmt(val) : val}
+                                </span>
+                              )}
+                            </td>
+                          );
+                        })}
                         <td className="py-1.5 text-right text-gray-400">{item.unidad}</td>
                         <td className="py-1.5 text-right text-white">{fmt(item.costo_sesion)}</td>
                       </tr>
