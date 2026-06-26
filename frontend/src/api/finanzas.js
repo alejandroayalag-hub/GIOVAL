@@ -22,3 +22,7 @@ export const getCorteHoy  = ()     => api.get('/cortes-caja/hoy').then(r => r.da
 export const cerrarCorte  = (data) => api.post('/cortes-caja/cerrar', data).then(r => r.data);
 export const getCortes    = ()     => api.get('/cortes-caja').then(r => r.data);
 export const getCorteById = (id)   => api.get(`/cortes-caja/${id}`).then(r => r.data);
+
+// Dashboard y Estado de Resultados
+export const getDashboardKPIs    = (mes) => api.get('/finanzas/dashboard', { params: { mes } }).then(r => r.data);
+export const getEstadoResultados = (mes) => api.get('/finanzas/estado-resultados', { params: { mes } }).then(r => r.data);

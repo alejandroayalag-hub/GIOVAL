@@ -150,6 +150,17 @@ export default function CajaPanel() {
                           </span>
                         : <span className="ml-2 text-gray-400">sin precio</span>
                       }
+                      {cita.costo_cabina > 0 && cita.precio && (
+                        <span className="text-xs text-gray-400 ml-2">
+                          Cabina: ${parseFloat(cita.costo_cabina).toFixed(0)} | Margen:{' '}
+                          <span className={
+                            ((cita.precio - cita.costo_cabina) / cita.precio * 100) >= 50
+                              ? 'text-green-400' : 'text-yellow-400'
+                          }>
+                            {Math.round((cita.precio - cita.costo_cabina) / cita.precio * 100)}%
+                          </span>
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>

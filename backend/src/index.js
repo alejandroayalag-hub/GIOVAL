@@ -33,6 +33,10 @@ app.use('/api/pagos',     authMiddleware, require('./routes/pagos'));
 app.use('/api/formatos',  authMiddleware, require('./routes/formatos'));
 app.use('/api/checadas', require('./routes/checadas'));
 app.use('/api/citas',         authMiddleware, require('./routes/citas'));
+const { insumosRouter, kitsRouter, tratamientoKitRouter } = require('./routes/insumos');
+app.use('/api/insumos',      authMiddleware, insumosRouter);
+app.use('/api/kits',         authMiddleware, kitsRouter);
+app.use('/api/tratamientos', authMiddleware, tratamientoKitRouter);
 app.use('/api/tratamientos',  authMiddleware, require('./routes/tratamientos'));
 app.use('/api/pacientes',          authMiddleware, require('./routes/pacientes'));
 app.use('/api/historias-clinicas',   authMiddleware, require('./routes/historias-clinicas'));
@@ -51,10 +55,17 @@ app.use('/api/flujo',        authMiddleware, require('./routes/flujo'));
 // Módulo Farmacia
 app.use('/api/farmacia', authMiddleware, require('./routes/farmacia'));
 
+// Módulo Finanzas: Nómina y Cuentas por Pagar
+const nominaRouter          = require('./routes/nomina');
+const cuentasPorPagarRouter = require('./routes/cuentas-por-pagar');
+app.use('/api/nomina',            authMiddleware, nominaRouter);
+app.use('/api/cuentas-por-pagar', authMiddleware, cuentasPorPagarRouter);
+
 const finanzas = require('./routes/finanzas');
 app.use('/api/categorias-movimiento', authMiddleware, finanzas.categorias);
 app.use('/api/movimientos',           authMiddleware, finanzas.movimientos);
 app.use('/api/cortes-caja',           authMiddleware, finanzas.cortes);
+app.use('/api/finanzas',              authMiddleware, finanzas.reportes);
 
 // Rutas admin de solicitudes de cita (landing page)
 const { listarSolicitudes, actualizarEstado } = require('./controllers/solicitudesPublicController');

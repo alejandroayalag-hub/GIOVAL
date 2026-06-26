@@ -1,5 +1,5 @@
 // backend/src/controllers/finanzas.js
-const { Categoria, Movimiento, CorteCaja } = require('../models/finanzas');
+const { Categoria, Movimiento, CorteCaja, Reportes } = require('../models/finanzas');
 
 // ── Categorías ────────────────────────────────────────────────────────────────
 
@@ -143,5 +143,21 @@ exports.getCorte = async (req, res, next) => {
     const corte = await CorteCaja.findById(req.params.id);
     if (!corte) return res.status(404).json({ error: 'Corte no encontrado' });
     res.json(corte);
+  } catch (err) { next(err); }
+};
+
+// ── Reportes avanzados ────────────────────────────────────────────────────────
+
+exports.estadoResultados = async (req, res, next) => {
+  try {
+    const mes = req.query.mes || new Date().toISOString().slice(0, 7);
+    res.json(await Reportes.estadoResultados(mes));
+  } catch (err) { next(err); }
+};
+
+exports.dashboardKPIs = async (req, res, next) => {
+  try {
+    const mes = req.query.mes || new Date().toISOString().slice(0, 7);
+    res.json(await Reportes.dashboardKPIs(mes));
   } catch (err) { next(err); }
 };

@@ -1,6 +1,6 @@
 // frontend/src/pages/FinanzasPage.jsx
 import { useState, useEffect } from 'react';
-import { DollarSign, List, Scale, BarChart2, Tag, Pencil, Trash2, CreditCard } from 'lucide-react';
+import { DollarSign, List, Scale, BarChart2, Tag, Pencil, Trash2, CreditCard, ShoppingBag, Package, Users, FileText } from 'lucide-react';
 import { getCategorias, createCategoria, updateCategoria, deleteCategoria,
          getMovimientos, createMovimiento, updateMovimiento, deleteMovimiento } from '../api/finanzas';
 import MovimientoModal from '../components/finanzas/MovimientoModal';
@@ -8,13 +8,25 @@ import CategoriaModal  from '../components/finanzas/CategoriaModal';
 import CorteResumen    from '../components/finanzas/CorteResumen';
 import ReportesFinanzas from '../components/finanzas/ReportesFinanzas';
 import CajaPanel       from '../components/finanzas/CajaPanel';
+import DashboardKPIs    from '../components/finanzas/DashboardKPIs';
+import EstadoResultados from '../components/finanzas/EstadoResultados';
+import InsumosTab       from '../components/finanzas/InsumosTab';
+import KitsTab          from '../components/finanzas/KitsTab';
+import NominaTab        from '../components/finanzas/NominaTab';
+import CuentasXPagarTab from '../components/finanzas/CuentasXPagarTab';
 
 const TABS = [
   { id: 'caja',        label: 'Caja', Icon: CreditCard, roles: ['admin','asistente_general'] },
+  { id: 'dashboard',   label: 'Dashboard KPIs',       Icon: BarChart2,  soloAdmin: true },
+  { id: 'estado',      label: 'Estado de Resultados', Icon: DollarSign, soloAdmin: true },
   { id: 'movimientos', label: 'Movimientos', Icon: List },
   { id: 'corte',       label: 'Corte de Caja', Icon: Scale },
   { id: 'reportes',    label: 'Reportes', Icon: BarChart2 },
   { id: 'categorias',  label: 'Categorías', Icon: Tag, soloAdmin: true },
+  { id: 'insumos',     label: 'Insumos', Icon: ShoppingBag, soloAdmin: true },
+  { id: 'kits',        label: 'Kits x Tratamiento', Icon: Package, soloAdmin: true },
+  { id: 'nomina',      label: 'Nómina',             Icon: Users,     soloAdmin: true },
+  { id: 'cxp',        label: 'Cuentas x Pagar',    Icon: FileText,  soloAdmin: true },
 ];
 
 const fmt = n => `$${parseFloat(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
@@ -117,6 +129,12 @@ export default function FinanzasPage() {
 
       {/* ── Tab: Caja ───────────────────────────────────────────────────────── */}
       {tab === 'caja' && <CajaPanel />}
+
+      {/* ── Tab: Dashboard KPIs (solo admin) ────────────────────────────────── */}
+      {tab === 'dashboard' && <DashboardKPIs />}
+
+      {/* ── Tab: Estado de Resultados (solo admin) ───────────────────────────── */}
+      {tab === 'estado' && <EstadoResultados />}
 
       {/* ── Tab: Movimientos ─────────────────────────────────────────────────── */}
       {tab === 'movimientos' && (
@@ -236,6 +254,18 @@ export default function FinanzasPage() {
           </div>
         </div>
       )}
+
+      {/* ── Tab: Insumos (solo admin) ────────────────────────────────────────── */}
+      {tab === 'insumos' && <InsumosTab />}
+
+      {/* ── Tab: Kits x Tratamiento (solo admin) ─────────────────────────────── */}
+      {tab === 'kits' && <KitsTab />}
+
+      {/* ── Tab: Nómina mensual (solo admin) ─────────────────────────────────── */}
+      {tab === 'nomina' && <NominaTab />}
+
+      {/* ── Tab: Cuentas x Pagar (solo admin) ───────────────────────────────── */}
+      {tab === 'cxp' && <CuentasXPagarTab />}
 
       {/* ── Tab: Corte de Caja ───────────────────────────────────────────────── */}
       {tab === 'corte' && <CorteResumen rol={rol} />}

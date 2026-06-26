@@ -29,10 +29,18 @@ exports.hoy = async (req, res, next) => {
              )) AS paciente_nombre,
              t.nombre AS tratamiento_nombre,
              t.precio,
-             c.fecha_hora
+             c.fecha_hora,
+             COALESCE(cabina.costo_cabina, 0)::numeric AS costo_cabina
       FROM citas c
-      LEFT JOIN pacientes p   ON c.paciente_id   = p.id
+      LEFT JOIN pacientes p    ON c.paciente_id    = p.id
       LEFT JOIN tratamientos t ON c.tratamiento_id = t.id
+      LEFT JOIN tratamiento_kit tk ON tk.tratamiento_id = t.id
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(kii.cantidad * i.costo_unidad), 0) AS costo_cabina
+        FROM kit_insumo_items kii
+        JOIN insumos i ON i.id = kii.insumo_id
+        WHERE kii.kit_id = tk.kit_id
+      ) cabina ON true
       WHERE c.estatus = 'realizada'
         AND c.cobrado = false
         AND DATE(c.fecha_hora) = $1
