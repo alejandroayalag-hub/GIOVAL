@@ -1,4 +1,4 @@
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const frases = [
   "La confianza que devuelves a cada paciente es el tratamiento más poderoso.",
@@ -36,13 +36,6 @@ const frases = [
 export default function WelcomePage() {
   const navigate = useNavigate();
 
-  const today = new Date().toISOString().split('T')[0];
-  const stored = localStorage.getItem('bienvenida_fecha');
-
-  if (stored === today) {
-    return <Navigate to="/" replace />;
-  }
-
   const nombre = localStorage.getItem('nombre') || '';
   const hora = new Date().getHours();
   const saludo = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
@@ -53,7 +46,6 @@ export default function WelcomePage() {
   const frase = frases[diaAnio % frases.length];
 
   function handleContinue() {
-    localStorage.setItem('bienvenida_fecha', today);
     navigate('/');
   }
 
