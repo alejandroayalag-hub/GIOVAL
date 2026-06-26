@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Users, Sparkles, UserRound, DollarSign, Activity, Package } from 'lucide-react';
-import logoGioval from '../assets/gioval-logo.png';
+import logoBadge from '../assets/gioval-badge.png';
 
 const modulos = [
   {
@@ -89,8 +89,8 @@ export default function DashboardPage() {
 
       {/* Logo + subtítulo */}
       <div className="text-center mb-12">
-        <img src={logoGioval} alt="gioval · Medicina Estética"
-             className="h-20 object-contain mx-auto mb-5 drop-shadow-sm" />
+        <img src={logoBadge} alt="gioval · Medicina Estética"
+             className="h-36 w-36 object-contain mx-auto mb-5 drop-shadow-sm" />
         <p className="text-sm font-medium tracking-wide"
            style={{ color: 'var(--color-dark)', opacity: 0.55 }}>
           Selecciona un módulo para continuar

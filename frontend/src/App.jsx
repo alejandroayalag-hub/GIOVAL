@@ -21,7 +21,7 @@ import FarmaciaPOS from './pages/farmacia/FarmaciaPOS';
 import FarmaciaInventario from './pages/farmacia/FarmaciaInventario';
 import FarmaciaCatalogos from './pages/farmacia/FarmaciaCatalogos';
 import WelcomePage from './pages/WelcomePage';
-import logoGioval from './assets/gioval-logo.png';
+import logoGV from './assets/gioval-gv.png';
 
 function NavItem({ to, end, children }) {
   return (
@@ -101,8 +101,7 @@ function Layout() {
            style={{ backgroundColor: 'var(--color-primary)', borderColor: 'var(--color-sage)' }}>
         {/* Logo imagen real */}
         <NavLink to="/" className="mr-4 flex-shrink-0">
-          <img src={logoGioval} alt="gioval" className="h-9 object-contain"
-               style={{ filter: 'brightness(0.4) sepia(1) saturate(0.5)' }} />
+          <img src={logoGV} alt="gv" className="h-9 w-9 object-contain" />
         </NavLink>
 
         <div className="flex gap-1 flex-1 flex-wrap">
