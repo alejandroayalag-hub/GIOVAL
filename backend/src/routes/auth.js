@@ -20,7 +20,29 @@ router.post('/login', async (req, res, next) => {
       process.env.JWT_SECRET,
       { expiresIn: '8h' }
     );
-    res.json({ token, nombre: user.nombre, rol: user.rol, puede_caja: !!user.puede_caja });
+    res.json({ token, nombre: user.nombre, rol: user.rol, puede_caja: !!user.puede_caja, debe_cambiar_password: !!user.debe_cambiar_password });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put('/cambiar-password', async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'Sin autorización' });
+    const token = authHeader.split(' ')[1];
+    const { id } = jwt.verify(token, process.env.JWT_SECRET);
+
+    const { password } = req.body;
+    if (!password || password.length < 8)
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+
+    const hash = await bcrypt.hash(password, 10);
+    await pool.query(
+      'UPDATE usuarios SET password = $1, debe_cambiar_password = false WHERE id = $2',
+      [hash, id]
+    );
+    res.json({ ok: true });
   } catch (err) {
     next(err);
   }

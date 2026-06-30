@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logoGioval from '../assets/gioval-logo.png';
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('');
+export default function CambiarPasswordPage() {
   const [password, setPassword] = useState('');
+  const [confirmar, setConfirmar] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -13,22 +13,19 @@ export default function LoginPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    if (password.length < 8) return setError('Mínimo 8 caracteres');
+    if (password !== confirmar) return setError('Las contraseñas no coinciden');
+
     setLoading(true);
     try {
-      const { data } = await axios.post('/api/auth/login', { email, password });
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('nombre', data.nombre);
-      localStorage.setItem('rol', data.rol);
-      localStorage.setItem('puede_caja', data.puede_caja ? 'true' : 'false');
-      if (data.debe_cambiar_password) {
-        localStorage.setItem('debe_cambiar_password', 'true');
-        navigate('/cambiar-password');
-      } else {
-        localStorage.removeItem('debe_cambiar_password');
-        navigate('/bienvenida');
-      }
+      const token = localStorage.getItem('token');
+      await axios.put('/api/auth/cambiar-password', { password }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      localStorage.removeItem('debe_cambiar_password');
+      navigate('/bienvenida');
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al iniciar sesión');
+      setError(err.response?.data?.error || 'Error al cambiar contraseña');
     } finally {
       setLoading(false);
     }
@@ -37,30 +34,20 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-cream)' }}>
       <div className="bg-white rounded-2xl shadow-sm p-10 w-full max-w-sm" style={{ border: '1px solid var(--color-primary)' }}>
-
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-10">
-          <img src={logoGioval} alt="gioval · Medicina Estética" className="w-56 object-contain" />
+        <div className="flex flex-col items-center mb-8">
+          <img src={logoGioval} alt="Gioval" className="w-56 object-contain mb-6" />
+          <h1 className="text-lg font-semibold" style={{ color: 'var(--color-dark)' }}>
+            Crea tu contraseña
+          </h1>
+          <p className="text-sm text-center mt-1" style={{ color: 'var(--color-accent)' }}>
+            Por seguridad, elige una contraseña personal para tu cuenta.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label className="block text-xs font-medium mb-1.5 uppercase tracking-wider" style={{ color: 'var(--color-dark)' }}>
-              Correo
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none"
-              style={{ borderColor: 'var(--color-primary)', backgroundColor: 'var(--color-cream)' }}
-              placeholder="correo@gioval.mx"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium mb-1.5 uppercase tracking-wider" style={{ color: 'var(--color-dark)' }}>
-              Contraseña
+              Nueva contraseña
             </label>
             <input
               type="password"
@@ -68,6 +55,21 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none"
               style={{ borderColor: 'var(--color-primary)', backgroundColor: 'var(--color-cream)' }}
+              placeholder="Mínimo 8 caracteres"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1.5 uppercase tracking-wider" style={{ color: 'var(--color-dark)' }}>
+              Confirmar contraseña
+            </label>
+            <input
+              type="password"
+              value={confirmar}
+              onChange={(e) => setConfirmar(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none"
+              style={{ borderColor: 'var(--color-primary)', backgroundColor: 'var(--color-cream)' }}
+              placeholder="Repite la contraseña"
               required
             />
           </div>
@@ -78,7 +80,7 @@ export default function LoginPage() {
             className="mt-2 rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50 transition-opacity"
             style={{ backgroundColor: 'var(--color-accent)' }}
           >
-            {loading ? 'Entrando...' : 'Iniciar sesión'}
+            {loading ? 'Guardando...' : 'Guardar contraseña'}
           </button>
         </form>
       </div>

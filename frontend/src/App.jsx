@@ -21,6 +21,7 @@ import FarmaciaPOS from './pages/farmacia/FarmaciaPOS';
 import FarmaciaInventario from './pages/farmacia/FarmaciaInventario';
 import FarmaciaCatalogos from './pages/farmacia/FarmaciaCatalogos';
 import WelcomePage from './pages/WelcomePage';
+import CambiarPasswordPage from './pages/CambiarPasswordPage';
 import logoGioval from './assets/gioval-logo.png';
 import logoGV    from './assets/gioval-gv.png';
 
@@ -87,6 +88,11 @@ function Layout() {
   const nombre = localStorage.getItem('nombre');
   const rol = localStorage.getItem('rol');
   const puede_caja = localStorage.getItem('puede_caja') === 'true';
+
+  if (localStorage.getItem('debe_cambiar_password') === 'true') {
+    navigate('/cambiar-password', { replace: true });
+    return null;
+  }
 
   function logout() {
     localStorage.removeItem('token');
@@ -166,6 +172,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/cambiar-password" element={<ProtectedRoute><CambiarPasswordPage /></ProtectedRoute>} />
         <Route path="/*" element={
           <ProtectedRoute>
             <FarmaciaProvider>

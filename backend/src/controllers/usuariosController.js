@@ -24,8 +24,8 @@ exports.create = async (req, res, next) => {
 
     const hash = await bcrypt.hash(password, 10);
     const { rows } = await pool.query(
-      `INSERT INTO usuarios (nombre, email, password, rol, cedula_profesional)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO usuarios (nombre, email, password, rol, cedula_profesional, debe_cambiar_password)
+       VALUES ($1, $2, $3, $4, $5, true)
        RETURNING id, nombre, email, rol, cedula_profesional, created_at`,
       [nombre, email, hash, rol, cedula_profesional || null]
     );
