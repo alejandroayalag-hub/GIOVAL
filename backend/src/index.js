@@ -12,12 +12,21 @@ const runMigrations = require('./db/migrate');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Detrás de Nginx (1 hop): usar X-Forwarded-For para IP real en rate limiting.
+app.set('trust proxy', 1);
+
 app.use(helmet());
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://62.238.3.136:8089', /^http:\/\/62\.238\.3\.136/],
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://62.238.3.136:8088',
+    'http://62.238.3.136:8089',
+  ],
   credentials: true,
 }));
 app.use(express.json());
+app.use(require('./middleware/normalizeQuery'));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Rutas públicas
