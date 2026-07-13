@@ -6,16 +6,52 @@ exports.listInsumos = async (req, res, next) => {
   try { res.json(await Insumo.list()); } catch (err) { next(err); }
 };
 
+// pg 23505 = unique_violation; en insumos casi siempre es codigo_barras duplicado.
+const esBarcodeDuplicado = err => err.code === '23505' && /codigo_barras/.test(err.constraint || err.detail || '');
+
 exports.updateInsumo = async (req, res, next) => {
   try {
     const insumo = await Insumo.update(req.params.id, req.body);
     if (!insumo) return res.status(404).json({ error: 'Insumo no encontrado' });
     res.json(insumo);
-  } catch (err) { next(err); }
+  } catch (err) {
+    if (esBarcodeDuplicado(err)) return res.status(409).json({ error: 'El código de barras ya está asignado a otro insumo' });
+    next(err);
+  }
+};
+
+exports.createInsumo = async (req, res, next) => {
+  try {
+    const { nombre } = req.body;
+    if (!nombre || !nombre.trim()) return res.status(400).json({ error: 'Nombre requerido' });
+    const insumo = await Insumo.create(req.body);
+    res.status(201).json(insumo);
+  } catch (err) {
+    if (esBarcodeDuplicado(err)) return res.status(409).json({ error: 'El código de barras ya está asignado a otro insumo' });
+    next(err);
+  }
 };
 
 exports.categoriasInsumos = async (req, res, next) => {
   try { res.json(await Insumo.categorias()); } catch (err) { next(err); }
+};
+
+exports.getInsumoByBarcode = async (req, res, next) => {
+  try {
+    const insumo = await Insumo.findByBarcode(req.params.codigo);
+    if (!insumo) return res.status(404).json({ error: 'Código de barras no registrado' });
+    res.json(insumo);
+  } catch (err) { next(err); }
+};
+
+exports.entradaInsumo = async (req, res, next) => {
+  try {
+    const envases = parseInt(req.body.envases);
+    if (!envases || envases <= 0) return res.status(400).json({ error: 'envases (>0) requerido' });
+    const insumo = await Insumo.registrarEntrada(req.params.id, envases);
+    if (!insumo) return res.status(404).json({ error: 'Insumo no encontrado' });
+    res.json(insumo);
+  } catch (err) { next(err); }
 };
 
 // ── Kits ──────────────────────────────────────────────────────────────────────
@@ -51,5 +87,22 @@ exports.updateKitItem = async (req, res, next) => {
     const item = await Kit.updateItem(req.params.itemId, req.body);
     if (!item) return res.status(404).json({ error: 'Item no encontrado' });
     res.json(item);
+  } catch (err) { next(err); }
+};
+
+exports.addKitItem = async (req, res, next) => {
+  try {
+    const { insumo_id, cantidad } = req.body;
+    if (!insumo_id || !cantidad || cantidad <= 0)
+      return res.status(400).json({ error: 'insumo_id y cantidad (>0) requeridos' });
+    const item = await Kit.addItem(req.params.id, req.body);
+    res.status(201).json(item);
+  } catch (err) { next(err); }
+};
+
+exports.removeKitItem = async (req, res, next) => {
+  try {
+    await Kit.removeItem(req.params.itemId);
+    res.json({ ok: true });
   } catch (err) { next(err); }
 };
