@@ -165,4 +165,77 @@ const Kit = {
   },
 };
 
-module.exports = { Insumo, Kit };
+const CitaInsumo = {
+  // Checklist de consumo: si ya se confirmó devuelve lo guardado (snapshot);
+  // si no, propone la receta del kit del tratamiento de la cita.
+  async checklist(citaId) {
+    const { rows: citas } = await pool.query(
+      'SELECT id, tratamiento_id, insumos_confirmados FROM citas WHERE id = $1', [citaId]
+    );
+    if (!citas[0]) return null;
+    const cita = citas[0];
+
+    if (cita.insumos_confirmados) {
+      const { rows: items } = await pool.query(`
+        SELECT ci.insumo_id, ci.cantidad, ci.costo_unidad,
+               i.codigo, i.nombre, i.codigo_barras, i.stock_actual
+        FROM cita_insumos ci
+        JOIN insumos i ON i.id = ci.insumo_id
+        WHERE ci.cita_id = $1
+        ORDER BY i.nombre
+      `, [citaId]);
+      return { confirmado: true, items };
+    }
+
+    const { rows: items } = await pool.query(`
+      SELECT kii.insumo_id, kii.cantidad, kii.unidad,
+             i.codigo, i.nombre, i.codigo_barras, i.costo_unidad, i.stock_actual
+      FROM tratamiento_kit tk
+      JOIN kit_insumo_items kii ON kii.kit_id = tk.kit_id
+      JOIN insumos i ON i.id = kii.insumo_id
+      WHERE tk.tratamiento_id = $1
+      ORDER BY i.nombre
+    `, [cita.tratamiento_id]);
+    return { confirmado: false, items };
+  },
+
+  // Confirma el consumo real: guarda snapshot de costo y descuenta stock.
+  // Stock puede quedar negativo (se permite con alerta en UI, no se bloquea).
+  async confirmar(citaId, items, userId) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows: citas } = await client.query(
+        'SELECT insumos_confirmados FROM citas WHERE id = $1 FOR UPDATE', [citaId]
+      );
+      if (!citas[0]) { await client.query('ROLLBACK'); return { error: 'not_found' }; }
+      if (citas[0].insumos_confirmados) { await client.query('ROLLBACK'); return { error: 'ya_confirmado' }; }
+
+      for (const it of items) {
+        await client.query(`
+          INSERT INTO cita_insumos (cita_id, insumo_id, cantidad, costo_unidad, creado_por)
+          SELECT $1, i.id, $3, COALESCE(i.costo_unidad, 0), $4
+          FROM insumos i WHERE i.id = $2
+        `, [citaId, it.insumo_id, it.cantidad, userId]);
+        await client.query(
+          `UPDATE insumos SET stock_actual = COALESCE(stock_actual, 0) - $1, actualizado_en = NOW()
+           WHERE id = $2`,
+          [it.cantidad, it.insumo_id]
+        );
+      }
+
+      await client.query(
+        'UPDATE citas SET insumos_confirmados = true, updated_at = NOW() WHERE id = $1', [citaId]
+      );
+      await client.query('COMMIT');
+      return { ok: true };
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  },
+};
+
+module.exports = { Insumo, Kit, CitaInsumo };

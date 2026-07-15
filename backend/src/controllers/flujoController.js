@@ -54,6 +54,8 @@ exports.hoy = async (req, res, next) => {
          fp.consultorio_id,
          c.fecha_hora,
          c.cobrado,
+         c.tratamiento_id,
+         c.insumos_confirmados,
          fp.hora_checkin,
          fp.hora_consultorio,
          fp.hora_procedimiento,

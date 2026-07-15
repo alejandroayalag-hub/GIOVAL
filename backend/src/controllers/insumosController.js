@@ -1,4 +1,4 @@
-const { Insumo, Kit } = require('../models/insumos');
+const { Insumo, Kit, CitaInsumo } = require('../models/insumos');
 
 // ── Insumos ───────────────────────────────────────────────────────────────────
 
@@ -103,6 +103,32 @@ exports.addKitItem = async (req, res, next) => {
 exports.removeKitItem = async (req, res, next) => {
   try {
     await Kit.removeItem(req.params.itemId);
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+};
+
+// ── Consumo por cita (Fase 2) ─────────────────────────────────────────────────
+
+exports.checklistCitaInsumos = async (req, res, next) => {
+  try {
+    const data = await CitaInsumo.checklist(req.params.id);
+    if (!data) return res.status(404).json({ error: 'Cita no encontrada' });
+    res.json(data);
+  } catch (err) { next(err); }
+};
+
+exports.confirmarCitaInsumos = async (req, res, next) => {
+  try {
+    const items = req.body.items;
+    if (!Array.isArray(items) || items.length === 0)
+      return res.status(400).json({ error: 'items (no vacío) requerido' });
+    for (const it of items) {
+      if (!it.insumo_id || !(parseFloat(it.cantidad) > 0))
+        return res.status(400).json({ error: 'Cada item requiere insumo_id y cantidad > 0' });
+    }
+    const result = await CitaInsumo.confirmar(req.params.id, items, req.user.id);
+    if (result.error === 'not_found')     return res.status(404).json({ error: 'Cita no encontrada' });
+    if (result.error === 'ya_confirmado') return res.status(409).json({ error: 'El consumo de esta cita ya fue confirmado' });
     res.json({ ok: true });
   } catch (err) { next(err); }
 };

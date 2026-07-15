@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { checkinCita, avanzarFlujo } from '../../api/flujo';
 import NotaVisitaModal from '../NotaVisitaModal';
+import ConsumoInsumosModal from './ConsumoInsumosModal';
 
 const ESTATUS_CONFIG = {
   agendada:         { color: '#cccad8', label: 'Agendada' },
@@ -29,6 +30,7 @@ export default function TarjetaPaciente({ cita, rol, consultorios, onRefresh }) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [notaModal, setNotaModal] = useState(false);
+  const [insumosModal, setInsumosModal] = useState(false);
 
   const cfg = ESTATUS_CONFIG[cita.estatus] || ESTATUS_CONFIG.agendada;
   const ordenActual = ORDEN[cita.estatus] ?? 0;
@@ -36,6 +38,9 @@ export default function TarjetaPaciente({ cita, rol, consultorios, onRefresh }) 
   const puedeCheckin  = ['admin','asistente_general'].includes(rol);
   const puedeTratante = ['admin','asistente_medico','cosmetista'].includes(rol);
   const puedeCaja     = ['admin','asistente_general'].includes(rol);
+  const puedeInsumos  = ['admin','asistente_medico'].includes(rol);
+  const mostrarInsumos = puedeInsumos &&
+    ['en_procedimiento','cierre','en_caja'].includes(cita.estatus);
 
   async function handleCheckin() {
     if (!consultorioSel) { setError('Selecciona un consultorio'); return; }
@@ -190,8 +195,27 @@ export default function TarjetaPaciente({ cita, rol, consultorios, onRefresh }) 
           {cita.estatus === 'completado' && (
             <p className="text-xs text-center text-gray-400 py-1">✓ Visita completada</p>
           )}
+
+          {mostrarInsumos && (
+            <button onClick={() => setInsumosModal(true)}
+                    className="w-full text-sm py-1.5 rounded-lg font-medium border mt-2"
+                    style={cita.insumos_confirmados
+                      ? { borderColor: '#3d7a3d', color: '#3d7a3d' }
+                      : { borderColor: 'var(--color-accent)', color: 'var(--color-accent)' }}>
+              {cita.insumos_confirmados ? '✓ Insumos confirmados' : '🧪 Confirmar insumos'}
+            </button>
+          )}
         </div>
       </div>
+
+      {insumosModal && (
+        <ConsumoInsumosModal
+          citaId={cita.cita_id}
+          tratamientoNombre={cita.tratamiento_nombre}
+          onClose={() => setInsumosModal(false)}
+          onConfirmado={() => { setInsumosModal(false); onRefresh(); }}
+        />
+      )}
 
       {notaModal && cita.paciente_id && (
         <NotaVisitaModal

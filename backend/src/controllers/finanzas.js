@@ -80,7 +80,10 @@ exports.createMovimiento = async (req, res, next) => {
     const pool = require('../db/pool');
     const mov = await Movimiento.create({ tipo, categoria_id, concepto, monto, forma_pago, fecha: fechaMov, notas, created_by: req.user.id, cita_id });
     if (cita_id) {
-      await pool.query('UPDATE citas SET cobrado = true WHERE id = $1', [cita_id]);
+      await pool.query(
+        'UPDATE citas SET cobrado = true, precio_cobrado = COALESCE(precio_cobrado, $2) WHERE id = $1',
+        [cita_id, monto]
+      );
       await pool.query(
         `UPDATE flujo_paciente
          SET estatus = 'completado', hora_completado = NOW(), updated_at = NOW()

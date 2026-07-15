@@ -12,3 +12,5 @@ export const addKitItem           = (id, d)       => api.post(`/kits/${id}/items
 export const updateKitItem        = (id, itemId, d) => api.put(`/kits/${id}/items/${itemId}`, d).then(r => r.data);
 export const removeKitItem        = (id, itemId)  => api.delete(`/kits/${id}/items/${itemId}`).then(r => r.data);
 export const getCostoCabina       = (tratId)      => api.get(`/tratamientos/${tratId}/costo-cabina`).then(r => r.data);
+export const getCitaInsumos       = (citaId)      => api.get(`/citas/${citaId}/insumos`).then(r => r.data);
+export const confirmarCitaInsumos = (citaId, items) => api.post(`/citas/${citaId}/insumos/confirmar`, { items }).then(r => r.data);
