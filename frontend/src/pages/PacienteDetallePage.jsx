@@ -10,8 +10,7 @@ import NotaVisitaModal from '../components/NotaVisitaModal';
 import PacienteFormModal from '../components/PacienteFormModal';
 import ConsentimientoFirmaModal from '../components/ConsentimientoFirmaModal';
 import DocumentosClinicosTab from '../components/DocumentosClinicosTab';
-import { getLaboratoriosByPaciente, deleteLaboratorio, archivoUrl } from '../api/laboratorios';
-import LaboratorioModal from '../components/LaboratorioModal';
+import { DiagnosticosTab, RecetasTab, NotasMedicasTab, ArchivosTab } from '../components/ExpedienteTabs';
 import logoGioval from '../assets/gioval-logo.png';
 
 const ESTATUS_COLOR = {
@@ -47,8 +46,6 @@ export default function PacienteDetallePage() {
   const [citaFotosOpen, setCitaFotosOpen] = useState({});
   const [fotosByCita, setFotosByCita] = useState({});
   const [lightbox, setLightbox] = useState(null);
-  const [laboratorios, setLaboratorios] = useState([]);
-  const [labModal, setLabModal] = useState(false);
 
   async function cargar(soloMeta = false) {
     if (!soloMeta) setLoading(true);
@@ -64,18 +61,16 @@ export default function PacienteDetallePage() {
         setNotas(n);
         setConsentsFirmados(cf);
       } else {
-        const [p, h, n, cf, labs] = await Promise.all([
+        const [p, h, n, cf] = await Promise.all([
           getPaciente(id),
           getHistoria(id),
           getNotasByPaciente(id),
           getFirmadosByPaciente(id),
-          getLaboratoriosByPaciente(id),
         ]);
         setPaciente(p);
         setHistoria(h);
         setNotas(n);
         setConsentsFirmados(cf);
-        setLaboratorios(labs);
       }
     } catch (err) {
       console.error(err);
@@ -208,7 +203,7 @@ export default function PacienteDetallePage() {
         )}
       </div>
 
-      <div className="border-b mb-6 flex gap-1" style={{ borderColor: 'var(--color-sage)' }}>
+      <div className="border-b mb-6 flex gap-1 overflow-x-auto whitespace-nowrap" style={{ borderColor: 'var(--color-sage)' }}>
         <TabBtn active={tab === 'historia'} onClick={() => setTab('historia')}>Historia Clínica</TabBtn>
         <TabBtn active={tab === 'citas'} onClick={() => setTab('citas')}>
           Citas {paciente.citas?.length ? `(${paciente.citas.length})` : ''}
@@ -229,8 +224,23 @@ export default function PacienteDetallePage() {
           </TabBtn>
         )}
         {(rol === 'admin' || rol === 'asistente_medico') && (
-          <TabBtn active={tab === 'laboratorios'} onClick={() => setTab('laboratorios')}>
-            Laboratorios {laboratorios.length ? `(${laboratorios.length})` : ''}
+          <TabBtn active={tab === 'diagnosticos'} onClick={() => setTab('diagnosticos')}>
+            Diagnósticos
+          </TabBtn>
+        )}
+        {(rol === 'admin' || rol === 'asistente_medico') && (
+          <TabBtn active={tab === 'recetas'} onClick={() => setTab('recetas')}>
+            Recetas
+          </TabBtn>
+        )}
+        {(rol === 'admin' || rol === 'asistente_medico') && (
+          <TabBtn active={tab === 'notas-medicas'} onClick={() => setTab('notas-medicas')}>
+            Notas Médicas
+          </TabBtn>
+        )}
+        {(rol === 'admin' || rol === 'asistente_medico' || rol === 'asistente_general') && (
+          <TabBtn active={tab === 'archivos'} onClick={() => setTab('archivos')}>
+            Archivos
           </TabBtn>
         )}
       </div>
@@ -489,78 +499,20 @@ export default function PacienteDetallePage() {
         <DocumentosClinicosTab pacienteId={parseInt(id)} />
       )}
 
-      {tab === 'laboratorios' && (
-        <div>
-          {(rol === 'admin' || rol === 'asistente_medico') && (
-            <div className="mb-4">
-              <button onClick={() => setLabModal(true)}
-                      className="px-4 py-2 text-sm text-white rounded-lg"
-                      style={{ backgroundColor: 'var(--color-accent)' }}>
-                + Subir Laboratorio
-              </button>
-            </div>
-          )}
-          {laboratorios.length === 0 ? (
-            <p className="text-sm text-gray-400">Sin laboratorios registrados.</p>
-          ) : (
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden"
-                 style={{ borderColor: 'var(--color-sage)' }}>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ backgroundColor: 'var(--color-primary)' }}>
-                    {['Fecha','Descripción','Archivo', ...(rol === 'admin' ? ['Acciones'] : [])].map(col => (
-                      <th key={col} className="text-left px-4 py-3 text-xs font-semibold"
-                          style={{ color: 'var(--color-dark)' }}>{col}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {laboratorios.map(lab => (
-                    <tr key={lab.id} className="border-t" style={{ borderColor: 'var(--color-sage)' }}>
-                      <td className="px-4 py-3">
-                        {new Date(lab.created_at).toLocaleDateString('es-MX', { dateStyle: 'short' })}
-                      </td>
-                      <td className="px-4 py-3">{lab.descripcion || '—'}</td>
-                      <td className="px-4 py-3">
-                        <a href={archivoUrl(lab.archivo)}
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           className="text-xs px-2 py-1 rounded border transition-colors"
-                           style={{
-                             borderColor: 'var(--color-accent)',
-                             color: 'var(--color-accent)',
-                           }}>
-                          Ver 📄
-                        </a>
-                      </td>
-                      {rol === 'admin' && (
-                        <td className="px-4 py-3">
-                          <button
-                            onClick={async () => {
-                              if (!confirm('¿Eliminar este laboratorio?')) return;
-                              try {
-                                await deleteLaboratorio(lab.id);
-                                setLaboratorios(prev => prev.filter(l => l.id !== lab.id));
-                              } catch {
-                                alert('Error al eliminar laboratorio');
-                              }
-                            }}
-                            className="text-xs px-2 py-1 rounded border transition-colors"
-                            style={{
-                              borderColor: '#ef4444',
-                              color: '#ef4444',
-                            }}>
-                            Eliminar ×
-                          </button>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+      {tab === 'diagnosticos' && (
+        <DiagnosticosTab pacienteId={parseInt(id)} rol={rol} />
+      )}
+
+      {tab === 'recetas' && (
+        <RecetasTab pacienteId={parseInt(id)} paciente={paciente} rol={rol} />
+      )}
+
+      {tab === 'notas-medicas' && (
+        <NotasMedicasTab pacienteId={parseInt(id)} rol={rol} />
+      )}
+
+      {tab === 'archivos' && (
+        <ArchivosTab pacienteId={parseInt(id)} rol={rol} />
       )}
 
       {notaModal && (
@@ -588,14 +540,6 @@ export default function PacienteDetallePage() {
           cita={consentModal.cita}
           onClose={() => setConsentModal(null)}
           onFirmado={() => { setConsentModal(null); cargar(true); }}
-        />
-      )}
-
-      {labModal && (
-        <LaboratorioModal
-          pacienteId={parseInt(id)}
-          onClose={() => setLabModal(false)}
-          onSaved={() => { setLabModal(false); cargar(true); }}
         />
       )}
 

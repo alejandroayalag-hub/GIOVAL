@@ -54,6 +54,7 @@ app.use('/api/consentimientos',      authMiddleware, require('./routes/consentim
 app.use('/api/documentos-clinicos',  authMiddleware, require('./routes/documentos-clinicos'));
 app.use('/api/fotos-cita',    authMiddleware, require('./routes/fotos-cita'));
 app.use('/api/laboratorios',  authMiddleware, require('./routes/laboratorios'));
+app.use('/api/expediente',    authMiddleware, require('./routes/expediente'));
 app.use('/api/sync',               authMiddleware, require('./routes/sync'));
 app.use('/api/usuarios',           authMiddleware, require('./routes/usuarios'));
 

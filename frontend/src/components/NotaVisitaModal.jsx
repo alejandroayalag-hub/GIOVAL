@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createNota, updateNota } from '../api/notasVisita';
+import BotonDictado from './BotonDictado';
 
 const EMPTY_SV = { fc: '', fr: '', ta: '', temperatura: '', saturacion: '', peso: '', talla: '' };
 
@@ -60,9 +61,12 @@ export default function NotaVisitaModal({ cita, pacienteId, nota, onClose, onSav
           <form onSubmit={handleSubmit} className="space-y-4">
             {esCosmética ? (
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-dark)' }}>
-                  Nota del tratamiento cosmético
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium" style={{ color: 'var(--color-dark)' }}>
+                    Nota del tratamiento cosmético
+                  </label>
+                  <BotonDictado onTexto={t => setForm(f => ({ ...f, evolucion: (f.evolucion ? f.evolucion + ' ' : '') + t }))} />
+                </div>
                 <textarea
                   value={form.evolucion}
                   onChange={e => set('evolucion', e.target.value)}
@@ -81,7 +85,10 @@ export default function NotaVisitaModal({ cita, pacienteId, nota, onClose, onSav
                   ['tratamiento_indicaciones', 'Tratamiento e indicaciones (dosis, vía, periodicidad)', 3],
                 ].map(([k, label, rows]) => (
                   <div key={k}>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-medium text-gray-600">{label}</label>
+                      <BotonDictado onTexto={t => setForm(f => ({ ...f, [k]: (f[k] ? f[k] + ' ' : '') + t }))} />
+                    </div>
                     <textarea rows={rows} value={form[k]}
                               onChange={e => set(k, e.target.value)}
                               className="w-full border rounded-lg px-3 py-2 text-sm"
