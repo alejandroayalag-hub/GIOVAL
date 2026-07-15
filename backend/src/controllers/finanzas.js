@@ -164,3 +164,10 @@ exports.dashboardKPIs = async (req, res, next) => {
     res.json(await Reportes.dashboardKPIs(mes));
   } catch (err) { next(err); }
 };
+
+exports.gananciaTratamientos = async (req, res, next) => {
+  try {
+    const mes = req.query.mes || new Date().toISOString().slice(0, 7);
+    res.json(await Reportes.gananciaTratamientos(mes));
+  } catch (err) { next(err); }
+};

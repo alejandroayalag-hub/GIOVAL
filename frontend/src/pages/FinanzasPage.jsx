@@ -1,6 +1,6 @@
 // frontend/src/pages/FinanzasPage.jsx
 import { useState, useEffect } from 'react';
-import { DollarSign, List, Scale, BarChart2, Tag, Pencil, Trash2, CreditCard, ShoppingBag, Package, Users, FileText } from 'lucide-react';
+import { DollarSign, List, Scale, BarChart2, Tag, Pencil, Trash2, CreditCard, ShoppingBag, Package, Users, FileText, TrendingUp } from 'lucide-react';
 import { getCategorias, createCategoria, updateCategoria, deleteCategoria,
          getMovimientos, createMovimiento, updateMovimiento, deleteMovimiento } from '../api/finanzas';
 import MovimientoModal from '../components/finanzas/MovimientoModal';
@@ -14,11 +14,13 @@ import InsumosTab       from '../components/finanzas/InsumosTab';
 import KitsTab          from '../components/finanzas/KitsTab';
 import NominaTab        from '../components/finanzas/NominaTab';
 import CuentasXPagarTab from '../components/finanzas/CuentasXPagarTab';
+import GananciaTab      from '../components/finanzas/GananciaTab';
 
 const TABS = [
   { id: 'caja',        label: 'Caja', Icon: CreditCard, roles: ['admin','asistente_general'] },
   { id: 'dashboard',   label: 'Dashboard KPIs',       Icon: BarChart2,  soloAdmin: true },
   { id: 'estado',      label: 'Estado de Resultados', Icon: DollarSign, soloAdmin: true },
+  { id: 'ganancia',    label: 'Ganancia x Tratamiento', Icon: TrendingUp, soloAdmin: true },
   { id: 'movimientos', label: 'Movimientos', Icon: List },
   { id: 'corte',       label: 'Corte de Caja', Icon: Scale },
   { id: 'reportes',    label: 'Reportes', Icon: BarChart2 },
@@ -135,6 +137,8 @@ export default function FinanzasPage() {
 
       {/* ── Tab: Estado de Resultados (solo admin) ───────────────────────────── */}
       {tab === 'estado' && <EstadoResultados />}
+
+      {tab === 'ganancia' && <GananciaTab />}
 
       {/* ── Tab: Movimientos ─────────────────────────────────────────────────── */}
       {tab === 'movimientos' && (

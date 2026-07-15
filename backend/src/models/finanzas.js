@@ -232,6 +232,53 @@ const Reportes = {
     };
   },
 
+  // Ganancia real por tratamiento (Fase 3 inventario):
+  // ingreso = precio_cobrado (snapshot al cobrar), costo = Σ cita_insumos con costo snapshot.
+  // Solo citas cobradas con precio_cobrado (las cobradas antes de Fase 2 no lo tienen — se excluyen).
+  async gananciaTratamientos(mes) {
+    const { rows } = await pool.query(`
+      SELECT t.id AS tratamiento_id, t.nombre AS tratamiento,
+             COUNT(*)::integer AS citas,
+             COUNT(*) FILTER (WHERE NOT c.insumos_confirmados)::integer AS citas_sin_insumos,
+             COALESCE(SUM(c.precio_cobrado), 0)::numeric AS ingreso,
+             COALESCE(SUM(ci.costo), 0)::numeric AS costo_insumos,
+             (COALESCE(SUM(c.precio_cobrado), 0) - COALESCE(SUM(ci.costo), 0))::numeric AS ganancia
+      FROM citas c
+      JOIN tratamientos t ON t.id = c.tratamiento_id
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(cantidad * costo_unidad), 0) AS costo
+        FROM cita_insumos WHERE cita_id = c.id
+      ) ci ON true
+      WHERE c.cobrado = true
+        AND c.precio_cobrado IS NOT NULL
+        AND TO_CHAR(c.fecha_hora, 'YYYY-MM') = $1
+      GROUP BY t.id, t.nombre
+      ORDER BY ganancia DESC
+    `, [mes]);
+
+    const num = v => parseFloat(v);
+    const tratamientos = rows.map(r => ({
+      ...r,
+      ingreso: num(r.ingreso),
+      costo_insumos: num(r.costo_insumos),
+      ganancia: num(r.ganancia),
+      margen: num(r.ingreso) > 0 ? +((num(r.ganancia) / num(r.ingreso)) * 100).toFixed(1) : 0,
+    }));
+
+    const tot = (k) => +tratamientos.reduce((s, t) => s + t[k], 0).toFixed(2);
+    return {
+      mes,
+      tratamientos,
+      totales: {
+        citas: tratamientos.reduce((s, t) => s + t.citas, 0),
+        ingreso: tot('ingreso'),
+        costo_insumos: tot('costo_insumos'),
+        ganancia: tot('ganancia'),
+        margen: tot('ingreso') > 0 ? +((tot('ganancia') / tot('ingreso')) * 100).toFixed(1) : 0,
+      },
+    };
+  },
+
   async dashboardKPIs(mes) {
     const er = await Reportes.estadoResultados(mes);
     return {

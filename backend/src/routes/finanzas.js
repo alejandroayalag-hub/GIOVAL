@@ -29,5 +29,6 @@ cortes.get('/:id',     ctrl.getCorte);
 const reportes = Router();
 reportes.get('/estado-resultados', ctrl.estadoResultados);
 reportes.get('/dashboard',         ctrl.dashboardKPIs);
+reportes.get('/ganancia-tratamientos', soloAdmin, ctrl.gananciaTratamientos);
 
 module.exports = { categorias, movimientos, cortes, reportes };

@@ -26,3 +26,4 @@ export const getCorteById = (id)   => api.get(`/cortes-caja/${id}`).then(r => r.
 // Dashboard y Estado de Resultados
 export const getDashboardKPIs    = (mes) => api.get('/finanzas/dashboard', { params: { mes } }).then(r => r.data);
 export const getEstadoResultados = (mes) => api.get('/finanzas/estado-resultados', { params: { mes } }).then(r => r.data);
+export const getGananciaTratamientos = (mes) => api.get('/finanzas/ganancia-tratamientos', { params: { mes } }).then(r => r.data);
