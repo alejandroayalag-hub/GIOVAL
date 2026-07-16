@@ -7,6 +7,7 @@ import {
 } from '../api/expediente';
 import BotonDictado from './BotonDictado';
 import logoGioval from '../assets/gioval-logo.png';
+import recetaFondo from '../assets/receta-gv.jpg';
 
 const btnAccent = { backgroundColor: 'var(--color-accent)' };
 const cardBorder = { borderColor: 'var(--color-sage)' };
@@ -313,53 +314,43 @@ function RecetaModal({ pacienteId, diagnosticos, onClose, onSaved }) {
   );
 }
 
+// Imprime sobre el machote oficial RECETA-GV (media carta horizontal, 8.5×5.5 in).
+// El PDF original se renderizó a receta-gv.jpg; los campos van posicionados en % sobre el fondo.
 function imprimirReceta(r, paciente) {
-  const nombrePaciente = [paciente.apellido_paterno, paciente.apellido_materno, paciente.nombre].filter(Boolean).join(' ');
-  const meds = (r.medicamentos || []).map(m => `
-    <tr>
-      <td>${m.nombre || ''}</td><td>${m.dosis || ''}</td>
-      <td>${m.frecuencia || ''}</td><td>${m.duracion || ''}</td>
-    </tr>`).join('');
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const nombrePaciente = esc([paciente.apellido_paterno, paciente.apellido_materno, paciente.nombre].filter(Boolean).join(' '));
+  const meds = (r.medicamentos || []).map((m, i) => `
+    <p class="med">${i + 1}. <strong>${esc(m.nombre)}</strong>${[m.dosis, m.frecuencia, m.duracion].filter(Boolean).length
+      ? ' — ' + [m.dosis, m.frecuencia, m.duracion].filter(Boolean).map(esc).join(', ') : ''}</p>`).join('');
   const w = window.open('', '_blank');
-  w.document.write(`<!doctype html><html><head><title>Receta — ${nombrePaciente}</title>
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Receta — ${nombrePaciente}</title>
     <style>
-      body { font-family: Georgia, serif; color: #2d2a33; max-width: 700px; margin: 40px auto; padding: 0 24px; }
-      header { display: flex; align-items: center; gap: 16px; border-bottom: 2px solid #8b7aa8; padding-bottom: 12px; }
-      header img { height: 56px; }
-      h1 { font-size: 18px; margin: 0; } .sub { font-size: 12px; color: #666; margin: 2px 0 0; }
-      .datos { display: flex; justify-content: space-between; font-size: 13px; margin: 16px 0; }
-      table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
-      th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #ddd; }
-      th { font-size: 11px; text-transform: uppercase; color: #8b7aa8; }
-      .indicaciones { font-size: 13px; margin-top: 16px; }
-      .firma { margin-top: 80px; text-align: center; }
-      .firma .linea { border-top: 1px solid #333; width: 260px; margin: 0 auto 4px; }
-      .firma p { font-size: 12px; margin: 2px 0; }
-      @media print { body { margin: 12mm auto; } }
+      @page { size: 8.5in 5.5in; margin: 0; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Montserrat', 'Helvetica Neue', Arial, sans-serif; color: #574d5c; }
+      .hoja { position: relative; width: 8.5in; height: 5.5in; overflow: hidden; }
+      .hoja img.fondo { position: absolute; inset: 0; width: 100%; height: 100%; }
+      .campo { position: absolute; font-size: 10.5pt; white-space: nowrap; }
+      .fecha    { left: 9%;    bottom: 71.5%; width: 14%; }
+      .nombre   { left: 40%;   bottom: 71.5%; width: 42%; overflow: hidden; text-overflow: ellipsis; }
+      .edad     { left: 89%;   bottom: 71.5%; width: 8%; }
+      .dx       { left: 14.5%; bottom: 66.3%; width: 82%; overflow: hidden; text-overflow: ellipsis; }
+      .cuerpo   { position: absolute; left: 6%; top: 39%; width: 88%; height: 42%; font-size: 10.5pt; line-height: 1.5; overflow: hidden; }
+      .med { margin-bottom: 2pt; }
+      .indicaciones { margin-top: 6pt; font-style: italic; font-size: 9.5pt; }
     </style></head><body>
-    <header>
-      <img src="${logoGioval}" alt="Gioval" />
-      <div>
-        <h1>Gioval Medicina Estética</h1>
-        <p class="sub">${r.medico_nombre || ''}${r.cedula_profesional ? ' · Cédula profesional: ' + r.cedula_profesional : ''}</p>
+    <div class="hoja">
+      <img class="fondo" src="${recetaFondo}" alt="" />
+      <span class="campo fecha">${new Date(r.fecha).toLocaleDateString('es-MX')}</span>
+      <span class="campo nombre">${nombrePaciente}</span>
+      <span class="campo edad">${paciente.edad ? paciente.edad + ' años' : ''}</span>
+      <span class="campo dx">${r.cie10_codigo ? esc(r.cie10_codigo) + ' — ' + esc(r.cie10_descripcion || '') : ''}</span>
+      <div class="cuerpo">
+        ${meds}
+        ${r.indicaciones ? `<p class="indicaciones">${esc(r.indicaciones)}</p>` : ''}
       </div>
-    </header>
-    <div class="datos">
-      <span><strong>Paciente:</strong> ${nombrePaciente}${paciente.edad ? ' · ' + paciente.edad + ' años' : ''}</span>
-      <span><strong>Fecha:</strong> ${new Date(r.fecha).toLocaleDateString('es-MX', { dateStyle: 'long' })}</span>
     </div>
-    ${r.cie10_codigo ? `<p style="font-size:13px"><strong>Diagnóstico:</strong> ${r.cie10_codigo} — ${r.cie10_descripcion || ''}</p>` : ''}
-    <table>
-      <thead><tr><th>Medicamento</th><th>Dosis</th><th>Frecuencia</th><th>Duración</th></tr></thead>
-      <tbody>${meds}</tbody>
-    </table>
-    ${r.indicaciones ? `<p class="indicaciones"><strong>Indicaciones:</strong> ${r.indicaciones}</p>` : ''}
-    <div class="firma">
-      <div class="linea"></div>
-      <p>${r.medico_nombre || 'Firma del médico'}</p>
-      ${r.cedula_profesional ? `<p>Cédula profesional: ${r.cedula_profesional}</p>` : ''}
-    </div>
-    <script>window.onload = () => window.print();</script>
+    <script>window.onload = () => setTimeout(() => window.print(), 300);</script>
     </body></html>`);
   w.document.close();
 }
