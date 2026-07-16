@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 
-// Dictado por voz con Web Speech API (Chrome/Edge/Safari). Si el navegador no
-// lo soporta, el botón no se renderiza.
+// Dictado por voz con Web Speech API (Chrome/Edge/Safari). El botón se muestra
+// siempre; si el navegador no soporta dictado o el sitio no corre en HTTPS,
+// al tocarlo explica el motivo en vez de desaparecer en silencio.
 export default function BotonDictado({ onTexto }) {
   const [activo, setActivo] = useState(false);
   const recRef = useRef(null);
@@ -9,9 +10,11 @@ export default function BotonDictado({ onTexto }) {
 
   useEffect(() => () => recRef.current?.stop(), []);
 
-  if (!SR) return null;
-
   function toggle() {
+    if (!SR) {
+      alert('Este navegador no soporta dictado por voz. Usa Chrome, Edge o Safari.');
+      return;
+    }
     if (activo) {
       recRef.current?.stop();
       return;
@@ -28,7 +31,14 @@ export default function BotonDictado({ onTexto }) {
       if (texto) onTexto(texto.trim());
     };
     rec.onend = () => setActivo(false);
-    rec.onerror = () => setActivo(false);
+    rec.onerror = (e) => {
+      setActivo(false);
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        alert(window.isSecureContext
+          ? 'Permiso de micrófono denegado. Actívalo en la configuración del navegador.'
+          : 'El dictado requiere conexión segura (HTTPS). Estará disponible cuando el sistema corra bajo HTTPS.');
+      }
+    };
     recRef.current = rec;
     rec.start();
     setActivo(true);

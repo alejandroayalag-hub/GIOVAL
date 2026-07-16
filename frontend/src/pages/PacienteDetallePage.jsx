@@ -194,9 +194,11 @@ export default function PacienteDetallePage() {
     return [paciente.apellido_paterno, paciente.apellido_materno, paciente.nombre].filter(Boolean).join(' ');
   }
 
-  const citasSinNota = (paciente.citas || []).filter(c =>
-    c.estatus === 'realizada' && !notas.some(n => n.cita_id === c.id)
-  );
+  // Cualquier cita no cancelada sin nota es elegible — citas viejas que nunca pasaron
+  // por el flujo "En vivo" se quedan en 'pendiente' y también necesitan nota
+  const citasSinNota = (paciente.citas || [])
+    .filter(c => c.estatus !== 'cancelada' && !notas.some(n => n.cita_id === c.id))
+    .sort((a, b) => new Date(b.fecha_hora) - new Date(a.fecha_hora));
 
   return (
     <div className="max-w-5xl">
@@ -423,14 +425,21 @@ export default function PacienteDetallePage() {
 
       {tab === 'notas' && (
         <div>
-          {citasSinNota.length > 0 && (
-            <div className="mb-4">
-              <button onClick={() => setNotaModal({ cita: citasSinNota[0], nota: null })}
-                      className="px-4 py-2 text-sm text-white rounded-lg"
-                      style={{ backgroundColor: 'var(--color-accent)' }}>
-                + Nueva nota de visita
-              </button>
+          {citasSinNota.length > 0 ? (
+            <div className="mb-4 flex flex-wrap gap-2">
+              {citasSinNota.map(c => (
+                <button key={c.id} onClick={() => setNotaModal({ cita: c, nota: null })}
+                        className="px-4 py-2 text-sm text-white rounded-lg"
+                        style={{ backgroundColor: 'var(--color-accent)' }}>
+                  + Nota — {c.tratamiento_nombre || 'Cita'} · {new Date(c.fecha_hora).toLocaleDateString('es-MX')}
+                </button>
+              ))}
             </div>
+          ) : (
+            <p className="mb-4 text-xs text-gray-400">
+              Las notas de visita se registran sobre una cita del paciente y todas sus citas ya tienen nota
+              (o no tiene citas). Para una nota sin cita usa la pestaña <strong>Notas Médicas</strong>.
+            </p>
           )}
           {notas.length === 0 ? (
             <p className="text-sm text-gray-400">Sin notas de visita registradas.</p>
