@@ -4,7 +4,7 @@ import { getPaciente, uploadFotoPaciente } from '../api/pacientes';
 import { getFotosByCita, uploadFotoCita, deleteFotoCita, fotoUrl } from '../api/fotosCita';
 import { getHistoria } from '../api/historiasClinicas';
 import { getNotasByPaciente } from '../api/notasVisita';
-import { getConsentimiento, getConsentimientoGeneral, getFirmadosByPaciente } from '../api/consentimientos';
+import { getConsentimiento, getConsentimientoGeneral, getFirmadosByPaciente, getIneFirmado } from '../api/consentimientos';
 import HistoriaClinicaForm from '../components/HistoriaClinicaForm';
 import NotaVisitaModal from '../components/NotaVisitaModal';
 import PacienteFormModal from '../components/PacienteFormModal';
@@ -26,6 +26,62 @@ function TabBtn({ active, onClick, children }) {
             style={{ color: active ? 'var(--color-accent)' : 'var(--color-dark)' }}>
       {children}
     </button>
+  );
+}
+
+function EvidenciaFirma({ cf }) {
+  const [open, setOpen] = useState(false);
+  const [ine, setIne] = useState(null);
+
+  useEffect(() => {
+    if (open && cf.tiene_ine && !ine) {
+      getIneFirmado(cf.id).then(setIne).catch(() => {});
+    }
+  }, [open, cf.id, cf.tiene_ine, ine]);
+
+  const hora = new Date(cf.fecha_firmado).toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' });
+  const tieneEvidencia = cf.ip || cf.geo_lat || cf.user_agent || cf.tiene_ine;
+  if (!tieneEvidencia) return null;
+
+  return (
+    <div className="mt-2">
+      <button onClick={() => setOpen(o => !o)} className="text-xs hover:underline" style={{ color: 'var(--color-accent)' }}>
+        {open ? '▾ Ocultar evidencia de firma' : '▸ Ver evidencia de firma'}
+      </button>
+      {open && (
+        <div className="mt-2 rounded-lg border p-3 text-xs space-y-1 text-gray-600"
+             style={{ borderColor: 'var(--color-sage)', backgroundColor: 'var(--color-cream)' }}>
+          <p><span className="text-gray-400">Fecha y hora:</span> {hora}</p>
+          {cf.ip && <p><span className="text-gray-400">IP:</span> {cf.ip}</p>}
+          {cf.geo_lat && (
+            <p>
+              <span className="text-gray-400">Ubicación:</span>{' '}
+              <a href={`https://www.google.com/maps?q=${cf.geo_lat},${cf.geo_lng}`} target="_blank" rel="noreferrer"
+                 className="underline" style={{ color: 'var(--color-accent)' }}>
+                {Number(cf.geo_lat).toFixed(5)}, {Number(cf.geo_lng).toFixed(5)}
+              </a>
+              {cf.geo_precision_m ? ` (±${Math.round(cf.geo_precision_m)} m)` : ''}
+            </p>
+          )}
+          {cf.user_agent && <p className="break-all"><span className="text-gray-400">Navegador:</span> {cf.user_agent}</p>}
+          {cf.tiene_ine && (
+            <div className="pt-1">
+              <p className="text-gray-400 mb-1">Identificación oficial (INE):</p>
+              {ine ? (
+                <div className="flex gap-2">
+                  {[ine.ine_frente, ine.ine_reverso].map((src, i) => src && (
+                    <a key={i} href={src} target="_blank" rel="noreferrer">
+                      <img src={src} alt={i === 0 ? 'INE frente' : 'INE reverso'}
+                           className="h-20 rounded border object-cover" style={{ borderColor: 'var(--color-sage)' }} />
+                    </a>
+                  ))}
+                </div>
+              ) : <p className="text-gray-400">Cargando…</p>}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -480,7 +536,7 @@ export default function PacienteDetallePage() {
                         {cf.titulo || cf.tratamiento_nombre || 'Consentimiento'}
                       </p>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        Firmado el {new Date(cf.fecha_firmado).toLocaleDateString('es-MX', { dateStyle: 'long' })}
+                        Firmado el {new Date(cf.fecha_firmado).toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' })}
                       </p>
                     </div>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Firmado</span>
@@ -488,6 +544,7 @@ export default function PacienteDetallePage() {
                   <div className="mt-3 border rounded-lg p-2 inline-block" style={{ borderColor: 'var(--color-sage)' }}>
                     <img src={cf.firma_imagen} alt="firma" className="h-12 object-contain" />
                   </div>
+                  <EvidenciaFirma cf={cf} />
                 </div>
               ))}
             </div>

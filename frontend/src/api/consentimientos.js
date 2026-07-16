@@ -20,3 +20,9 @@ export const getFirmadoByCita = (citaId) =>
 
 export const firmarConsentimiento = (data) =>
   api.post('/consentimientos/firmar', data).then(r => r.data);
+
+export const getIneReciente = (pacienteId) =>
+  api.get(`/consentimientos/ine-reciente/${pacienteId}`).then(r => r.data);
+
+export const getIneFirmado = (firmadoId) =>
+  api.get(`/consentimientos/firmados/${firmadoId}/ine`).then(r => r.data);

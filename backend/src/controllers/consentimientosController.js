@@ -44,16 +44,39 @@ exports.getFirmadoByCita = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+const esDataUrlImagen = (s) => typeof s === 'string' && s.startsWith('data:image/');
+
 exports.firmar = async (req, res, next) => {
   try {
-    const { consentimiento_id, paciente_id, cita_id, nombre_paciente, tratamiento_nombre, firma_imagen, autoriza_fotos } = req.body;
+    const { consentimiento_id, paciente_id, cita_id, nombre_paciente, tratamiento_nombre, firma_imagen, autoriza_fotos,
+            geo_lat, geo_lng, geo_precision_m, ine_frente, ine_reverso } = req.body;
     if (!firma_imagen || !consentimiento_id || !paciente_id || !nombre_paciente) {
       return res.status(400).json({ error: 'Faltan datos requeridos' });
     }
+    if (!esDataUrlImagen(ine_frente) || !esDataUrlImagen(ine_reverso)) {
+      return res.status(400).json({ error: 'Se requiere foto de la INE por ambas caras' });
+    }
     const data = await Consentimiento.createFirmado({
       consentimiento_id, paciente_id, cita_id, nombre_paciente, tratamiento_nombre,
-      firma_imagen, firmado_por: req.user.id, autoriza_fotos
+      firma_imagen, firmado_por: req.user.id, autoriza_fotos,
+      ip: req.ip,
+      user_agent: (req.headers['user-agent'] || '').slice(0, 500) || null,
+      geo_lat, geo_lng, geo_precision_m, ine_frente, ine_reverso,
     });
     res.status(201).json(data);
+  } catch (e) { next(e); }
+};
+
+exports.getIneByFirmado = async (req, res, next) => {
+  try {
+    const data = await Consentimiento.findIneByFirmado(req.params.id);
+    res.json(data || {});
+  } catch (e) { next(e); }
+};
+
+exports.getIneReciente = async (req, res, next) => {
+  try {
+    const data = await Consentimiento.findIneRecienteByPaciente(req.params.pacienteId);
+    res.json(data || {});
   } catch (e) { next(e); }
 };

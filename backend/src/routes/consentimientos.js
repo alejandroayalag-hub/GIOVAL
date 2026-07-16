@@ -10,6 +10,8 @@ router.get('/tratamiento/:tratamientoId',    clinico, ctrl.getByTratamiento);
 router.get('/general/:codigo',               clinico, ctrl.getByCodigo);
 router.get('/firmados/paciente/:pacienteId', clinico, ctrl.getFirmadosByPaciente);
 router.get('/firmados/cita/:citaId',         clinico, ctrl.getFirmadoByCita);
+router.get('/firmados/:id/ine',              clinico, ctrl.getIneByFirmado);
+router.get('/ine-reciente/:pacienteId',      clinico, ctrl.getIneReciente);
 router.post('/firmar',                       clinico, ctrl.firmar);
 // Edición de plantillas de consentimiento: solo admin/asistente_medico
 router.put('/tratamiento/:tratamientoId',    editarPlantilla, ctrl.save);

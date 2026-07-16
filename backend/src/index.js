@@ -25,7 +25,7 @@ app.use(cors({
   ],
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '15mb' })); // firmas + fotos INE en data URL
 app.use(require('./middleware/normalizeQuery'));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 

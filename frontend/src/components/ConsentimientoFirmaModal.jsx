@@ -1,6 +1,25 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import SignaturePad from './SignaturePad';
-import { firmarConsentimiento } from '../api/consentimientos';
+import { firmarConsentimiento, getIneReciente } from '../api/consentimientos';
+
+// Comprime imagen a JPEG max 1600px por lado — data URL listo para guardar
+function comprimirImagen(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const escala = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * escala);
+      canvas.height = Math.round(img.height * escala);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo leer la imagen')); };
+    img.src = url;
+  });
+}
 
 function calcEdad(fechaNac) {
   if (!fechaNac) return null;
@@ -25,7 +44,46 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [autorizaFotos, setAutorizaFotos] = useState(null);
+  const [geo, setGeo] = useState(null);           // {lat, lng, precision} | null
+  const [geoStatus, setGeoStatus] = useState('buscando'); // buscando | ok | no_disponible
+  const [ine, setIne] = useState({ frente: null, reverso: null });
+  const [inePrevio, setInePrevio] = useState(false);
   const requiereFotos = consentimiento.codigo === 'CI-01';
+
+  useEffect(() => {
+    if (!navigator.geolocation) { setGeoStatus('no_disponible'); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude, precision: pos.coords.accuracy });
+        setGeoStatus('ok');
+      },
+      () => setGeoStatus('no_disponible'),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []);
+
+  useEffect(() => {
+    getIneReciente(paciente.id)
+      .then(d => {
+        if (d?.ine_frente && d?.ine_reverso) {
+          setIne({ frente: d.ine_frente, reverso: d.ine_reverso });
+          setInePrevio(true);
+        }
+      })
+      .catch(() => {});
+  }, [paciente.id]);
+
+  async function handleIneFile(cara, file) {
+    if (!file) return;
+    try {
+      const dataUrl = await comprimirImagen(file);
+      setIne(prev => ({ ...prev, [cara]: dataUrl }));
+      setInePrevio(false);
+      setError('');
+    } catch {
+      setError('No se pudo procesar la foto de la INE. Intenta de nuevo.');
+    }
+  }
 
   const nombreCompleto = [paciente.apellido_paterno, paciente.apellido_materno, paciente.nombre]
     .filter(Boolean).join(' ');
@@ -38,6 +96,10 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
   async function handleFirmar() {
     if (requiereFotos && autorizaFotos === null) {
       setError('Selecciona una opción de autorización de fotografías.');
+      return;
+    }
+    if (!ine.frente || !ine.reverso) {
+      setError('Adjunta la foto de la INE por ambas caras antes de firmar.');
       return;
     }
     if (sigRef.current?.isEmpty()) {
@@ -55,6 +117,11 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
         tratamiento_nombre: procedimiento || consentimiento.titulo || '',
         firma_imagen,
         autoriza_fotos: requiereFotos ? autorizaFotos : null,
+        geo_lat: geo?.lat ?? null,
+        geo_lng: geo?.lng ?? null,
+        geo_precision_m: geo?.precision != null ? Math.round(geo.precision) : null,
+        ine_frente: ine.frente,
+        ine_reverso: ine.reverso,
       });
       onFirmado?.();
       onClose();
@@ -179,6 +246,38 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
             </div>
           )}
 
+          {/* Identificación oficial INE */}
+          <div className="rounded-xl border p-4" style={{ borderColor: 'var(--color-sage)' }}>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-accent)' }}>
+              Identificación oficial (INE) — ambas caras *
+            </p>
+            {inePrevio && (
+              <p className="text-xs text-gray-400 mb-2">
+                Se reutilizará la INE registrada previamente. Toca una foto para volver a tomarla.
+              </p>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              {[['frente', 'Frente'], ['reverso', 'Reverso']].map(([cara, label]) => (
+                <label key={cara} className="cursor-pointer">
+                  <input type="file" accept="image/*" capture="environment" className="hidden"
+                         onChange={e => handleIneFile(cara, e.target.files?.[0])} />
+                  {ine[cara] ? (
+                    <div className="border rounded-lg overflow-hidden" style={{ borderColor: 'var(--color-sage)' }}>
+                      <img src={ine[cara]} alt={`INE ${label}`} className="w-full h-28 object-cover" />
+                      <p className="text-center text-xs py-1 text-gray-500">{label} ✓ · tocar para cambiar</p>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed rounded-lg h-28 flex flex-col items-center justify-center text-gray-400 text-xs gap-1"
+                         style={{ borderColor: 'var(--color-sage)' }}>
+                      <span className="text-2xl">📷</span>
+                      <span>Foto {label}</span>
+                    </div>
+                  )}
+                </label>
+              ))}
+            </div>
+          </div>
+
           {/* Declaración + Firma */}
           <div className="border-t pt-4" style={{ borderColor: 'var(--color-sage)' }}>
             <p className="text-sm text-gray-600 mb-1">
@@ -199,6 +298,13 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
               </button>
             </div>
           </div>
+
+          {/* Estado de geolocalización (best-effort) */}
+          <p className="text-xs" style={{ color: geoStatus === 'no_disponible' ? '#b45309' : '#9ca3af' }}>
+            {geoStatus === 'buscando' && '⌖ Obteniendo ubicación…'}
+            {geoStatus === 'ok' && `⌖ Ubicación capturada (±${Math.round(geo.precision)} m)`}
+            {geoStatus === 'no_disponible' && '⚠ Ubicación no disponible — la firma se registrará sin geolocalización'}
+          </p>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
         </div>
