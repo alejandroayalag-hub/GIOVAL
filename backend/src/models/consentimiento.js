@@ -1,4 +1,7 @@
 const pool = require('../db/pool');
+const { encrypt, decrypt } = require('../utils/cifrado');
+
+const descifrarIne = r => ({ ...r, ine_frente: decrypt(r.ine_frente), ine_reverso: decrypt(r.ine_reverso) });
 
 const Consentimiento = {
   async findByTratamiento(tratamientoId) {
@@ -54,6 +57,7 @@ const Consentimiento = {
   },
 
   async findFirmadosByPaciente(pacienteId) {
+    // firma_imagen viene cifrada at-rest — descifrar por fila
     // ine_frente/ine_reverso excluidos del listado (data URLs pesados) — pedir por firmado con findIneByFirmado
     const { rows } = await pool.query(
       `SELECT cf.id, cf.consentimiento_id, cf.paciente_id, cf.cita_id, cf.nombre_paciente,
@@ -67,7 +71,7 @@ const Consentimiento = {
        ORDER BY cf.fecha_firmado DESC`,
       [pacienteId]
     );
-    return rows;
+    return rows.map(r => ({ ...r, firma_imagen: decrypt(r.firma_imagen) }));
   },
 
   async findIneByFirmado(id) {
@@ -75,7 +79,7 @@ const Consentimiento = {
       'SELECT ine_frente, ine_reverso FROM consentimientos_firmados WHERE id = $1',
       [id]
     );
-    return rows[0] || null;
+    return rows[0] ? descifrarIne(rows[0]) : null;
   },
 
   async findIneRecienteByPaciente(pacienteId) {
@@ -85,7 +89,7 @@ const Consentimiento = {
        ORDER BY fecha_firmado DESC LIMIT 1`,
       [pacienteId]
     );
-    return rows[0] || null;
+    return rows[0] ? descifrarIne(rows[0]) : null;
   },
 
   async findFirmadoByCita(citaId) {
@@ -93,7 +97,10 @@ const Consentimiento = {
       `SELECT cf.* FROM consentimientos_firmados cf WHERE cf.cita_id = $1`,
       [citaId]
     );
-    return rows[0] || null;
+    if (!rows[0]) return null;
+    const r = descifrarIne(rows[0]);
+    r.firma_imagen = decrypt(r.firma_imagen);
+    return r;
   },
 
   async createFirmado(data) {
@@ -105,8 +112,8 @@ const Consentimiento = {
           ip, user_agent, geo_lat, geo_lng, geo_precision_m, ine_frente, ine_reverso)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
        RETURNING id, consentimiento_id, paciente_id, cita_id, fecha_firmado`,
-      [consentimiento_id, paciente_id, cita_id, nombre_paciente, tratamiento_nombre, firma_imagen, firmado_por, autoriza_fotos ?? null,
-       ip ?? null, user_agent ?? null, geo_lat ?? null, geo_lng ?? null, geo_precision_m ?? null, ine_frente ?? null, ine_reverso ?? null]
+      [consentimiento_id, paciente_id, cita_id, nombre_paciente, tratamiento_nombre, encrypt(firma_imagen), firmado_por, autoriza_fotos ?? null,
+       ip ?? null, user_agent ?? null, geo_lat ?? null, geo_lng ?? null, geo_precision_m ?? null, encrypt(ine_frente ?? null), encrypt(ine_reverso ?? null)]
     );
     return rows[0];
   },
