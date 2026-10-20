@@ -9,21 +9,21 @@ cd "$ROOT_DIR/frontend"
 npm run build
 
 echo "→ Sincronizando backend (sin tocar uploads)..."
-rsync -az --delete \
+rsync -az --delete --chown=apps:apps \
   --exclude='uploads/' \
   --exclude='node_modules/' \
   --exclude='.env' \
-  "$ROOT_DIR/backend/" $SERVER:/root/elys/backend/
+  "$ROOT_DIR/backend/" $SERVER:/home/apps/elys/backend/
 
 echo "→ Sincronizando frontend dist..."
-rsync -az --delete \
-  "$ROOT_DIR/frontend/dist/" $SERVER:/root/elys/frontend/dist/
+rsync -az --delete --chown=apps:apps \
+  "$ROOT_DIR/frontend/dist/" $SERVER:/home/apps/elys/frontend/dist/
 
 echo "→ Instalando dependencias y reiniciando..."
-ssh $SERVER "cd /root/elys/backend && npm install --omit=dev --silent && pm2 restart elys-backend"
+ssh $SERVER "cd /home/apps/elys/backend && sudo -u apps npm install --omit=dev --silent && sudo -u apps pm2 restart elys-backend"
 
 echo "→ Verificando..."
 sleep 2
-ssh $SERVER "pm2 show elys-backend | grep -E 'status|restarts'"
+ssh $SERVER "sudo -u apps pm2 show elys-backend | grep -E 'status|restarts'"
 
 echo "✓ Deploy Elys completado"
