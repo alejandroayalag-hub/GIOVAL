@@ -14,6 +14,13 @@ import ConsentimientoFirmaModal from '../components/ConsentimientoFirmaModal';
 import DocumentosClinicosTab from '../components/DocumentosClinicosTab';
 import { DiagnosticosTab, RecetasTab, NotasMedicasTab, ArchivosTab } from '../components/ExpedienteTabs';
 import logoGioval from '../assets/gioval-logo.png';
+import ZonaImpresion from '../components/ZonaImpresion';
+
+const TITULO_IMPRESION = {
+  citas: 'Historial de Citas', notas: 'Notas de Visita', 'notas-medicas': 'Notas Médicas',
+  consentimientos: 'Consentimientos', valoraciones: 'Valoraciones', procedimientos: 'Procedimientos',
+  diagnosticos: 'Diagnósticos', recetas: 'Recetas', archivos: 'Archivos',
+};
 
 const ESTATUS_COLOR = {
   pendiente: '#aba3ba',
@@ -357,6 +364,9 @@ export default function PacienteDetallePage() {
         }
       </div>
 
+      {tab !== 'historia' && (
+      <ZonaImpresion titulo={TITULO_IMPRESION[tab] || 'Expediente'} paciente={paciente}>
+
       {tab === 'citas' && (
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden"
              style={{ borderColor: 'var(--color-sage)' }}>
@@ -471,7 +481,7 @@ export default function PacienteDetallePage() {
 
       {tab === 'notas' && (
         <div>
-          <NotaRapida key={citasSinNota.map(c => c.id).join()} pacienteId={parseInt(id)} citas={citasSinNota} onSaved={() => cargar(true)} />
+          <div className="print:hidden"><NotaRapida key={citasSinNota.map(c => c.id).join()} pacienteId={parseInt(id)} citas={citasSinNota} onSaved={() => cargar(true)} /></div>
           {citasSinNota.length > 0 && (
             <div className="mb-4 flex flex-wrap gap-2">
               {citasSinNota.map(c => (
@@ -505,7 +515,7 @@ export default function PacienteDetallePage() {
                     <span className="text-xs" style={{ color: 'var(--color-accent)' }}>Editar →</span>
                   </div>
                   {n.evolucion && (
-                    <p className="text-sm text-gray-600 mt-2 line-clamp-2">{n.evolucion}</p>
+                    <p className="text-sm text-gray-600 mt-2 line-clamp-2 print:line-clamp-none">{n.evolucion}</p>
                   )}
                 </div>
               ))}
@@ -524,7 +534,7 @@ export default function PacienteDetallePage() {
             if (!generalesFaltantes.length) return null;
             const codigo = generalesFaltantes[0];
             return (
-              <div className="mb-4 p-4 rounded-xl border-2" style={{ borderColor: 'var(--color-accent)', backgroundColor: 'var(--color-cream)' }}>
+              <div className="mb-4 p-4 rounded-xl border-2 print:hidden" style={{ borderColor: 'var(--color-accent)', backgroundColor: 'var(--color-cream)' }}>
                 <p className="text-sm font-medium mb-2" style={{ color: 'var(--color-dark)' }}>
                   {titulos[codigo]} pendiente{generalesFaltantes.length > 1 ? ` (y ${generalesFaltantes.length - 1} más)` : ''}
                 </p>
@@ -550,7 +560,7 @@ export default function PacienteDetallePage() {
             );
             if (!citasSinConsent.length) return null;
             return (
-              <div className="mb-4 p-4 rounded-xl border" style={{ borderColor: 'var(--color-sage)', backgroundColor: 'var(--color-cream)' }}>
+              <div className="mb-4 p-4 rounded-xl border print:hidden" style={{ borderColor: 'var(--color-sage)', backgroundColor: 'var(--color-cream)' }}>
                 <p className="text-sm font-medium mb-2" style={{ color: 'var(--color-dark)' }}>
                   Firmar antes del procedimiento:
                 </p>
@@ -631,6 +641,8 @@ export default function PacienteDetallePage() {
 
       {tab === 'archivos' && (
         <ArchivosTab pacienteId={parseInt(id)} rol={rol} />
+      )}
+      </ZonaImpresion>
       )}
 
       {notaModal && (

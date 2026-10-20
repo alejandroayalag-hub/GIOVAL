@@ -47,7 +47,7 @@ export function DiagnosticosTab({ pacienteId, rol, onChanged }) {
 
   return (
     <div>
-      <div className="bg-white rounded-xl border p-4 mb-4" style={cardBorder}>
+      <div className="bg-white rounded-xl border p-4 mb-4 print:hidden" style={cardBorder}>
         <p className="text-sm font-semibold mb-2" style={{ color: 'var(--color-dark)' }}>
           Agregar diagnóstico
         </p>
@@ -384,7 +384,7 @@ export function NotasMedicasTab({ pacienteId, rol }) {
 
   return (
     <div>
-      <div className="bg-white rounded-xl border p-4 mb-4" style={cardBorder}>
+      <div className="bg-white rounded-xl border p-4 mb-4 print:hidden" style={cardBorder}>
         <div className="flex items-center justify-between mb-2">
           <p className="text-sm font-semibold" style={{ color: 'var(--color-dark)' }}>Nueva nota médica</p>
           <BotonDictado onTexto={t => setNueva(v => (v ? v + ' ' : '') + t)} />
@@ -529,7 +529,7 @@ export function ArchivosTab({ pacienteId, rol }) {
               <p className="text-xs text-gray-400">
                 {etiqueta(a.categoria)} · {new Date(a.fecha || a.created_at).toLocaleDateString('es-MX')}
               </p>
-              {a.notas && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{a.notas}</p>}
+              {a.notas && <p className="text-xs text-gray-500 mt-1 line-clamp-2 print:line-clamp-none">{a.notas}</p>}
               <div className="flex gap-2 mt-2">
                 <a href={archivoUrl(a.archivo)} target="_blank" rel="noopener noreferrer"
                    className="text-xs" style={{ color: 'var(--color-accent)' }}>Ver</a>

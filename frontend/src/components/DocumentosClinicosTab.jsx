@@ -862,6 +862,14 @@ const FORM_MAP = {
   int_01: FormInt01, int_02: FormInt02,
 };
 
+function renderForm(tipo, datos, set) {
+  const FormComp = FORM_MAP[tipo];
+  if (!FormComp) return null;
+  return typeof FormComp === 'function' && FormComp.length > 0
+    ? <FormComp d={datos} set={set} />
+    : FormComp({ d: datos, set });
+}
+
 // ── Modal de edición/creación ─────────────────────────────────────────────────
 function DocModal({ pacienteId, tipo, doc, onClose, onSaved }) {
   const [datos, setDatos] = useState(doc?.datos || {});
@@ -886,8 +894,6 @@ function DocModal({ pacienteId, tipo, doc, onClose, onSaved }) {
     } finally { setLoading(false); }
   }
 
-  const FormComp = FORM_MAP[tipo];
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 overflow-y-auto p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl my-4">
@@ -900,11 +906,7 @@ function DocModal({ pacienteId, tipo, doc, onClose, onSaved }) {
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
         </div>
         <div className="p-5 max-h-[75vh] overflow-y-auto">
-          {FormComp && (
-            typeof FormComp === 'function' && FormComp.length > 0
-              ? <FormComp d={datos} set={set} />
-              : FormComp({ d: datos, set })
-          )}
+          {renderForm(tipo, datos, set)}
         </div>
         {error && <p className="px-5 text-red-500 text-sm">{error}</p>}
         <div className="flex justify-end gap-3 p-5 border-t" style={{ borderColor: 'var(--color-sage)' }}>
@@ -951,6 +953,22 @@ export default function DocumentosClinicosTab({ pacienteId, groups = ['Valoracio
 
   return (
     <div>
+      {/* Al imprimir: cada documento completo en solo lectura (en pantalla se ve la lista) */}
+      <div className="hidden print:block">
+        {TIPOS.filter(t => groups.includes(t.group)).flatMap(t => docsByTipo[t.key] || []).map(doc => (
+          <div key={doc.id} className="mb-6 break-inside-avoid-page">
+            <p className="font-semibold">{TIPOS.find(t => t.key === doc.tipo)?.label}</p>
+            <p className="text-xs mb-2">
+              {new Date(doc.fecha).toLocaleDateString('es-MX', { dateStyle: 'long' })}
+              {doc.creado_por_nombre && ` · ${doc.creado_por_nombre}`}
+            </p>
+            <fieldset disabled>{renderForm(doc.tipo, doc.datos || {}, () => {})}</fieldset>
+          </div>
+        ))}
+        {!docs.some(d => groups.includes(TIPOS.find(t => t.key === d.tipo)?.group)) && <p className="text-sm">Sin registros.</p>}
+      </div>
+
+      <div className="print:hidden">
       {groups.map(group => {
         const tiposGrupo = TIPOS.filter(t => t.group === group);
         return (
@@ -1013,6 +1031,7 @@ export default function DocumentosClinicosTab({ pacienteId, groups = ['Valoracio
           </div>
         );
       })}
+      </div>
 
       {modal && (
         <DocModal

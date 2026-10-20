@@ -41,10 +41,13 @@ body {
   opacity: 0.65;
 }
 
-/* Impresión de historia clínica: solo se imprime .hc-print (botón en HistoriaClinicaForm) */
+/* Impresión del expediente: solo se imprime la zona visible (.hc-print = historia clínica,
+   .print-area = demás pestañas, ver ZonaImpresion). La HC oculta con display:none no sale. */
 @media print {
-  body:has(.hc-print) * { visibility: hidden; }
-  body:has(.hc-print) .hc-print, body:has(.hc-print) .hc-print * { visibility: visible; }
-  .hc-print { position: absolute; left: 0; top: 0; width: 100%; }
-  .hc-print textarea { field-sizing: content; resize: none; }
+  body:has(.hc-print, .print-area) * { visibility: hidden; }
+  /* mismo prefijo body:has() para igualar especificidad con la regla de arriba */
+  body:has(.hc-print, .print-area) :is(.hc-print, .hc-print *, .print-area, .print-area *) { visibility: visible; }
+  .hc-print, .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+  .hc-print textarea, .print-area textarea { field-sizing: content; resize: none; }
+  .print-area button { display: none; }
 }
