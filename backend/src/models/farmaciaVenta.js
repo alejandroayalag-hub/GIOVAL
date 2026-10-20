@@ -4,8 +4,12 @@ const METODOS = ['efectivo', 'terminal', 'transferencia'];
 
 class FarmaciaVenta {
   static async findAll(filtros = {}) {
-    let query = `SELECT fv.*, u.nombre AS vendedor
-                 FROM farmacia_ventas fv LEFT JOIN usuarios u ON u.id = fv.empleado_id
+    let query = `SELECT fv.*, u.nombre AS vendedor,
+                        COALESCE(NULLIF(trim(concat_ws(' ', pa.nombre, pa.apellido_paterno)), ''), fc.nombre) AS cliente
+                 FROM farmacia_ventas fv
+                 LEFT JOIN usuarios u ON u.id = fv.empleado_id
+                 LEFT JOIN pacientes pa ON pa.id = fv.paciente_id
+                 LEFT JOIN farmacia_clientes fc ON fc.id = fv.cliente_id
                  WHERE fv.estado IN ('pagada', 'cancelada')`;
     const params = [];
 
@@ -46,7 +50,7 @@ class FarmaciaVenta {
   }
 
   // Cobro completo en una transacción: o se registra todo (venta + items + stock) o nada.
-  static async checkout({ empleado_id, caja_id, items, metodo_pago }) {
+  static async checkout({ empleado_id, caja_id, items, metodo_pago, paciente_id, cliente_id }) {
     if (!METODOS.includes(metodo_pago)) throw new Error('Método de pago inválido');
     if (!Array.isArray(items) || items.length === 0) throw new Error('Carrito vacío');
 
@@ -78,9 +82,9 @@ class FarmaciaVenta {
       total = Math.round(total * 100) / 100;
 
       const { rows: [venta] } = await client.query(
-        `INSERT INTO farmacia_ventas (empleado_id, caja_id, estado, fecha, subtotal, total, metodo_pago)
-         VALUES ($1, $2, 'pagada', NOW(), $3, $3, $4) RETURNING *`,
-        [empleado_id, caja_id, total, metodo_pago]
+        `INSERT INTO farmacia_ventas (empleado_id, caja_id, estado, fecha, subtotal, total, metodo_pago, paciente_id, cliente_id)
+         VALUES ($1, $2, 'pagada', NOW(), $3, $3, $4, $5, $6) RETURNING *`,
+        [empleado_id, caja_id, total, metodo_pago, paciente_id || null, paciente_id ? null : (cliente_id || null)]
       );
       for (const p of productos) {
         const cantidad = cantidades.get(p.id);
@@ -91,6 +95,7 @@ class FarmaciaVenta {
         );
         await client.query('UPDATE farmacia_productos SET stock = stock - $1 WHERE id = $2', [cantidad, p.id]);
       }
+      if (venta.cliente_id) await client.query('UPDATE farmacia_clientes SET ultima_compra = NOW() WHERE id = $1', [venta.cliente_id]);
       await client.query('COMMIT');
       return venta;
     } catch (err) {

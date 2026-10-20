@@ -1,5 +1,6 @@
 // backend/src/routes/pacientes.js
 const router = require('express').Router();
+router.param('id', require('../middleware/misPacientes').verificarParam);
 const ctrl = require('../controllers/pacientesController');
 const upload = require('../middleware/upload');
 const { requireRol } = require('../middleware/roles');

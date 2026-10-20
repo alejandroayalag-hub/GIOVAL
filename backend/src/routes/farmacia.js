@@ -7,6 +7,7 @@ const farmaciaProveedores = require('../controllers/farmaciaProveedores');
 const farmaciaVentas = require('../controllers/farmaciaVentas');
 const farmaciaCaja = require('../controllers/farmaciaCaja');
 const farmaciaReportes = require('../controllers/farmaciaReportes');
+const farmaciaClientes = require('../controllers/farmaciaClientes');
 
 // Productos - farmacia/admin (precios y stock solo admin, ver controller)
 router.get('/productos', authFarmacia, farmaciaProductos.listar);
@@ -21,6 +22,10 @@ router.get('/proveedores/:id', authFarmaciaAdmin, farmaciaProveedores.obtener);
 router.post('/proveedores', authFarmaciaAdmin, farmaciaProveedores.crear);
 router.put('/proveedores/:id', authFarmaciaAdmin, farmaciaProveedores.actualizar);
 router.delete('/proveedores/:id', authFarmaciaAdmin, farmaciaProveedores.desactivar);
+
+// Clientes (opcional en la venta) - farmacia/admin
+router.get('/clientes', authFarmacia, farmaciaClientes.buscar);
+router.post('/clientes', authFarmacia, farmaciaClientes.crear);
 
 // Ventas - farmacia/admin
 router.get('/ventas', authFarmacia, farmaciaVentas.listar);

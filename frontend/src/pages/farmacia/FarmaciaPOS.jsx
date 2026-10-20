@@ -12,6 +12,69 @@ const METODOS = [
   { id: 'transferencia', label: '🏦 Transferencia', color: '#FF9800' },
 ];
 
+// Cliente opcional de la venta: por defecto "Público general"
+function ClienteSelector({ cliente, onChange }) {
+  const [abierto, setAbierto] = useState(false);
+  const [q, setQ] = useState('');
+  const [res, setRes] = useState([]);
+  const [nuevo, setNuevo] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (q.trim().length < 2) { setRes([]); return; }
+    const t = setTimeout(() => farmaciaAPI.buscarClientes(q.trim()).then(setRes).catch(() => {}), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  const elegir = (c) => { onChange(c); setAbierto(false); setQ(''); setRes([]); setNuevo(null); };
+
+  const guardarNuevo = async () => {
+    try { elegir(await farmaciaAPI.crearCliente(nuevo)); } catch (err) { setError(errMsg(err)); }
+  };
+
+  if (!abierto) {
+    return (
+      <div style={{ marginBottom: '0.75rem' }}>
+        Cliente: <strong>{cliente ? `${cliente.nombre}${cliente.tipo === 'paciente' ? ' (paciente)' : ''}` : 'Público general'}</strong>{' '}
+        <button onClick={() => setAbierto(true)} style={{ fontSize: '0.85rem' }}>cambiar</button>
+        {cliente && <button onClick={() => onChange(null)} style={{ fontSize: '0.85rem', marginLeft: '0.25rem' }}>quitar</button>}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: 'white', padding: '0.5rem', borderRadius: '4px', marginBottom: '0.75rem' }}>
+      {!nuevo ? (
+        <>
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nombre o teléfono del cliente"
+                 style={{ width: '100%', padding: '0.5rem' }} />
+          {res.map(c => (
+            <div key={`${c.tipo}-${c.id}`} onClick={() => elegir(c)} style={{ padding: '0.4rem', borderBottom: '1px solid #eee', cursor: 'pointer' }}>
+              {c.nombre} {c.telefono && `· ${c.telefono}`} <span style={{ color: '#999', fontSize: '0.8rem' }}>{c.tipo === 'paciente' ? 'paciente' : 'externo'}</span>
+            </div>
+          ))}
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+            <button onClick={() => setNuevo({ nombre: q, telefono: '' })}>+ Cliente nuevo</button>
+            <button onClick={() => setAbierto(false)}>Cancelar</button>
+          </div>
+        </>
+      ) : (
+        <>
+          <input autoFocus value={nuevo.nombre} onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })} placeholder="Nombre"
+                 style={{ width: '100%', padding: '0.5rem', marginBottom: '0.25rem' }} />
+          <input value={nuevo.telefono} onChange={(e) => setNuevo({ ...nuevo, telefono: e.target.value })} placeholder="Teléfono (opcional)"
+                 style={{ width: '100%', padding: '0.5rem' }} />
+          {error && <div style={{ color: '#d32f2f', fontSize: '0.85rem' }}>{error}</div>}
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+            <button onClick={guardarNuevo}>Guardar</button>
+            <button onClick={() => setNuevo(null)}>Atrás</button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 const FarmaciaPOS = () => {
   const { items, agregarItem, removerItem, actualizarCantidad, limpiar, total, cajaAbierta, cargarCaja } = useContext(FarmaciaContext);
   const [cargando, setCargando] = useState(true);
@@ -22,6 +85,7 @@ const FarmaciaPOS = () => {
   const [recibido, setRecibido] = useState('');
   const [cobrando, setCobrando] = useState(false);
   const [ultimaVenta, setUltimaVenta] = useState(null);
+  const [cliente, setCliente] = useState(null);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -73,10 +137,11 @@ const FarmaciaPOS = () => {
     setError('');
     try {
       const venta = await farmaciaAPI.checkout(
-        items.map(i => ({ producto_id: i.producto_id, cantidad: i.cantidad })), metodo_pago);
+        items.map(i => ({ producto_id: i.producto_id, cantidad: i.cantidad })), metodo_pago, cliente);
       const cambio = metodo_pago === 'efectivo' && parseFloat(recibido) > 0 ? parseFloat(recibido) - total : null;
       setUltimaVenta({ ...venta, cambio });
       limpiar();
+      setCliente(null);
       setModalPago(false);
       setRecibido('');
       cargarCaja();
@@ -145,6 +210,7 @@ const FarmaciaPOS = () => {
 
       <div style={{ background: '#f9f9f9', padding: '1rem', borderRadius: '4px' }}>
         <h3>Carrito ({items.length})</h3>
+        <ClienteSelector cliente={cliente} onChange={setCliente} />
 
         {items.length === 0 ? (
           <p style={{ color: '#999' }}>Carrito vacío</p>

@@ -110,10 +110,10 @@ function Ventas({ desde, hasta, onCambio }) {
       {error && <div className="mb-3 text-sm text-red-400">{error}</div>}
       <table className="w-full text-sm">
         <thead><tr className="text-left text-gray-400 border-b border-gray-700">
-          <th className="py-2">#</th><th>Fecha</th><th>Vendió</th><th>Método</th><th className="text-right">Total</th><th></th>
+          <th className="py-2">#</th><th>Fecha</th><th>Vendió</th><th>Cliente</th><th>Método</th><th className="text-right">Total</th><th></th>
         </tr></thead>
         <tbody>
-          {ventas.length === 0 && <tr><td colSpan={6} className="py-6 text-center text-gray-500">Sin ventas en el periodo</td></tr>}
+          {ventas.length === 0 && <tr><td colSpan={7} className="py-6 text-center text-gray-500">Sin ventas en el periodo</td></tr>}
           {ventas.map(v => (
             <Fragment key={v.id}>
               <tr className={`border-b border-gray-800 cursor-pointer ${v.estado === 'cancelada' ? 'text-gray-500 line-through' : 'text-gray-200'}`}
@@ -121,6 +121,7 @@ function Ventas({ desde, hasta, onCambio }) {
                 <td className="py-2">{v.numero_venta}</td>
                 <td>{fecha(v.fecha)}</td>
                 <td>{v.vendedor}</td>
+                <td>{v.cliente || 'Público general'}</td>
                 <td>{v.metodo_pago}</td>
                 <td className="text-right">{fmt(v.total)}</td>
                 <td className="text-right">
@@ -130,7 +131,7 @@ function Ventas({ desde, hasta, onCambio }) {
                 </td>
               </tr>
               {abierta?.id === v.id && (
-                <tr className="bg-gray-800/50"><td colSpan={6} className="px-4 py-2 text-gray-300">
+                <tr className="bg-gray-800/50"><td colSpan={7} className="px-4 py-2 text-gray-300">
                   {abierta.items.map(i => (
                     <div key={i.id}>{i.cantidad} × {i.nombre} @ {fmt(i.precio_unitario)} = {fmt(i.subtotal)}
                       {i.costo_unitario && <span className="text-gray-500"> (costo {fmt(i.costo_unitario * i.cantidad)})</span>}</div>

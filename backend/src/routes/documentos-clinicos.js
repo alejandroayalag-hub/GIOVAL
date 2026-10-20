@@ -1,4 +1,5 @@
 const router = require('express').Router();
+router.param('pacienteId', require('../middleware/misPacientes').verificarParam);
 const { requireRol } = require('../middleware/roles');
 const ctrl = require('../controllers/documentosClinicosController');
 

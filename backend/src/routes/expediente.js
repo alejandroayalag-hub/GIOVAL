@@ -1,6 +1,7 @@
 // backend/src/routes/expediente.js
 // Diagnósticos CIE-10, recetas, notas médicas libres y archivos del paciente
 const router = require('express').Router();
+router.param('pacienteId', require('../middleware/misPacientes').verificarParam);
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');

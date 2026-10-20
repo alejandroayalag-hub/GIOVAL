@@ -1,3 +1,4 @@
+const { empleadoAcotado } = require('../middleware/misPacientes');
 const Cita = require('../models/cita');
 const pool = require('../db/pool');
 const gc   = require('../services/googleCalendar');
@@ -52,7 +53,8 @@ exports.list = async (req, res, next) => {
       d = `${hoy}T00:00:00`;
       h = `${hoy}T23:59:59`;
     }
-    const citas = await Cita.findByRango({ desde: d, hasta: h });
+    // Cosmetóloga/enfermera ligada a Personal: solo su agenda
+    const citas = await Cita.findByRango({ desde: d, hasta: h, empleada_id: await empleadoAcotado(req) });
     res.json(citas);
   } catch (err) { next(err); }
 };

@@ -1,5 +1,6 @@
 // backend/src/routes/historias-clinicas.js
 const router = require('express').Router();
+router.param('pacienteId', require('../middleware/misPacientes').verificarParam);
 const ctrl = require('../controllers/historiasClinicasController');
 const { requireRol } = require('../middleware/roles');
 

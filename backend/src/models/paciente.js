@@ -1,24 +1,29 @@
 const pool = require('../db/pool');
 
 const Paciente = {
-  async findAll() {
+  // empleadoId: solo pacientes con cita con esa persona (cosmetóloga/enfermera)
+  async findAll(empleadoId) {
     const { rows } = await pool.query(
       `SELECT id, apellido_paterno, apellido_materno, nombre, telefono, email,
               fecha_registro, created_at
-       FROM pacientes ORDER BY apellido_paterno, apellido_materno, nombre`
+       FROM pacientes p
+       ${empleadoId ? 'WHERE EXISTS (SELECT 1 FROM citas c WHERE c.paciente_id = p.id AND c.empleada_id = $1)' : ''}
+       ORDER BY apellido_paterno, apellido_materno, nombre`,
+      empleadoId ? [empleadoId] : []
     );
     return rows;
   },
 
-  async buscar(q) {
+  async buscar(q, empleadoId) {
     const term = `%${q}%`;
     const { rows } = await pool.query(
       `SELECT id, apellido_paterno, apellido_materno, nombre, telefono
-       FROM pacientes
-       WHERE apellido_paterno ILIKE $1 OR apellido_materno ILIKE $1
-          OR nombre ILIKE $1 OR telefono ILIKE $1
+       FROM pacientes p
+       WHERE (apellido_paterno ILIKE $1 OR apellido_materno ILIKE $1
+          OR nombre ILIKE $1 OR telefono ILIKE $1)
+         ${empleadoId ? 'AND EXISTS (SELECT 1 FROM citas c WHERE c.paciente_id = p.id AND c.empleada_id = $2)' : ''}
        ORDER BY apellido_paterno, nombre LIMIT 10`,
-      [term]
+      empleadoId ? [term, empleadoId] : [term]
     );
     return rows;
   },

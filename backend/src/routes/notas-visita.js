@@ -1,5 +1,6 @@
 // backend/src/routes/notas-visita.js
 const router = require('express').Router();
+router.param('pacienteId', require('../middleware/misPacientes').verificarParam);
 const ctrl = require('../controllers/notasVisitaController');
 const { requireRol } = require('../middleware/roles');
 

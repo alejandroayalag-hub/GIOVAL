@@ -42,8 +42,20 @@ export const getVenta = (id) =>
   api.get(`/farmacia/ventas/${id}`).then(r => r.data);
 
 // Cobro completo en una sola llamada (transacción en backend)
-export const checkout = (items, metodo_pago) =>
-  api.post('/farmacia/ventas/checkout', { items, metodo_pago }).then(r => r.data);
+// cliente: null (público general) o { tipo: 'paciente'|'externo', id }
+export const checkout = (items, metodo_pago, cliente) =>
+  api.post('/farmacia/ventas/checkout', {
+    items, metodo_pago,
+    paciente_id: cliente?.tipo === 'paciente' ? cliente.id : null,
+    cliente_id: cliente?.tipo === 'externo' ? cliente.id : null,
+  }).then(r => r.data);
+
+// Clientes: pacientes (solo nombre/teléfono) + externos
+export const buscarClientes = (q) =>
+  api.get('/farmacia/clientes', { params: { q } }).then(r => r.data);
+
+export const crearCliente = (data) =>
+  api.post('/farmacia/clientes', data).then(r => r.data);
 
 export const cancelarVenta = (ventaId) =>
   api.post(`/farmacia/ventas/${ventaId}/cancelar`).then(r => r.data);

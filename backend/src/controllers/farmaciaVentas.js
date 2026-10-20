@@ -33,8 +33,8 @@ exports.checkout = async (req, res) => {
   try {
     const caja = await FarmaciaCaja.findAbiertaEmpleado(req.user.id);
     if (!caja) return res.status(400).json({ error: 'Abre tu caja antes de vender' });
-    const { items, metodo_pago } = req.body;
-    const venta = await FarmaciaVenta.checkout({ empleado_id: req.user.id, caja_id: caja.id, items, metodo_pago });
+    const { items, metodo_pago, paciente_id, cliente_id } = req.body;
+    const venta = await FarmaciaVenta.checkout({ empleado_id: req.user.id, caja_id: caja.id, items, metodo_pago, paciente_id, cliente_id });
     res.status(201).json(venta);
   } catch (error) {
     res.status(400).json({ error: error.message });

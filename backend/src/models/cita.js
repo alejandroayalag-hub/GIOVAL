@@ -1,7 +1,9 @@
 const pool = require('../db/pool');
 
 const Cita = {
-  async findByRango({ desde, hasta }) {
+  async findByRango({ desde, hasta, empleada_id }) {
+    const params = [desde, hasta];
+    if (empleada_id) params.push(empleada_id);
     const { rows } = await pool.query(
       `SELECT c.*, t.nombre AS tratamiento_nombre, t.duracion_min,
               e.nombre AS empleada_nombre, e.apellido_paterno AS empleada_apellido
@@ -10,8 +12,9 @@ const Cita = {
        LEFT JOIN empleados e ON e.id = c.empleada_id
        WHERE c.fecha_hora BETWEEN $1 AND $2
          AND (c.estatus <> 'apartada' OR c.apartada_hasta > NOW())
+         ${empleada_id ? 'AND c.empleada_id = $3' : ''}
        ORDER BY c.fecha_hora`,
-      [desde, hasta]
+      params
     );
     return rows;
   },

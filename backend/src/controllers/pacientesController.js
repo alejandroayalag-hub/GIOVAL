@@ -1,10 +1,11 @@
+const { empleadoAcotado } = require('../middleware/misPacientes');
 const fs = require('fs');
 const Paciente = require('../models/paciente');
 const pool = require('../db/pool');
 
 exports.list = async (req, res, next) => {
   try {
-    const pacientes = await Paciente.findAll();
+    const pacientes = await Paciente.findAll(await empleadoAcotado(req));
     res.json(pacientes);
   } catch (err) { next(err); }
 };
@@ -13,7 +14,7 @@ exports.buscar = async (req, res, next) => {
   try {
     const { q } = req.query;
     if (!q || q.length < 2) return res.json([]);
-    const resultados = await Paciente.buscar(q);
+    const resultados = await Paciente.buscar(q, await empleadoAcotado(req));
     res.json(resultados);
   } catch (err) { next(err); }
 };

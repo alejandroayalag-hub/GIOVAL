@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { createUsuario, updateUsuario } from '../../api/usuarios';
+import { getEmpleados } from '../../api/empleados';
 
 const ROL_LABELS = {
   admin:             'Administrador',
@@ -14,8 +15,11 @@ const ROL_LABELS = {
 export default function UsuarioModal({ usuario, onSave, onClose }) {
   const esNuevo = !usuario;
   const [form, setForm] = useState({
-    nombre: '', email: '', password: '', rol: 'asistente_medico', cedula_profesional: '',
+    nombre: '', email: '', password: '', rol: 'asistente_medico', cedula_profesional: '', empleado_id: '',
   });
+  const [empleados, setEmpleados] = useState([]);
+
+  useEffect(() => { getEmpleados().then(setEmpleados).catch(() => {}); }, []);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
 
@@ -26,6 +30,7 @@ export default function UsuarioModal({ usuario, onSave, onClose }) {
       password: '',
       rol: usuario.rol || 'asistente_medico',
       cedula_profesional: usuario.cedula_profesional || '',
+      empleado_id: usuario.empleado_id || '',
     });
   }, [usuario]);
 
@@ -102,6 +107,25 @@ export default function UsuarioModal({ usuario, onSave, onClose }) {
                        style={{ borderColor: 'var(--color-sage)' }} />
               </div>
             )}
+
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-dark)' }}>
+                ¿Quién es en Personal?
+              </label>
+              <select value={form.empleado_id} onChange={e => set('empleado_id', e.target.value)}
+                      className="w-full border rounded-lg px-3 py-2 text-sm"
+                      style={{ borderColor: 'var(--color-sage)' }}>
+                <option value="">— Sin ligar —</option>
+                {empleados.filter(e => e.estatus === 'activo' || String(e.id) === String(form.empleado_id)).map(e => (
+                  <option key={e.id} value={e.id}>{e.nombre} {e.apellido_paterno}{e.puesto ? ` · ${e.puesto}` : ''}</option>
+                ))}
+              </select>
+              {['cosmetista', 'asistente_medico'].includes(form.rol) && (
+                <p className="text-xs mt-1" style={{ color: 'var(--color-accent)' }}>
+                  Ligada: solo verá su agenda y sus pacientes. Sin ligar: ve todo.
+                </p>
+              )}
+            </div>
 
             <div className="flex gap-2 pt-2">
               <button type="button" onClick={onClose}
