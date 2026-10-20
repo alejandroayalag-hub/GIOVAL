@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import * as farmaciaAPI from '../../api/farmacia';
 
+// Encargada (rol farmacia): solo consulta y asigna códigos de barras. Precios, costos y altas: admin.
 const FarmaciaInventario = () => {
+  const esAdmin = localStorage.getItem('rol') === 'admin';
   const [productos, setProductos] = useState([]);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [formData, setFormData] = useState({ nombre: '', codigo_proveedor: '', precio_costo: '', precio_venta: '', stock: '' });
@@ -16,7 +18,7 @@ const FarmaciaInventario = () => {
       const res = await farmaciaAPI.getProductos();
       setProductos(res);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.error || err.message);
     }
   };
 
@@ -27,7 +29,7 @@ const FarmaciaInventario = () => {
       setMostrarForm(false);
       await cargar();
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.error || err.message);
     }
   };
 
@@ -38,7 +40,7 @@ const FarmaciaInventario = () => {
       await farmaciaAPI.updateProducto(p.id, { precio_venta: precio });
       await cargar();
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.error || err.message);
     }
   };
 
@@ -59,7 +61,7 @@ const FarmaciaInventario = () => {
         await farmaciaAPI.deleteProducto(id);
         await cargar();
       } catch (err) {
-        setError(err.message);
+        setError(err.response?.data?.error || err.message);
       }
     }
   };
@@ -68,9 +70,9 @@ const FarmaciaInventario = () => {
     <div style={{ padding: '1rem' }}>
       <h1>Inventario</h1>
 
-      <button onClick={() => setMostrarForm(!mostrarForm)} style={{ padding: '0.5rem 1rem', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', marginBottom: '1rem', cursor: 'pointer' }}>
+      {esAdmin && <button onClick={() => setMostrarForm(!mostrarForm)} style={{ padding: '0.5rem 1rem', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', marginBottom: '1rem', cursor: 'pointer' }}>
         + Agregar Producto
-      </button>
+      </button>}
 
       {mostrarForm && (
         <div style={{ background: '#f9f9f9', padding: '1rem', marginBottom: '1rem', borderRadius: '4px' }}>
@@ -92,10 +94,10 @@ const FarmaciaInventario = () => {
             <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Nombre</th>
             <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Código</th>
             <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Código de barras</th>
-            <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Costo</th>
+            {esAdmin && <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Costo</th>}
             <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Precio Venta</th>
             <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Stock</th>
-            <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Acciones</th>
+            {esAdmin && <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Acciones</th>}
           </tr>
         </thead>
         <tbody>
@@ -109,18 +111,18 @@ const FarmaciaInventario = () => {
                        onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
                        style={{ width: '10rem', padding: '0.25rem', border: '1px solid #ddd', fontFamily: 'monospace' }} />
               </td>
-              <td style={{ padding: '0.75rem' }}>${p.precio_costo}</td>
+              {esAdmin && <td style={{ padding: '0.75rem' }}>${p.precio_costo}</td>}
               <td style={{ padding: '0.75rem' }}>
-                <input type="number" min="0" step="0.01" defaultValue={parseFloat(p.precio_venta) > 0 ? p.precio_venta : ''}
+                {!esAdmin ? (parseFloat(p.precio_venta) > 0 ? `$${p.precio_venta}` : <span style={{ color: '#f44336' }}>Sin precio</span>) : <input type="number" min="0" step="0.01" defaultValue={parseFloat(p.precio_venta) > 0 ? p.precio_venta : ''}
                        key={p.precio_venta} placeholder="Sin precio"
                        onBlur={(e) => guardarPrecio(p, e.target.value)}
                        onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
-                       style={{ width: '7rem', padding: '0.25rem', border: `1px solid ${parseFloat(p.precio_venta) > 0 ? '#ddd' : '#f44336'}` }} />
+                       style={{ width: '7rem', padding: '0.25rem', border: `1px solid ${parseFloat(p.precio_venta) > 0 ? '#ddd' : '#f44336'}` }} />}
               </td>
               <td style={{ padding: '0.75rem', color: p.stock <= p.stock_minimo ? 'red' : 'black', fontWeight: p.stock <= p.stock_minimo ? 'bold' : 'normal' }}>{p.stock}</td>
-              <td style={{ padding: '0.75rem' }}>
+              {esAdmin && <td style={{ padding: '0.75rem' }}>
                 <button onClick={() => eliminar(p.id)} style={{ padding: '0.25rem 0.75rem', background: '#f44336', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Eliminar</button>
-              </td>
+              </td>}
             </tr>
           ))}
         </tbody>

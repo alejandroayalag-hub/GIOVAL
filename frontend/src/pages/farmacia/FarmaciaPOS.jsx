@@ -1,103 +1,146 @@
-import { useContext, useState, useEffect } from 'react';
+import { useContext, useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { FarmaciaContext } from '../../context/FarmaciaContext';
 import * as farmaciaAPI from '../../api/farmacia';
 
+const fmt = n => `$${parseFloat(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
+const errMsg = err => err.response?.data?.error || err.message;
+
+const METODOS = [
+  { id: 'efectivo', label: '💵 Efectivo', color: '#4CAF50' },
+  { id: 'terminal', label: '💳 Terminal', color: '#2196F3' },
+  { id: 'transferencia', label: '🏦 Transferencia', color: '#FF9800' },
+];
+
 const FarmaciaPOS = () => {
-  const { items, agregarItem, removerItem, actualizarCantidad, limpiar, total, cajaAbierta } = useContext(FarmaciaContext);
-  const [productos, setProductos] = useState([]);
+  const { items, agregarItem, removerItem, actualizarCantidad, limpiar, total, cajaAbierta, cargarCaja } = useContext(FarmaciaContext);
+  const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState('');
   const [resultados, setResultados] = useState([]);
   const [error, setError] = useState('');
   const [modalPago, setModalPago] = useState(false);
+  const [recibido, setRecibido] = useState('');
+  const [cobrando, setCobrando] = useState(false);
+  const [ultimaVenta, setUltimaVenta] = useState(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
-    farmaciaAPI.getProductos().then(setProductos).catch(err => setError(err.message));
-  }, []);
+    cargarCaja().catch(err => setError(errMsg(err))).finally(() => setCargando(false));
+  }, [cargarCaja]);
 
-  const handleBuscar = async (valor) => {
-    setBusqueda(valor);
-    if (!valor.trim()) {
-      setResultados([]);
-      return;
-    }
-    const res = await farmaciaAPI.getProductos(valor);
-    setResultados(res);
-  };
+  // Búsqueda con espera de 300 ms (el lector de código teclea muy rápido)
+  useEffect(() => {
+    const q = busqueda.trim();
+    if (!q) { setResultados([]); return; }
+    const t = setTimeout(() => farmaciaAPI.getProductos(q).then(setResultados).catch(() => {}), 300);
+    return () => clearTimeout(t);
+  }, [busqueda]);
 
-  const handleSeleccionar = (producto) => {
+  const seleccionar = (producto) => {
+    setError('');
     if (!(parseFloat(producto.precio_venta) > 0)) {
-      alert(`"${producto.nombre}" no tiene precio de venta. Ponlo en Farmacia → Inventario antes de venderlo.`);
+      setError(`"${producto.nombre}" no tiene precio de venta. Pídele a la doctora que lo capture.`);
       return;
     }
-    const cantidad = prompt(`Cantidad de "${producto.nombre}":`, '1');
-    if (cantidad && parseInt(cantidad) > 0) {
-      agregarItem(producto, parseInt(cantidad));
-      setBusqueda('');
-      setResultados([]);
+    if (producto.stock <= 0) {
+      setError(`"${producto.nombre}" sin existencias`);
+      return;
+    }
+    agregarItem(producto, 1);
+    setBusqueda('');
+    setResultados([]);
+    inputRef.current?.focus();
+  };
+
+  // Enter: código de barras exacto o único resultado
+  const handleEnter = async () => {
+    const q = busqueda.trim();
+    if (!q) return;
+    try {
+      const res = await farmaciaAPI.getProductos(q);
+      const exacto = res.find(p => p.codigo_barras === q) || (res.length === 1 ? res[0] : null);
+      if (exacto) seleccionar(exacto);
+      else if (res.length === 0) setError(`"${q}" no está registrado en inventario`);
+      else setResultados(res);
+    } catch (err) {
+      setError(errMsg(err));
     }
   };
 
-  const handlePagar = async (metodo_pago) => {
+  const cobrar = async (metodo_pago) => {
+    if (cobrando) return;
+    setCobrando(true);
+    setError('');
     try {
-      if (!cajaAbierta) {
-        setError('Necesitas abrir caja primero');
-        return;
-      }
-
-      const venta = await farmaciaAPI.createVenta({});
-
-      for (const item of items) {
-        await farmaciaAPI.agregarItemVenta(venta.id, {
-          producto_id: item.producto_id,
-          cantidad: item.cantidad
-        });
-      }
-
-      await farmaciaAPI.pagarVenta(venta.id, { metodo_pago });
-      alert('Venta realizada exitosamente');
+      const venta = await farmaciaAPI.checkout(
+        items.map(i => ({ producto_id: i.producto_id, cantidad: i.cantidad })), metodo_pago);
+      const cambio = metodo_pago === 'efectivo' && parseFloat(recibido) > 0 ? parseFloat(recibido) - total : null;
+      setUltimaVenta({ ...venta, cambio });
       limpiar();
       setModalPago(false);
+      setRecibido('');
+      cargarCaja();
+      inputRef.current?.focus();
     } catch (err) {
-      setError(err.message);
+      setError(errMsg(err));
+    } finally {
+      setCobrando(false);
     }
   };
 
+  if (cargando) return <div style={{ padding: '1rem' }}>Cargando…</div>;
+
   if (!cajaAbierta) {
-    return <div style={{padding: '1rem', background: '#fff3cd'}}>⚠ Abre una caja para comenzar a vender</div>;
+    return (
+      <div style={{ padding: '1rem', background: '#fff3cd', borderRadius: '8px' }}>
+        ⚠ Abre tu caja para comenzar a vender. <Link to="/farmacia">Ir a abrir caja</Link>
+      </div>
+    );
   }
 
+  const cambio = parseFloat(recibido) - total;
+  const excedeStock = items.filter(i => i.stock !== undefined && i.cantidad > i.stock);
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '1rem', padding: '1rem' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 360px', gap: '1rem', padding: '1rem' }}>
       <div>
-        <h1>Punto de Venta</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <h1>Punto de Venta</h1>
+          <Link to="/farmacia">← Mi caja</Link>
+        </div>
 
         <div style={{ position: 'relative', marginBottom: '1rem' }}>
           <input
+            ref={inputRef}
+            autoFocus
             type="text"
             value={busqueda}
-            onChange={(e) => handleBuscar(e.target.value)}
-            onKeyDown={(e) => {
-              // lector de código de barras teclea el código + Enter
-              if (e.key !== 'Enter' || !busqueda.trim()) return;
-              const p = productos.find(x => x.codigo_barras === busqueda.trim());
-              if (p) handleSeleccionar(p);
-              else setError(`Código ${busqueda.trim()} no registrado en inventario`);
-            }}
+            onChange={(e) => setBusqueda(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleEnter()}
             placeholder="Buscar producto o escanear código..."
             style={{ width: '100%', padding: '0.75rem', fontSize: '1rem' }}
           />
           {resultados.length > 0 && (
             <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #ddd', maxHeight: '300px', overflowY: 'auto', zIndex: 10 }}>
               {resultados.map(p => (
-                <div key={p.id} onClick={() => handleSeleccionar(p)} style={{ padding: '0.5rem', borderBottom: '1px solid #eee', cursor: 'pointer' }}>
-                  {p.nombre} - ${p.precio_venta}
+                <div key={p.id} onClick={() => seleccionar(p)}
+                     style={{ padding: '0.5rem', borderBottom: '1px solid #eee', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', color: p.stock > 0 ? 'inherit' : '#999' }}>
+                  <span>{p.nombre}</span>
+                  <span>{parseFloat(p.precio_venta) > 0 ? fmt(p.precio_venta) : 'sin precio'} · {p.stock} pza</span>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {error && <div style={{ color: '#d32f2f', padding: '1rem', background: '#ffebee' }}>{error}</div>}
+        {error && !modalPago && <div style={{ color: '#d32f2f', padding: '1rem', background: '#ffebee', borderRadius: '4px' }}>{error}</div>}
+
+        {ultimaVenta && (
+          <div style={{ padding: '1rem', background: '#e8f5e9', borderRadius: '4px', marginTop: '1rem' }}>
+            ✅ Venta #{ultimaVenta.numero_venta} cobrada: {fmt(ultimaVenta.total)} ({ultimaVenta.metodo_pago})
+            {ultimaVenta.cambio > 0 && <strong> — Cambio: {fmt(ultimaVenta.cambio)}</strong>}
+          </div>
+        )}
       </div>
 
       <div style={{ background: '#f9f9f9', padding: '1rem', borderRadius: '4px' }}>
@@ -108,42 +151,63 @@ const FarmaciaPOS = () => {
         ) : (
           <>
             {items.map((item, idx) => (
-              <div key={idx} style={{ background: 'white', padding: '0.5rem', marginBottom: '0.5rem', borderRadius: '4px', display: 'flex', justifyContent: 'space-between' }}>
+              <div key={item.producto_id} style={{ background: 'white', padding: '0.5rem', marginBottom: '0.5rem', borderRadius: '4px', display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
                 <div>
                   <div><strong>{item.nombre}</strong></div>
-                  <input type="number" value={item.cantidad} min="1" onChange={(e) => actualizarCantidad(idx, parseInt(e.target.value))} style={{ width: '60px' }} />
-                  <span style={{ marginLeft: '0.5rem' }}>${item.precio_unitario}</span>
+                  <input type="number" value={item.cantidad} min="1" step="1"
+                         onChange={(e) => actualizarCantidad(idx, e.target.value)} style={{ width: '60px' }} />
+                  <span style={{ marginLeft: '0.5rem' }}>× {fmt(item.precio_unitario)} = {fmt(item.cantidad * item.precio_unitario)}</span>
+                  {item.cantidad > item.stock && <div style={{ color: '#d32f2f', fontSize: '0.8rem' }}>Solo hay {item.stock}</div>}
                 </div>
-                <button onClick={() => removerItem(idx)} style={{ background: '#ff4444', color: 'white', border: 'none', padding: '0.5rem', cursor: 'pointer' }}>✕</button>
+                <button onClick={() => removerItem(idx)} aria-label={`Quitar ${item.nombre}`}
+                        style={{ background: '#ff4444', color: 'white', border: 'none', padding: '0.5rem', cursor: 'pointer', alignSelf: 'start' }}>✕</button>
               </div>
             ))}
 
             <div style={{ borderTop: '2px solid #ddd', paddingTop: '1rem', marginTop: '1rem', fontSize: '1.2rem', fontWeight: 'bold', textAlign: 'right' }}>
-              Total: ${total.toFixed(2)}
+              Total: {fmt(total)}
             </div>
 
-            <button onClick={() => setModalPago(true)} style={{ width: '100%', padding: '0.75rem', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '1rem' }}>
-              💰 Pagar
+            <button onClick={() => { setError(''); setModalPago(true); }} disabled={excedeStock.length > 0}
+                    style={{ width: '100%', padding: '0.75rem', background: excedeStock.length ? '#aaa' : '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '1rem' }}>
+              💰 Cobrar
             </button>
 
-            <button onClick={limpiar} style={{ width: '100%', padding: '0.75rem', background: '#f44336', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '0.5rem' }}>
-              🗑 Limpiar Carrito
+            <button onClick={() => confirm('¿Vaciar el carrito?') && limpiar()}
+                    style={{ width: '100%', padding: '0.75rem', background: '#f44336', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '0.5rem' }}>
+              🗑 Vaciar carrito
             </button>
           </>
         )}
       </div>
 
       {modalPago && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ background: 'white', padding: '2rem', borderRadius: '8px', maxWidth: '400px' }}>
-            <h2>Método de Pago</h2>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'white', padding: '2rem', borderRadius: '8px', width: '100%', maxWidth: '400px' }}>
+            <h2>Cobrar</h2>
             <div style={{ fontSize: '1.5rem', fontWeight: 'bold', background: '#f0f0f0', padding: '1rem', borderRadius: '4px', marginBottom: '1rem', textAlign: 'center' }}>
-              ${total.toFixed(2)}
+              {fmt(total)}
             </div>
-            <button onClick={() => handlePagar('efectivo')} style={{ width: '100%', padding: '0.75rem', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', marginBottom: '0.5rem', cursor: 'pointer' }}>💵 Efectivo</button>
-            <button onClick={() => handlePagar('terminal')} style={{ width: '100%', padding: '0.75rem', background: '#2196F3', color: 'white', border: 'none', borderRadius: '4px', marginBottom: '0.5rem', cursor: 'pointer' }}>💳 Terminal</button>
-            <button onClick={() => handlePagar('transferencia')} style={{ width: '100%', padding: '0.75rem', background: '#FF9800', color: 'white', border: 'none', borderRadius: '4px', marginBottom: '0.5rem', cursor: 'pointer' }}>🏦 Transferencia</button>
-            <button onClick={() => setModalPago(false)} style={{ width: '100%', padding: '0.5rem', background: '#ccc', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
+            <label style={{ display: 'block', marginBottom: '1rem' }}>
+              Efectivo recibido (opcional, para calcular cambio)
+              <input type="number" min="0" step="0.01" value={recibido} onChange={(e) => setRecibido(e.target.value)}
+                     style={{ width: '100%', padding: '0.5rem' }} />
+              {recibido !== '' && (
+                <div style={{ marginTop: '0.25rem', color: cambio >= 0 ? '#2e7d32' : '#d32f2f' }}>
+                  {cambio >= 0 ? `Cambio: ${fmt(cambio)}` : `Faltan ${fmt(-cambio)}`}
+                </div>
+              )}
+            </label>
+            {error && <div style={{ color: '#d32f2f', padding: '0.75rem', background: '#ffebee', borderRadius: '4px', marginBottom: '0.75rem' }}>{error}</div>}
+            {METODOS.map(m => (
+              <button key={m.id} onClick={() => cobrar(m.id)}
+                      disabled={cobrando || (m.id === 'efectivo' && recibido !== '' && cambio < 0)}
+                      style={{ width: '100%', padding: '0.75rem', background: m.color, color: 'white', border: 'none', borderRadius: '4px', marginBottom: '0.5rem', cursor: 'pointer', opacity: cobrando ? 0.6 : 1 }}>
+                {cobrando ? 'Cobrando…' : m.label}
+              </button>
+            ))}
+            <button onClick={() => { setModalPago(false); setError(''); }} disabled={cobrando}
+                    style={{ width: '100%', padding: '0.5rem', background: '#ccc', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
           </div>
         </div>
       )}

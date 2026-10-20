@@ -1,6 +1,6 @@
 // frontend/src/pages/FinanzasPage.jsx
 import { useState, useEffect } from 'react';
-import { DollarSign, List, Scale, BarChart2, Tag, Pencil, Trash2, CreditCard, ShoppingBag, Package, Users, FileText, TrendingUp } from 'lucide-react';
+import { DollarSign, List, Scale, BarChart2, Tag, Pencil, Trash2, CreditCard, ShoppingBag, Package, Users, FileText, TrendingUp, Pill } from 'lucide-react';
 import { getCategorias, createCategoria, updateCategoria, deleteCategoria,
          getMovimientos, createMovimiento, updateMovimiento, deleteMovimiento } from '../api/finanzas';
 import MovimientoModal from '../components/finanzas/MovimientoModal';
@@ -15,6 +15,7 @@ import KitsTab          from '../components/finanzas/KitsTab';
 import NominaTab        from '../components/finanzas/NominaTab';
 import CuentasXPagarTab from '../components/finanzas/CuentasXPagarTab';
 import GananciaTab      from '../components/finanzas/GananciaTab';
+import FarmaciaFinanzasTab from '../components/finanzas/FarmaciaFinanzasTab';
 
 const TABS = [
   { id: 'caja',        label: 'Caja', Icon: CreditCard, roles: ['admin','asistente_general'] },
@@ -29,6 +30,7 @@ const TABS = [
   { id: 'kits',        label: 'Kits x Tratamiento', Icon: Package, soloAdmin: true },
   { id: 'nomina',      label: 'Nómina',             Icon: Users,     soloAdmin: true },
   { id: 'cxp',        label: 'Cuentas x Pagar',    Icon: FileText,  soloAdmin: true },
+  { id: 'farmacia',   label: 'Farmacia',           Icon: Pill,      soloAdmin: true },
 ];
 
 const fmt = n => `$${parseFloat(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
@@ -270,6 +272,9 @@ export default function FinanzasPage() {
 
       {/* ── Tab: Cuentas x Pagar (solo admin) ───────────────────────────────── */}
       {tab === 'cxp' && <CuentasXPagarTab />}
+
+      {/* ── Tab: Farmacia (ingresos/egresos separados de la clínica) ─────────── */}
+      {tab === 'farmacia' && <FarmaciaFinanzasTab />}
 
       {/* ── Tab: Corte de Caja ───────────────────────────────────────────────── */}
       {tab === 'corte' && <CorteResumen rol={rol} />}

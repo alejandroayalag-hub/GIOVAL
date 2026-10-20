@@ -7,6 +7,7 @@ const ROL_LABELS = {
   asistente_medico:  'Asistente Médico',
   cosmetista:        'Cosmetista',
   asistente_general: 'Asistente General',
+  farmacia:          'Encargada de Farmacia',
 };
 
 export default function UsuarioModal({ usuario, onSave, onClose }) {

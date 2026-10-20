@@ -3,8 +3,8 @@ const authFarmacia = (req, res, next) => {
     return res.status(401).json({ error: 'No autenticado' });
   }
 
-  if (req.user.rol !== 'FARMACISTA' && req.user.rol !== 'admin') {
-    return res.status(403).json({ error: 'Acceso denegado. Se requiere rol FARMACISTA o admin' });
+  if (req.user.rol !== 'farmacia' && req.user.rol !== 'admin') {
+    return res.status(403).json({ error: 'Acceso denegado. Se requiere rol farmacia o admin' });
   }
 
   next();

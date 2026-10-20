@@ -41,24 +41,16 @@ export const getVentas = (params = {}) =>
 export const getVenta = (id) =>
   api.get(`/farmacia/ventas/${id}`).then(r => r.data);
 
-export const createVenta = (data) =>
-  api.post('/farmacia/ventas', data).then(r => r.data);
-
-export const agregarItemVenta = (ventaId, data) =>
-  api.post(`/farmacia/ventas/${ventaId}/items`, data).then(r => r.data);
-
-export const removerItemVenta = (ventaId, itemId) =>
-  api.delete(`/farmacia/ventas/${ventaId}/items/${itemId}`).then(r => r.data);
-
-export const pagarVenta = (ventaId, data) =>
-  api.post(`/farmacia/ventas/${ventaId}/pagar`, data).then(r => r.data);
+// Cobro completo en una sola llamada (transacción en backend)
+export const checkout = (items, metodo_pago) =>
+  api.post('/farmacia/ventas/checkout', { items, metodo_pago }).then(r => r.data);
 
 export const cancelarVenta = (ventaId) =>
   api.post(`/farmacia/ventas/${ventaId}/cancelar`).then(r => r.data);
 
-// Caja
+// Caja (null si no hay caja abierta)
 export const getCajaAbierta = () =>
-  api.get('/farmacia/caja/turno-actual').then(r => r.data).catch(() => ({ abierta: false }));
+  api.get('/farmacia/caja/turno-actual').then(r => r.data);
 
 export const abrirCaja = (efectivo_inicial) =>
   api.post('/farmacia/caja/abrir', { efectivo_inicial }).then(r => r.data);
@@ -66,8 +58,21 @@ export const abrirCaja = (efectivo_inicial) =>
 export const cerrarCaja = (cajaId, efectivo_final) =>
   api.put(`/farmacia/caja/${cajaId}/cerrar`, { efectivo_final }).then(r => r.data);
 
-export const getHistorialCaja = (limit = 10) =>
-  api.get('/farmacia/caja/historial', { params: { limit } }).then(r => r.data);
+export const getHistorialCaja = (params = {}) =>
+  api.get('/farmacia/caja/historial', { params }).then(r => r.data);
+
+// Finanzas de farmacia (solo admin)
+export const getResumenFinanzas = (fecha_desde, fecha_hasta) =>
+  api.get('/finanzas-farmacia/resumen', { params: { fecha_desde, fecha_hasta } }).then(r => r.data);
+
+export const getEgresos = (fecha_desde, fecha_hasta) =>
+  api.get('/finanzas-farmacia/egresos', { params: { fecha_desde, fecha_hasta } }).then(r => r.data);
+
+export const createEgreso = (data) =>
+  api.post('/finanzas-farmacia/egresos', data).then(r => r.data);
+
+export const deleteEgreso = (id) =>
+  api.delete(`/finanzas-farmacia/egresos/${id}`).then(r => r.data);
 
 // Reportes
 export const getResumenVentas = (fecha_desde, fecha_hasta, empleado_id) => {

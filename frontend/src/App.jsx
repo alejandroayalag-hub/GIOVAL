@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import DashboardPage from './pages/DashboardPage';
 import EmpleadosPage from './pages/EmpleadosPage';
@@ -113,6 +113,7 @@ function Layout() {
         </NavLink>
 
         <div className="flex gap-1 flex-1 flex-wrap">
+          {rol === 'farmacia' ? <NavItem to="/farmacia">Farmacia</NavItem> : <>
           <NavItem to="/" end>Inicio</NavItem>
           <NavItem to="/citas">Citas</NavItem>
           <NavItem to="/procedimientos">En vivo</NavItem>
@@ -121,11 +122,12 @@ function Layout() {
           {(rol === 'admin' || rol === 'asistente_medico' || rol === 'cosmetista') && <NavItem to="/tratamientos">Tratamientos</NavItem>}
           {(rol === 'admin' || puede_caja) && <NavItem to="/finanzas">Finanzas</NavItem>}
           {rol === 'admin' && <NavItem to="/farmacia">Farmacia</NavItem>}
+          </>}
         </div>
 
         <div className="flex items-center gap-3">
           <span className="text-xs" style={{ color: 'var(--color-dark)', opacity: 0.7 }}>
-            {nombre} {rol === 'admin' ? '· Admin' : '· Asistente'}
+            {nombre} {rol === 'admin' ? '· Admin' : rol === 'farmacia' ? '· Farmacia' : '· Asistente'}
           </span>
           <button onClick={logout}
                   className="text-xs border rounded px-2 py-1 hover:opacity-75"
@@ -141,6 +143,15 @@ function Layout() {
                     opacity: 0.05, pointerEvents: 'none', zIndex: 0, userSelect: 'none' }} />
 
 <main className="max-w-7xl mx-auto p-6" style={{ position: 'relative', zIndex: 1 }}>
+        {rol === 'farmacia' ? (
+          // Encargada de farmacia: solo el módulo Farmacia
+          <Routes>
+            <Route path="/farmacia" element={<FarmaciaDashboard />} />
+            <Route path="/farmacia/pos" element={<FarmaciaPOS />} />
+            <Route path="/farmacia/inventario" element={<FarmaciaInventario />} />
+            <Route path="*" element={<Navigate to="/farmacia" replace />} />
+          </Routes>
+        ) : (
         <Routes>
           <Route path="/bienvenida" element={<WelcomePage />} />
           <Route path="/" element={<DashboardPage />} />
@@ -157,11 +168,12 @@ function Layout() {
           <Route path="/formatos" element={<FormatosPage />} />
           {(rol === 'admin' || rol === 'asistente_medico' || rol === 'cosmetista') && <Route path="/tratamientos" element={<TratamientosPage />} />}
           {(rol === 'admin' || puede_caja) && <Route path="/finanzas" element={<FinanzasPage />} />}
-          <Route path="/farmacia" element={<FarmaciaDashboard />} />
-          <Route path="/farmacia/pos" element={<FarmaciaPOS />} />
-          <Route path="/farmacia/inventario" element={<FarmaciaInventario />} />
-          <Route path="/farmacia/catalogos" element={<FarmaciaCatalogos />} />
+          {rol === 'admin' && <Route path="/farmacia" element={<FarmaciaDashboard />} />}
+          {rol === 'admin' && <Route path="/farmacia/pos" element={<FarmaciaPOS />} />}
+          {rol === 'admin' && <Route path="/farmacia/inventario" element={<FarmaciaInventario />} />}
+          {rol === 'admin' && <Route path="/farmacia/catalogos" element={<FarmaciaCatalogos />} />}
         </Routes>
+        )}
       </main>
     </div>
   );

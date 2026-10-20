@@ -8,7 +8,8 @@ exports.listar = async (req, res) => {
       stock_bajo: req.query.stock_bajo === 'true'
     };
     const productos = await FarmaciaProducto.findAll(filtros);
-    res.json(productos);
+    // La encargada no ve costos (margen solo para admin)
+    res.json(req.user.rol === 'admin' ? productos : productos.map(({ precio_costo, ...p }) => p));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -43,7 +44,9 @@ exports.crear = async (req, res) => {
 
 exports.actualizar = async (req, res) => {
   try {
-    const producto = await FarmaciaProducto.update(req.params.id, req.body);
+    // Encargada solo asigna código de barras; precios y stock los maneja admin
+    const data = req.user.rol === 'admin' ? req.body : { codigo_barras: req.body.codigo_barras };
+    const producto = await FarmaciaProducto.update(req.params.id, data);
     res.json(producto);
   } catch (error) {
     if (error.code === '23505') return res.status(409).json({ error: 'Ese código de barras ya está asignado a otro producto' });

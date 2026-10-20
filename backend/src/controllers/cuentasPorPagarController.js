@@ -1,11 +1,11 @@
 const { CuentaPorPagar } = require('../models/cuentasPorPagar');
 
 exports.list = async (req, res, next) => {
-  try { res.json(await CuentaPorPagar.list({ estatus: req.query.estatus })); } catch (err) { next(err); }
+  try { res.json(await CuentaPorPagar.list({ estatus: req.query.estatus, area: req.query.area })); } catch (err) { next(err); }
 };
 
 exports.resumen = async (req, res, next) => {
-  try { res.json(await CuentaPorPagar.resumen()); } catch (err) { next(err); }
+  try { res.json(await CuentaPorPagar.resumen(req.query.area)); } catch (err) { next(err); }
 };
 
 exports.create = async (req, res, next) => {

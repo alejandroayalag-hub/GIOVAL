@@ -139,10 +139,12 @@ export default function EmpleadosPage() {
                               asistente_medico: '#4a7c6a',
                               cosmetista: '#aba3ba',
                               asistente_general: '#6b7280',
+                              farmacia: '#2196F3',
                             }[u.rol] || '#887482' }}>
                         {u.rol === 'admin' ? 'Admin' :
                          u.rol === 'asistente_medico' ? 'Asist. Médico' :
-                         u.rol === 'cosmetista' ? 'Cosmetista' : 'Asist. General'}
+                         u.rol === 'cosmetista' ? 'Cosmetista' :
+                         u.rol === 'farmacia' ? 'Farmacia' : 'Asist. General'}
                       </span>
                     </td>
                     <td className="px-4 py-2 text-gray-500">{u.cedula_profesional || '—'}</td>

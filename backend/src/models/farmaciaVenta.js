@@ -1,25 +1,32 @@
 const pool = require('../db/pool');
 
+const METODOS = ['efectivo', 'terminal', 'transferencia'];
+
 class FarmaciaVenta {
   static async findAll(filtros = {}) {
-    let query = 'SELECT * FROM farmacia_ventas WHERE 1=1';
+    let query = `SELECT fv.*, u.nombre AS vendedor
+                 FROM farmacia_ventas fv LEFT JOIN usuarios u ON u.id = fv.empleado_id
+                 WHERE fv.estado IN ('pagada', 'cancelada')`;
     const params = [];
-    let paramNum = 1;
 
     if (filtros.empleado_id) {
-      query += ` AND empleado_id = $${paramNum++}`;
       params.push(filtros.empleado_id);
+      query += ` AND fv.empleado_id = $${params.length}`;
+    }
+    if (filtros.caja_id) {
+      params.push(filtros.caja_id);
+      query += ` AND fv.caja_id = $${params.length}`;
     }
     if (filtros.estado) {
-      query += ` AND estado = $${paramNum++}`;
       params.push(filtros.estado);
+      query += ` AND fv.estado = $${params.length}`;
     }
     if (filtros.fecha_desde && filtros.fecha_hasta) {
-      query += ` AND DATE(fecha) BETWEEN $${paramNum++} AND $${paramNum++}`;
       params.push(filtros.fecha_desde, filtros.fecha_hasta);
+      query += ` AND DATE(fv.fecha) BETWEEN $${params.length - 1} AND $${params.length}`;
     }
 
-    query += ' ORDER BY fecha DESC LIMIT 100';
+    query += ' ORDER BY fv.fecha DESC LIMIT 500';
     const { rows } = await pool.query(query, params);
     return rows;
   }
@@ -29,54 +36,100 @@ class FarmaciaVenta {
     return rows[0] || null;
   }
 
-  static async create(data) {
-    const { empleado_id, cliente_id, paciente_id, observaciones } = data;
-    const { rows } = await pool.query(
-      'INSERT INTO farmacia_ventas (empleado_id, cliente_id, paciente_id, estado, fecha, total, observaciones) VALUES ($1, $2, $3, $4, NOW(), 0, $5) RETURNING *',
-      [empleado_id, cliente_id || null, paciente_id || null, 'abierta', observaciones || null]
-    );
-    return rows[0];
-  }
-
-  static async agregarItem(venta_id, producto_id, cantidad, precio_unitario) {
-    const subtotal = cantidad * precio_unitario;
-    const { rows } = await pool.query(
-      'INSERT INTO farmacia_items_venta (venta_id, producto_id, cantidad, precio_unitario, subtotal) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [venta_id, producto_id, cantidad, precio_unitario, subtotal]
-    );
-
-    await this.recalcularTotal(venta_id);
-    return rows[0];
-  }
-
-  static async removerItem(venta_id, item_id) {
-    await pool.query('DELETE FROM farmacia_items_venta WHERE id = $1 AND venta_id = $2', [item_id, venta_id]);
-    await this.recalcularTotal(venta_id);
-  }
-
-  static async recalcularTotal(venta_id) {
-    const { rows } = await pool.query('SELECT COALESCE(SUM(subtotal), 0) as total FROM farmacia_items_venta WHERE venta_id = $1', [venta_id]);
-    const total = rows[0]?.total || 0;
-    await pool.query('UPDATE farmacia_ventas SET total = $1, subtotal = $1 WHERE id = $2', [total, venta_id]);
-  }
-
-  static async pagar(venta_id, metodo_pago) {
-    if (!['efectivo', 'terminal', 'transferencia'].includes(metodo_pago)) {
-      throw new Error('Método de pago inválido');
-    }
-    await pool.query('UPDATE farmacia_ventas SET estado = $1, metodo_pago = $2 WHERE id = $3', ['pagada', metodo_pago, venta_id]);
-  }
-
-  static async cancelar(venta_id) {
-    await pool.query('UPDATE farmacia_ventas SET estado = $1 WHERE id = $2', ['cancelada', venta_id]);
-  }
-
   static async getItems(venta_id) {
     const { rows } = await pool.query(
-      'SELECT fiv.*, fp.nombre, fp.precio_costo FROM farmacia_items_venta fiv JOIN farmacia_productos fp ON fiv.producto_id = fp.id WHERE fiv.venta_id = $1',
+      `SELECT fiv.*, fp.nombre FROM farmacia_items_venta fiv
+       JOIN farmacia_productos fp ON fiv.producto_id = fp.id WHERE fiv.venta_id = $1 ORDER BY fiv.id`,
       [venta_id]
     );
     return rows;
+  }
+
+  // Cobro completo en una transacción: o se registra todo (venta + items + stock) o nada.
+  static async checkout({ empleado_id, caja_id, items, metodo_pago }) {
+    if (!METODOS.includes(metodo_pago)) throw new Error('Método de pago inválido');
+    if (!Array.isArray(items) || items.length === 0) throw new Error('Carrito vacío');
+
+    // Junta renglones repetidos del mismo producto
+    const cantidades = new Map();
+    for (const it of items) {
+      const cantidad = Number(it.cantidad);
+      if (!Number.isInteger(cantidad) || cantidad <= 0) throw new Error('Cantidad inválida');
+      cantidades.set(Number(it.producto_id), (cantidades.get(Number(it.producto_id)) || 0) + cantidad);
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      // FOR UPDATE: dos ventas simultáneas no pueden vender la misma última pieza
+      const { rows: productos } = await client.query(
+        'SELECT * FROM farmacia_productos WHERE id = ANY($1::int[]) AND activo = true ORDER BY id FOR UPDATE',
+        [[...cantidades.keys()]]
+      );
+      if (productos.length !== cantidades.size) throw new Error('Producto no encontrado o inactivo');
+
+      let total = 0;
+      for (const p of productos) {
+        const cantidad = cantidades.get(p.id);
+        if (!(parseFloat(p.precio_venta) > 0)) throw new Error(`"${p.nombre}" no tiene precio de venta`);
+        if (p.stock < cantidad) throw new Error(`Stock insuficiente de "${p.nombre}" (hay ${p.stock})`);
+        total += cantidad * parseFloat(p.precio_venta);
+      }
+      total = Math.round(total * 100) / 100;
+
+      const { rows: [venta] } = await client.query(
+        `INSERT INTO farmacia_ventas (empleado_id, caja_id, estado, fecha, subtotal, total, metodo_pago)
+         VALUES ($1, $2, 'pagada', NOW(), $3, $3, $4) RETURNING *`,
+        [empleado_id, caja_id, total, metodo_pago]
+      );
+      for (const p of productos) {
+        const cantidad = cantidades.get(p.id);
+        await client.query(
+          `INSERT INTO farmacia_items_venta (venta_id, producto_id, cantidad, precio_unitario, costo_unitario, subtotal)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [venta.id, p.id, cantidad, p.precio_venta, p.precio_costo, cantidad * parseFloat(p.precio_venta)]
+        );
+        await client.query('UPDATE farmacia_productos SET stock = stock - $1 WHERE id = $2', [cantidad, p.id]);
+      }
+      await client.query('COMMIT');
+      return venta;
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  // Cancela una venta pagada y regresa el stock, en una transacción.
+  static async cancelar(venta_id, usuario_id) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows: [venta] } = await client.query(
+        'SELECT * FROM farmacia_ventas WHERE id = $1 FOR UPDATE', [venta_id]
+      );
+      if (!venta) throw new Error('Venta no encontrada');
+      if (venta.estado !== 'pagada') throw new Error('Solo se pueden cancelar ventas pagadas');
+
+      await client.query(
+        `UPDATE farmacia_productos p SET stock = p.stock + i.cantidad
+         FROM farmacia_items_venta i WHERE i.venta_id = $1 AND i.producto_id = p.id`,
+        [venta_id]
+      );
+      const { rows: [cancelada] } = await client.query(
+        `UPDATE farmacia_ventas SET estado = 'cancelada', cancelada_por = $2, cancelada_en = NOW()
+         WHERE id = $1 RETURNING *`,
+        [venta_id, usuario_id]
+      );
+      await client.query('COMMIT');
+      return cancelada;
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 }
 

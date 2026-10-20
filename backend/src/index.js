@@ -68,6 +68,7 @@ app.use('/api/flujo',        authMiddleware, require('./routes/flujo'));
 
 // Módulo Farmacia
 app.use('/api/farmacia', authMiddleware, require('./routes/farmacia'));
+app.use('/api/finanzas-farmacia', authMiddleware, require('./routes/finanzas-farmacia'));
 
 // Módulo Finanzas: Nómina y Cuentas por Pagar
 const nominaRouter          = require('./routes/nomina');

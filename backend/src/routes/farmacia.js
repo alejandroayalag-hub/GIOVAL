@@ -8,10 +8,10 @@ const farmaciaVentas = require('../controllers/farmaciaVentas');
 const farmaciaCaja = require('../controllers/farmaciaCaja');
 const farmaciaReportes = require('../controllers/farmaciaReportes');
 
-// Productos - acceso FARMACISTA/admin
+// Productos - farmacia/admin (precios y stock solo admin, ver controller)
 router.get('/productos', authFarmacia, farmaciaProductos.listar);
 router.get('/productos/:id', authFarmacia, farmaciaProductos.obtener);
-router.post('/productos', authFarmacia, farmaciaProductos.crear);
+router.post('/productos', authFarmaciaAdmin, farmaciaProductos.crear);
 router.put('/productos/:id', authFarmacia, farmaciaProductos.actualizar);
 router.delete('/productos/:id', authFarmaciaAdmin, farmaciaProductos.desactivar);
 
@@ -22,16 +22,13 @@ router.post('/proveedores', authFarmaciaAdmin, farmaciaProveedores.crear);
 router.put('/proveedores/:id', authFarmaciaAdmin, farmaciaProveedores.actualizar);
 router.delete('/proveedores/:id', authFarmaciaAdmin, farmaciaProveedores.desactivar);
 
-// Ventas - FARMACISTA/admin
+// Ventas - farmacia/admin
 router.get('/ventas', authFarmacia, farmaciaVentas.listar);
+router.post('/ventas/checkout', authFarmacia, farmaciaVentas.checkout);
 router.get('/ventas/:id', authFarmacia, farmaciaVentas.obtener);
-router.post('/ventas', authFarmacia, farmaciaVentas.crear);
-router.post('/ventas/:id/items', authFarmacia, farmaciaVentas.agregarItem);
-router.delete('/ventas/:venta_id/items/:item_id', authFarmacia, farmaciaVentas.removerItem);
-router.post('/ventas/:venta_id/pagar', authFarmacia, farmaciaVentas.pagar);
 router.post('/ventas/:venta_id/cancelar', authFarmacia, farmaciaVentas.cancelar);
 
-// Caja - FARMACISTA
+// Caja - farmacia/admin
 router.get('/caja/turno-actual', authFarmacia, farmaciaCaja.obtenerAbierta);
 router.post('/caja/abrir', authFarmacia, farmaciaCaja.abrir);
 router.put('/caja/:caja_id/cerrar', authFarmacia, farmaciaCaja.cerrar);

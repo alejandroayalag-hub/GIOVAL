@@ -12,7 +12,8 @@ const EMPTY_FORM = {
   forma_pago: '', observaciones: '',
 };
 
-export default function CuentasXPagarTab() {
+// area: 'clinica' (default) o 'farmacia' — cada una ve solo sus facturas
+export default function CuentasXPagarTab({ area }) {
   const [rows,    setRows]    = useState([]);
   const [resumen, setResumen] = useState(null);
   const [filtro,  setFiltro]  = useState('');
@@ -22,7 +23,7 @@ export default function CuentasXPagarTab() {
 
   const cargar = () => {
     setError(null);
-    Promise.all([getCuentasPorPagar(filtro || undefined), getResumenCXP()])
+    Promise.all([getCuentasPorPagar(filtro || undefined, area), getResumenCXP(area)])
       .then(([r, s]) => { setRows(r); setResumen(s); })
       .catch(e => setError(e?.response?.data?.error || e.message || 'Error al cargar cuentas por pagar'));
   };
@@ -31,7 +32,7 @@ export default function CuentasXPagarTab() {
 
   async function handleSave() {
     if (!form.concepto || !form.importe_total) return alert('Concepto e importe total son requeridos');
-    const data = { ...form, importe_total: parseFloat(form.importe_total) || 0, pagado: parseFloat(form.pagado) || 0 };
+    const data = { ...form, area, importe_total: parseFloat(form.importe_total) || 0, pagado: parseFloat(form.pagado) || 0 };
     try {
       if (editing) await updateCuentaPorPagar(editing, data);
       else await createCuentaPorPagar(data);

@@ -7,8 +7,12 @@ module.exports = function authMiddleware(req, res, next) {
   }
   try {
     req.user = jwt.verify(header.slice(7), process.env.JWT_SECRET);
-    next();
   } catch {
-    res.status(401).json({ error: 'Token inválido o expirado' });
+    return res.status(401).json({ error: 'Token inválido o expirado' });
   }
+  // La encargada de farmacia solo accede al módulo Farmacia (nada de expedientes ni finanzas)
+  if (req.user.rol === 'farmacia' && !req.originalUrl.startsWith('/api/farmacia/')) {
+    return res.status(403).json({ error: 'Sin permisos' });
+  }
+  next();
 };

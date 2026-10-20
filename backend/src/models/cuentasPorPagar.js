@@ -1,9 +1,10 @@
 const pool = require('../db/pool');
 
 const CuentaPorPagar = {
-  async list({ estatus } = {}) {
-    const where = estatus ? 'WHERE c.estatus = $1' : '';
-    const vals  = estatus ? [estatus] : [];
+  async list({ estatus, area = 'clinica' } = {}) {
+    const vals  = [area];
+    let where = 'WHERE c.area = $1';
+    if (estatus) { vals.push(estatus); where += ' AND c.estatus = $2'; }
     const { rows } = await pool.query(
       `SELECT c.*,
               (c.importe_total - c.pagado)::numeric AS saldo_pendiente,
@@ -22,15 +23,15 @@ const CuentaPorPagar = {
     return rows[0];
   },
 
-  async create({ folio_factura, proveedor_id, proveedor_nombre, concepto, fecha_factura, fecha_vencimiento, importe_total, pagado, estatus, forma_pago, observaciones }) {
+  async create({ folio_factura, proveedor_id, proveedor_nombre, concepto, fecha_factura, fecha_vencimiento, importe_total, pagado, estatus, forma_pago, observaciones, area }) {
     const { rows } = await pool.query(
       `INSERT INTO cuentas_por_pagar
-         (folio_factura, proveedor_id, proveedor_nombre, concepto, fecha_factura, fecha_vencimiento, importe_total, pagado, estatus, forma_pago, observaciones)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+         (folio_factura, proveedor_id, proveedor_nombre, concepto, fecha_factura, fecha_vencimiento, importe_total, pagado, estatus, forma_pago, observaciones, area)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
       [folio_factura || null, proveedor_id || null, proveedor_nombre || null,
        concepto, fecha_factura || null, fecha_vencimiento || null,
        importe_total, pagado || 0,
-       estatus || 'pendiente', forma_pago || null, observaciones || null]
+       estatus || 'pendiente', forma_pago || null, observaciones || null, area === 'farmacia' ? 'farmacia' : 'clinica']
     );
     return rows[0];
   },
@@ -54,7 +55,7 @@ const CuentaPorPagar = {
     await pool.query('DELETE FROM cuentas_por_pagar WHERE id = $1', [id]);
   },
 
-  async resumen() {
+  async resumen(area = 'clinica') {
     const { rows } = await pool.query(`
       SELECT
         COALESCE(SUM(CASE WHEN estatus != 'liquidada' THEN importe_total - pagado ELSE 0 END), 0)::numeric AS total_pendiente,
@@ -63,7 +64,8 @@ const CuentaPorPagar = {
         COUNT(CASE WHEN estatus = 'liquidada' THEN 1 END)::integer AS count_liquidada,
         COUNT(CASE WHEN fecha_vencimiento < CURRENT_DATE AND estatus != 'liquidada' THEN 1 END)::integer AS count_vencidas
       FROM cuentas_por_pagar
-    `);
+      WHERE area = $1
+    `, [area]);
     return rows[0];
   },
 };

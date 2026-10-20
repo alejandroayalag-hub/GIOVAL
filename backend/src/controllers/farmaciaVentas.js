@@ -1,16 +1,17 @@
 const FarmaciaVenta = require('../models/farmaciaVenta');
-const FarmaciaProducto = require('../models/farmaciaProducto');
+const FarmaciaCaja = require('../models/farmaciaCaja');
 
+const esAdmin = (req) => req.user.rol === 'admin';
+
+// Encargada: solo ventas de su caja abierta. Admin: filtros libres.
 exports.listar = async (req, res) => {
   try {
-    const filtros = {
-      empleado_id: req.query.empleado_id || req.user.id,
-      estado: req.query.estado,
-      fecha_desde: req.query.fecha_desde,
-      fecha_hasta: req.query.fecha_hasta
-    };
-    const ventas = await FarmaciaVenta.findAll(filtros);
-    res.json(ventas);
+    if (!esAdmin(req)) {
+      const caja = await FarmaciaCaja.findAbiertaEmpleado(req.user.id);
+      return res.json(caja ? await FarmaciaVenta.findAll({ caja_id: caja.id }) : []);
+    }
+    const { empleado_id, caja_id, estado, fecha_desde, fecha_hasta } = req.query;
+    res.json(await FarmaciaVenta.findAll({ empleado_id, caja_id, estado, fecha_desde, fecha_hasta }));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -20,6 +21,7 @@ exports.obtener = async (req, res) => {
   try {
     const venta = await FarmaciaVenta.findById(req.params.id);
     if (!venta) return res.status(404).json({ error: 'Venta no encontrada' });
+    if (!esAdmin(req) && venta.empleado_id !== req.user.id) return res.status(403).json({ error: 'Sin permisos' });
     const items = await FarmaciaVenta.getItems(venta.id);
     res.json({ ...venta, items });
   } catch (error) {
@@ -27,93 +29,30 @@ exports.obtener = async (req, res) => {
   }
 };
 
-exports.crear = async (req, res) => {
+exports.checkout = async (req, res) => {
   try {
-    const { cliente_id, paciente_id, observaciones } = req.body;
-    const venta = await FarmaciaVenta.create({
-      empleado_id: req.user.id,
-      cliente_id: cliente_id || null,
-      paciente_id: paciente_id || null,
-      observaciones
-    });
+    const caja = await FarmaciaCaja.findAbiertaEmpleado(req.user.id);
+    if (!caja) return res.status(400).json({ error: 'Abre tu caja antes de vender' });
+    const { items, metodo_pago } = req.body;
+    const venta = await FarmaciaVenta.checkout({ empleado_id: req.user.id, caja_id: caja.id, items, metodo_pago });
     res.status(201).json(venta);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
 
-exports.agregarItem = async (req, res) => {
-  try {
-    const { producto_id, cantidad } = req.body;
-    const venta_id = req.params.id;
-
-    if (!producto_id || !cantidad) {
-      return res.status(400).json({ error: 'Producto y cantidad requeridos' });
-    }
-
-    const producto = await FarmaciaProducto.findById(producto_id);
-    if (!producto) return res.status(404).json({ error: 'Producto no encontrado' });
-    if (producto.stock < cantidad) {
-      return res.status(400).json({ error: 'Stock insuficiente' });
-    }
-    if (!(parseFloat(producto.precio_venta) > 0)) {
-      return res.status(400).json({ error: 'Producto sin precio de venta' });
-    }
-
-    await FarmaciaVenta.agregarItem(venta_id, producto_id, cantidad, producto.precio_venta);
-    const venta = await FarmaciaVenta.findById(venta_id);
-    res.json(venta);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
-
-exports.removerItem = async (req, res) => {
-  try {
-    const { venta_id, item_id } = req.params;
-    await FarmaciaVenta.removerItem(venta_id, item_id);
-    const venta = await FarmaciaVenta.findById(venta_id);
-    res.json(venta);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
-
-exports.pagar = async (req, res) => {
-  try {
-    const { venta_id } = req.params;
-    const { metodo_pago } = req.body;
-
-    if (!metodo_pago) {
-      return res.status(400).json({ error: 'Método de pago requerido' });
-    }
-
-    const venta = await FarmaciaVenta.findById(venta_id);
-    if (!venta) return res.status(404).json({ error: 'Venta no encontrada' });
-
-    const items = await FarmaciaVenta.getItems(venta_id);
-    for (const item of items) {
-      const producto = await FarmaciaProducto.findById(item.producto_id);
-      if (producto.stock < item.cantidad) {
-        return res.status(400).json({ error: `Stock insuficiente para ${producto.nombre}` });
-      }
-      await FarmaciaProducto.decrementarStock(item.producto_id, item.cantidad);
-    }
-
-    await FarmaciaVenta.pagar(venta_id, metodo_pago);
-    const ventaPagada = await FarmaciaVenta.findById(venta_id);
-    res.json({ mensaje: 'Venta pagada', venta: ventaPagada });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
-
+// Encargada: solo ventas de su caja abierta. Admin: cualquiera.
 exports.cancelar = async (req, res) => {
   try {
-    const { venta_id } = req.params;
-    await FarmaciaVenta.cancelar(venta_id);
-    const venta = await FarmaciaVenta.findById(venta_id);
-    res.json({ mensaje: 'Venta cancelada', venta });
+    const venta = await FarmaciaVenta.findById(req.params.venta_id);
+    if (!venta) return res.status(404).json({ error: 'Venta no encontrada' });
+    if (!esAdmin(req)) {
+      const caja = await FarmaciaCaja.findAbiertaEmpleado(req.user.id);
+      if (!caja || venta.caja_id !== caja.id) {
+        return res.status(403).json({ error: 'Solo puedes cancelar ventas de tu caja abierta' });
+      }
+    }
+    res.json(await FarmaciaVenta.cancelar(venta.id, req.user.id));
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
