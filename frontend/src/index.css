@@ -40,3 +40,11 @@ body {
   color: var(--color-dark);
   opacity: 0.65;
 }
+
+/* Impresión de historia clínica: solo se imprime .hc-print (botón en HistoriaClinicaForm) */
+@media print {
+  body:has(.hc-print) * { visibility: hidden; }
+  body:has(.hc-print) .hc-print, body:has(.hc-print) .hc-print * { visibility: visible; }
+  .hc-print { position: absolute; left: 0; top: 0; width: 100%; }
+  .hc-print textarea { field-sizing: content; resize: none; }
+}

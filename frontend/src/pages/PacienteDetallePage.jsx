@@ -352,7 +352,7 @@ export default function PacienteDetallePage() {
       {/* HC siempre montada para no perder cambios no guardados al cambiar de pestaña */}
       <div style={{ display: tab === 'historia' ? 'block' : 'none' }}>
         {historia
-          ? <HistoriaClinicaForm pacienteId={id} historia={historia} onSaved={setHistoria} editableSections={rol === 'asistente_medico' ? [6, 8] : null} />
+          ? <HistoriaClinicaForm pacienteId={id} paciente={paciente} historia={historia} onSaved={setHistoria} editableSections={rol === 'asistente_medico' ? [6, 8] : null} />
           : <p className="text-sm text-gray-400 mt-4">No se encontró la historia clínica. Recarga la página o contacta al administrador.</p>
         }
       </div>

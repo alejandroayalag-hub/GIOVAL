@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import logoGioval from '../assets/gioval-logo.png';
 import { saveHistoria } from '../api/historiasClinicas';
 
 // ─── AHF ─────────────────────────────────────────────────────────────────────
@@ -277,12 +278,20 @@ const CAMPOS_POR_SECCION = {
   ],
 };
 
-export default function HistoriaClinicaForm({ pacienteId, historia: initial, onSaved, editableSections = null }) {
+export default function HistoriaClinicaForm({ pacienteId, paciente, historia: initial, onSaved, editableSections = null }) {
   const [h, setH]     = useState(initial || {});
   const [open, setOpen] = useState({ 1: true });
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const [ok, setOk]           = useState(false);
+  const [imprimiendo, setImprimiendo] = useState(false);
+  const isOpen = (n) => imprimiendo || !!open[n];
+
+  // Abre las 8 secciones, imprime y regresa al estado anterior
+  function imprimir() {
+    setImprimiendo(true);
+    setTimeout(() => { window.print(); setImprimiendo(false); }, 300);
+  }
 
   const set    = (k, v) => setH(prev => ({ ...prev, [k]: v }));
   const toggle = (n)    => setOpen(prev => ({ ...prev, [n]: !prev[n] }));
@@ -326,10 +335,25 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="hc-print">
+      <div className="flex justify-end mb-3 print:hidden">
+        <button type="button" onClick={imprimir}
+                className="text-sm border rounded-lg px-3 py-1"
+                style={{ borderColor: 'var(--color-primary)', color: 'var(--color-dark)' }}>
+          🖨 Imprimir historia clínica
+        </button>
+      </div>
+      <div className="hidden print:flex items-center justify-between mb-4 pb-2 border-b">
+        <img src={logoGioval} alt="Gioval" className="h-12 object-contain" />
+        <div className="text-right text-xs">
+          <p className="text-base font-semibold">Historia Clínica</p>
+          {paciente && <p>{[paciente.nombre, paciente.apellido_paterno, paciente.apellido_materno].filter(Boolean).join(' ')} · Exp. GVL-{String(paciente.id).padStart(6, '0')}</p>}
+          <p>Impreso el {new Date().toLocaleDateString('es-MX', { dateStyle: 'long' })}</p>
+        </div>
+      </div>
 
       {/* ── 1. Antecedentes Heredofamiliares ─────────────────────────────── */}
-      <Section title="HC-01 · 1. Antecedentes Heredofamiliares" open={!!open[1]} onToggle={() => toggle(1)} disabled={!canEdit(1)}>
+      <Section title="HC-01 · 1. Antecedentes Heredofamiliares" open={isOpen(1)} onToggle={() => toggle(1)} disabled={!canEdit(1)}>
         <p className="text-xs text-gray-400 mb-3">Familiares de primer grado</p>
         <div className="grid grid-cols-3 gap-2">
           {AHF_ITEMS.map(([k, label]) => (
@@ -350,7 +374,7 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
 
       {/* ── 2. Antecedentes Personales Patológicos ───────────────────────── */}
 
-      <Section title="HC-01 · 2. Antecedentes Personales Patológicos" open={!!open[2]} onToggle={() => toggle(2)} disabled={!canEdit(2)}>
+      <Section title="HC-01 · 2. Antecedentes Personales Patológicos" open={isOpen(2)} onToggle={() => toggle(2)} disabled={!canEdit(2)}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -397,7 +421,7 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
       </Section>
 
       {/* ── 3. Medicamentos actuales y alergias ──────────────────────────── */}
-      <Section title="HC-01 · 3. Medicamentos Actuales y Alergias" open={!!open[3]} onToggle={() => toggle(3)} disabled={!canEdit(3)}>
+      <Section title="HC-01 · 3. Medicamentos Actuales y Alergias" open={isOpen(3)} onToggle={() => toggle(3)} disabled={!canEdit(3)}>
         <p className="text-xs text-gray-400 mb-3">
           Incluir anticoagulantes, isotretinoína, antihipertensivos, fitoterapia, suplementos.
         </p>
@@ -416,7 +440,7 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
       </Section>
 
       {/* ── 4. Antecedentes Personales No Patológicos ────────────────────── */}
-      <Section title="HC-01 · 4. Antecedentes Personales No Patológicos" open={!!open[4]} onToggle={() => toggle(4)} disabled={!canEdit(4)}>
+      <Section title="HC-01 · 4. Antecedentes Personales No Patológicos" open={isOpen(4)} onToggle={() => toggle(4)} disabled={!canEdit(4)}>
         <SubHead>Actividad física</SubHead>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Tipo de ejercicio"><TI value={h.ejercicio_tipo} onChange={v => set('ejercicio_tipo', v)} /></Field>
@@ -450,7 +474,7 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
       </Section>
 
       {/* ── 5. Gineco-obstétricos ─────────────────────────────────────────── */}
-      <Section title="HC-01 · 5. Antecedentes Gineco-Obstétricos" open={!!open[5]} onToggle={() => toggle(5)} disabled={!canEdit(5)}>
+      <Section title="HC-01 · 5. Antecedentes Gineco-Obstétricos" open={isOpen(5)} onToggle={() => toggle(5)} disabled={!canEdit(5)}>
         <div className="grid grid-cols-3 gap-3">
           {[
             ['menarca','Menarca'], ['fum','FUM'], ['ritmo_menstrual','Ritmo menstrual'],
@@ -475,7 +499,7 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
       </Section>
 
       {/* ── 6. Motivo de consulta y objetivos (HC-02) ────────────────────── */}
-      <Section title="HC-02 · 6. Motivo de Consulta y Objetivos" open={!!open[6]} onToggle={() => toggle(6)} disabled={!canEdit(6)}>
+      <Section title="HC-02 · 6. Motivo de Consulta y Objetivos" open={isOpen(6)} onToggle={() => toggle(6)} disabled={!canEdit(6)}>
         <div className="mb-4">
           <Field label="Motivo de consulta en palabras del paciente">
             <TA value={h.mc_motivo_texto} onChange={v => set('mc_motivo_texto', v)} rows={3} />
@@ -500,7 +524,7 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
       </Section>
 
       {/* ── 7. Tratamientos estéticos previos (HC-02) ────────────────────── */}
-      <Section title="HC-02 · 7. Tratamientos Estéticos Previos" open={!!open[7]} onToggle={() => {
+      <Section title="HC-02 · 7. Tratamientos Estéticos Previos" open={isOpen(7)} onToggle={() => {
         if (!open[7]) {
           if (!h.trat_prev_faciales?.length)
             set('trat_prev_faciales', TRAT_FACIALES_NAMES.map(t => ({ tratamiento: t, producto: '', fecha: '' })));
@@ -534,7 +558,7 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
       </Section>
 
       {/* ── 8. Exploración física general (HC-02) ────────────────────────── */}
-      <Section title="HC-02 · 8. Exploración Física General" open={!!open[8]} onToggle={() => toggle(8)} disabled={!canEdit(8)}>
+      <Section title="HC-02 · 8. Exploración Física General" open={isOpen(8)} onToggle={() => toggle(8)} disabled={!canEdit(8)}>
         <SubHead>Signos vitales y antropometría</SubHead>
         <div className="grid grid-cols-4 gap-3 mb-4">
           {[
@@ -605,7 +629,7 @@ export default function HistoriaClinicaForm({ pacienteId, historia: initial, onS
       {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
       {ok    && <p className="text-green-600 text-sm mt-2">Historia clínica guardada correctamente.</p>}
 
-      <div className="flex justify-end mt-4">
+      <div className="flex justify-end mt-4 print:hidden">
         <button type="submit" disabled={loading}
                 className="px-6 py-2 text-white rounded-lg font-medium disabled:opacity-50"
                 style={{ backgroundColor: 'var(--color-accent)' }}>
