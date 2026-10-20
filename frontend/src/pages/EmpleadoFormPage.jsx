@@ -10,7 +10,7 @@ const CAMPOS = [
   { name: 'rfc',              label: 'RFC',                 required: true, maxLength: 13 },
   { name: 'fecha_nacimiento', label: 'Fecha de nacimiento', type: 'date' },
   { name: 'fecha_ingreso',    label: 'Fecha de ingreso',    required: true, type: 'date' },
-  { name: 'puesto',           label: 'Puesto' },
+  { name: 'puesto',           label: 'Puesto', list: 'puestos' },
   { name: 'departamento',     label: 'Departamento' },
   { name: 'telefono',         label: 'Teléfono' },
   { name: 'email',            label: 'Email',               required: true, type: 'email' },
@@ -96,11 +96,17 @@ export default function EmpleadoFormPage() {
                 onChange={handleChange}
                 required={c.required}
                 maxLength={c.maxLength}
+                list={c.list}
                 className="border rounded px-3 py-2 w-full text-sm"
               />
             )}
           </div>
         ))}
+
+        {/* Médica / Cosmetóloga / Enfermera reciben sus tratamientos de la agenda en línea al guardar */}
+        <datalist id="puestos">
+          {['Médica', 'Cosmetóloga', 'Enfermera', 'Recepción', 'Farmacia'].map(p => <option key={p} value={p} />)}
+        </datalist>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Estatus</label>
