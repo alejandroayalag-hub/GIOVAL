@@ -46,6 +46,7 @@ exports.actualizar = async (req, res) => {
     const producto = await FarmaciaProducto.update(req.params.id, req.body);
     res.json(producto);
   } catch (error) {
+    if (error.code === '23505') return res.status(409).json({ error: 'Ese código de barras ya está asignado a otro producto' });
     res.status(400).json({ error: error.message });
   }
 };

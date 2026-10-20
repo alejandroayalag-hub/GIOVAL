@@ -42,6 +42,17 @@ const FarmaciaInventario = () => {
     }
   };
 
+  const guardarBarcode = async (p, valor) => {
+    if (valor.trim() === (p.codigo_barras || '')) return;
+    try {
+      await farmaciaAPI.updateProducto(p.id, { codigo_barras: valor });
+      setError('');
+      await cargar();
+    } catch (err) {
+      setError(err.response?.data?.error || err.message);
+    }
+  };
+
   const eliminar = async (id) => {
     if (confirm('¿Estás seguro?')) {
       try {
@@ -80,6 +91,7 @@ const FarmaciaInventario = () => {
           <tr style={{ background: '#f0f0f0' }}>
             <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Nombre</th>
             <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Código</th>
+            <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Código de barras</th>
             <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Costo</th>
             <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Precio Venta</th>
             <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Stock</th>
@@ -91,6 +103,12 @@ const FarmaciaInventario = () => {
             <tr key={p.id} style={{ borderBottom: '1px solid #ddd' }}>
               <td style={{ padding: '0.75rem' }}>{p.nombre}</td>
               <td style={{ padding: '0.75rem' }}>{p.codigo_proveedor}</td>
+              <td style={{ padding: '0.75rem' }}>
+                <input type="text" defaultValue={p.codigo_barras || ''} key={p.codigo_barras || ''} placeholder="Escanear…"
+                       onBlur={(e) => guardarBarcode(p, e.target.value)}
+                       onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+                       style={{ width: '10rem', padding: '0.25rem', border: '1px solid #ddd', fontFamily: 'monospace' }} />
+              </td>
               <td style={{ padding: '0.75rem' }}>${p.precio_costo}</td>
               <td style={{ padding: '0.75rem' }}>
                 <input type="number" min="0" step="0.01" defaultValue={parseFloat(p.precio_venta) > 0 ? p.precio_venta : ''}

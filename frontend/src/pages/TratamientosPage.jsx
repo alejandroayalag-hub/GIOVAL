@@ -146,6 +146,11 @@ export default function TratamientosPage() {
                   style={{ borderColor: 'var(--color-accent)', color: 'var(--color-accent)' }}>
             Editar CI-01 · Carta Compromiso
           </button>
+          <button onClick={() => setConsentModal({ general: { codigo: 'CI-02', titulo: 'Declaración de Salud' } })}
+                  className="text-xs px-3 py-1.5 rounded-lg border"
+                  style={{ borderColor: 'var(--color-accent)', color: 'var(--color-accent)' }}>
+            Editar CI-02 · Declaración de Salud
+          </button>
         </div>
       )}
 

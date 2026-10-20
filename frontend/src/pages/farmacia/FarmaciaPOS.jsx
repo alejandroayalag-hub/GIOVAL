@@ -76,7 +76,14 @@ const FarmaciaPOS = () => {
             type="text"
             value={busqueda}
             onChange={(e) => handleBuscar(e.target.value)}
-            placeholder="Buscar producto..."
+            onKeyDown={(e) => {
+              // lector de código de barras teclea el código + Enter
+              if (e.key !== 'Enter' || !busqueda.trim()) return;
+              const p = productos.find(x => x.codigo_barras === busqueda.trim());
+              if (p) handleSeleccionar(p);
+              else setError(`Código ${busqueda.trim()} no registrado en inventario`);
+            }}
+            placeholder="Buscar producto o escanear código..."
             style={{ width: '100%', padding: '0.75rem', fontSize: '1rem' }}
           />
           {resultados.length > 0 && (

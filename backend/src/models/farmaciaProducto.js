@@ -6,8 +6,8 @@ class FarmaciaProducto {
     const params = [];
 
     if (filtros.nombre) {
-      query += ' AND nombre ILIKE $' + (params.length + 1);
-      params.push(`%${filtros.nombre}%`);
+      query += ` AND (nombre ILIKE $${params.length + 1} OR codigo_barras = $${params.length + 2})`;
+      params.push(`%${filtros.nombre}%`, filtros.nombre.trim());
     }
 
     if (filtros.proveedor_id) {
@@ -44,7 +44,7 @@ class FarmaciaProducto {
   }
 
   static async update(id, data) {
-    const { nombre, categoria, precio_costo, precio_venta, stock, stock_minimo } = data;
+    const { nombre, categoria, precio_costo, precio_venta, stock, stock_minimo, codigo_barras } = data;
 
     if (precio_venta && precio_costo && precio_venta < precio_costo) {
       throw new Error('Precio de venta no puede ser menor que costo');
@@ -60,6 +60,7 @@ class FarmaciaProducto {
     if (precio_venta) { updates.push(`precio_venta = $${paramNum++}`); params.push(precio_venta); }
     if (stock !== undefined) { updates.push(`stock = $${paramNum++}`); params.push(stock); }
     if (stock_minimo) { updates.push(`stock_minimo = $${paramNum++}`); params.push(stock_minimo); }
+    if (codigo_barras !== undefined) { updates.push(`codigo_barras = $${paramNum++}`); params.push(codigo_barras?.trim() || null); }
 
     if (updates.length === 0) return this.findById(id);
 
