@@ -2,7 +2,7 @@
 const pool = require('../db/pool');
 const bcrypt = require('bcryptjs');
 
-const ROLES_PERMITIDOS = ['asistente_medico', 'cosmetista', 'asistente_general', 'farmacia'];
+const ROLES_PERMITIDOS = ['admin', 'asistente_medico', 'cosmetista', 'asistente_general', 'farmacia'];
 
 exports.list = async (req, res, next) => {
   try {

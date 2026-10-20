@@ -69,7 +69,7 @@ export default function EmpleadoFormPage() {
   return (
     <div className="max-w-2xl">
       <h1 className="text-2xl font-semibold text-gray-800 mb-6">
-        {esEdicion ? 'Editar empleado' : 'Nuevo empleado'}
+        {esEdicion ? 'Editar integrante' : 'Nuevo integrante'}
       </h1>
 
       {error && <p className="text-red-600 text-sm mb-4">{error}</p>}

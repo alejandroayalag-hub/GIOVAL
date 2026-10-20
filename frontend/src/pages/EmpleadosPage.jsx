@@ -50,10 +50,10 @@ export default function EmpleadosPage() {
       </div>
 
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold text-gray-800">Empleados</h1>
+        <h1 className="text-2xl font-semibold text-gray-800">Personal</h1>
         <Link to="/empleados/nuevo"
           className="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded text-sm">
-          + Nuevo empleado
+          + Nuevo integrante
         </Link>
       </div>
 
@@ -66,7 +66,7 @@ export default function EmpleadosPage() {
       />
 
       {filtrados.length === 0 ? (
-        <p className="text-gray-500 text-sm">No hay empleados registrados.</p>
+        <p className="text-gray-500 text-sm">No hay personal registrado.</p>
       ) : (
         <div className="overflow-x-auto rounded shadow bg-white">
           <table className="w-full text-sm">

@@ -40,7 +40,7 @@ export default function EmpleadoDetallePage() {
   };
 
   const handleEliminar = async () => {
-    if (!confirm('¿Eliminar este empleado?')) return;
+    if (!confirm('¿Eliminar a este integrante del personal?')) return;
     await deleteEmpleado(id);
     navigate('/');
   };
@@ -277,7 +277,7 @@ export default function EmpleadoDetallePage() {
         {tab === 'asistencia' && <TabAsistencia empleadoId={id} />}
       </div>
 
-      <Link to="/" className="text-sm text-gray-500 hover:underline">← Volver a empleados</Link>
+      <Link to="/" className="text-sm text-gray-500 hover:underline">← Volver a personal</Link>
     </div>
   );
 }

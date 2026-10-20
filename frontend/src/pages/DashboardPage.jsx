@@ -25,7 +25,7 @@ const modulos = [
   },
   {
     key: 'empleados',
-    label: 'Empleados',
+    label: 'Personal',
     desc: 'Expedientes, pagos, checador, formatos y control de personal',
     to: '/empleados',
     Icon: Users,

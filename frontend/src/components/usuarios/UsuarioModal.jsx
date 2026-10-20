@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import { createUsuario, updateUsuario } from '../../api/usuarios';
 
 const ROL_LABELS = {
+  admin:             'Administrador',
   asistente_medico:  'Asistente Médico',
   cosmetista:        'Cosmetista',
   asistente_general: 'Asistente General',

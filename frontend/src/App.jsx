@@ -118,7 +118,7 @@ function Layout() {
           <NavItem to="/citas">Citas</NavItem>
           <NavItem to="/procedimientos">En vivo</NavItem>
           <NavItem to="/pacientes">Pacientes</NavItem>
-          {rol === 'admin' && <NavItem to="/empleados">Empleados</NavItem>}
+          {rol === 'admin' && <NavItem to="/empleados">Personal</NavItem>}
           {(rol === 'admin' || rol === 'asistente_medico' || rol === 'cosmetista') && <NavItem to="/tratamientos">Tratamientos</NavItem>}
           {(rol === 'admin' || puede_caja) && <NavItem to="/finanzas">Finanzas</NavItem>}
           {rol === 'admin' && <NavItem to="/farmacia">Farmacia</NavItem>}
