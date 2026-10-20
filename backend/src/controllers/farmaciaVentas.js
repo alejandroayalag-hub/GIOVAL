@@ -56,6 +56,9 @@ exports.agregarItem = async (req, res) => {
     if (producto.stock < cantidad) {
       return res.status(400).json({ error: 'Stock insuficiente' });
     }
+    if (!(parseFloat(producto.precio_venta) > 0)) {
+      return res.status(400).json({ error: 'Producto sin precio de venta' });
+    }
 
     await FarmaciaVenta.agregarItem(venta_id, producto_id, cantidad, producto.precio_venta);
     const venta = await FarmaciaVenta.findById(venta_id);

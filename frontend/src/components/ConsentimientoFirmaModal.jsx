@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import SignaturePad from './SignaturePad';
+import DeclaracionSalud, { preguntasSinResponder } from './DeclaracionSalud';
 import { firmarConsentimiento, getIneReciente } from '../api/consentimientos';
 
 // Comprime imagen a JPEG max 1600px por lado — data URL listo para guardar
@@ -49,6 +50,8 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
   const [ine, setIne] = useState({ frente: null, reverso: null });
   const [inePrevio, setInePrevio] = useState(false);
   const requiereFotos = consentimiento.codigo === 'CI-01';
+  const esDeclaracion = consentimiento.codigo === 'CI-02';
+  const [respuestas, setRespuestas] = useState({});
 
   useEffect(() => {
     if (!navigator.geolocation) { setGeoStatus('no_disponible'); return; }
@@ -94,6 +97,13 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
   const procedimiento = cita?.tratamiento_nombre || '';
 
   async function handleFirmar() {
+    if (esDeclaracion) {
+      const faltan = preguntasSinResponder(respuestas, paciente.sexo);
+      if (faltan.length) {
+        setError(`Faltan ${faltan.length} preguntas Sí/No por contestar (ej. «${faltan[0]}»).`);
+        return;
+      }
+    }
     if (requiereFotos && autorizaFotos === null) {
       setError('Selecciona una opción de autorización de fotografías.');
       return;
@@ -122,6 +132,7 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
         geo_precision_m: geo?.precision != null ? Math.round(geo.precision) : null,
         ine_frente: ine.frente,
         ine_reverso: ine.reverso,
+        respuestas: esDeclaracion ? respuestas : null,
       });
       onFirmado?.();
       onClose();
@@ -224,6 +235,10 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
                 {consentimiento.cuidados_post}
               </p>
             </div>
+          )}
+
+          {esDeclaracion && (
+            <DeclaracionSalud respuestas={respuestas} onChange={setRespuestas} sexo={paciente.sexo} />
           )}
 
           {requiereFotos && (

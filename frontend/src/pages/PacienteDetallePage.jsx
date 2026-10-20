@@ -5,6 +5,7 @@ import { getFotosByCita, uploadFotoCita, deleteFotoCita, fotoUrl } from '../api/
 import { getHistoria } from '../api/historiasClinicas';
 import { getNotasByPaciente, createNota } from '../api/notasVisita';
 import BotonDictado from '../components/BotonDictado';
+import DeclaracionSalud from '../components/DeclaracionSalud';
 import { getConsentimiento, getConsentimientoGeneral, getFirmadosByPaciente, getIneFirmado } from '../api/consentimientos';
 import HistoriaClinicaForm from '../components/HistoriaClinicaForm';
 import NotaVisitaModal from '../components/NotaVisitaModal';
@@ -516,8 +517,8 @@ export default function PacienteDetallePage() {
       {tab === 'consentimientos' && (
         <div>
           {(() => {
-            const titulos = { 'CI-00': 'Aviso de Privacidad', 'CI-01': 'Carta Compromiso del Paciente' };
-            const generalesFaltantes = ['CI-00', 'CI-01'].filter(
+            const titulos = { 'CI-00': 'Aviso de Privacidad', 'CI-01': 'Carta Compromiso del Paciente', 'CI-02': 'Declaración de Salud' };
+            const generalesFaltantes = ['CI-00', 'CI-01', 'CI-02'].filter(
               cod => !consentsFirmados.some(cf => cf.codigo === cod)
             );
             if (!generalesFaltantes.length) return null;
@@ -595,6 +596,12 @@ export default function PacienteDetallePage() {
                     <img src={cf.firma_imagen} alt="firma" className="h-12 object-contain" />
                   </div>
                   <EvidenciaFirma cf={cf} />
+                  {cf.respuestas && (
+                    <details className="mt-2">
+                      <summary className="text-xs cursor-pointer" style={{ color: 'var(--color-accent)' }}>Ver respuestas</summary>
+                      <div className="mt-2"><DeclaracionSalud respuestas={cf.respuestas} sexo={paciente.sexo} readOnly /></div>
+                    </details>
+                  )}
                 </div>
               ))}
             </div>

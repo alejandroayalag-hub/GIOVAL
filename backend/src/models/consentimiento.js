@@ -62,7 +62,7 @@ const Consentimiento = {
     const { rows } = await pool.query(
       `SELECT cf.id, cf.consentimiento_id, cf.paciente_id, cf.cita_id, cf.nombre_paciente,
               cf.tratamiento_nombre, cf.firma_imagen, cf.fecha_firmado, cf.firmado_por, cf.autoriza_fotos,
-              cf.ip, cf.user_agent, cf.geo_lat, cf.geo_lng, cf.geo_precision_m,
+              cf.ip, cf.user_agent, cf.geo_lat, cf.geo_lng, cf.geo_precision_m, cf.respuestas,
               (cf.ine_frente IS NOT NULL) AS tiene_ine,
               c.titulo, c.codigo, c.cuidados_post
        FROM consentimientos_firmados cf
@@ -105,15 +105,15 @@ const Consentimiento = {
 
   async createFirmado(data) {
     const { consentimiento_id, paciente_id, cita_id, nombre_paciente, tratamiento_nombre, firma_imagen, firmado_por, autoriza_fotos,
-            ip, user_agent, geo_lat, geo_lng, geo_precision_m, ine_frente, ine_reverso } = data;
+            ip, user_agent, geo_lat, geo_lng, geo_precision_m, ine_frente, ine_reverso, respuestas } = data;
     const { rows } = await pool.query(
       `INSERT INTO consentimientos_firmados
          (consentimiento_id, paciente_id, cita_id, nombre_paciente, tratamiento_nombre, firma_imagen, firmado_por, autoriza_fotos,
-          ip, user_agent, geo_lat, geo_lng, geo_precision_m, ine_frente, ine_reverso)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+          ip, user_agent, geo_lat, geo_lng, geo_precision_m, ine_frente, ine_reverso, respuestas)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
        RETURNING id, consentimiento_id, paciente_id, cita_id, fecha_firmado`,
       [consentimiento_id, paciente_id, cita_id, nombre_paciente, tratamiento_nombre, encrypt(firma_imagen), firmado_por, autoriza_fotos ?? null,
-       ip ?? null, user_agent ?? null, geo_lat ?? null, geo_lng ?? null, geo_precision_m ?? null, encrypt(ine_frente ?? null), encrypt(ine_reverso ?? null)]
+       ip ?? null, user_agent ?? null, geo_lat ?? null, geo_lng ?? null, geo_precision_m ?? null, encrypt(ine_frente ?? null), encrypt(ine_reverso ?? null), respuestas ?? null]
     );
     return rows[0];
   },

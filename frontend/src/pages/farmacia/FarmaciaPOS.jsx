@@ -25,6 +25,10 @@ const FarmaciaPOS = () => {
   };
 
   const handleSeleccionar = (producto) => {
+    if (!(parseFloat(producto.precio_venta) > 0)) {
+      alert(`"${producto.nombre}" no tiene precio de venta. Ponlo en Farmacia → Inventario antes de venderlo.`);
+      return;
+    }
     const cantidad = prompt(`Cantidad de "${producto.nombre}":`, '1');
     if (cantidad && parseInt(cantidad) > 0) {
       agregarItem(producto, parseInt(cantidad));

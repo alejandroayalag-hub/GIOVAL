@@ -31,6 +31,17 @@ const FarmaciaInventario = () => {
     }
   };
 
+  const guardarPrecio = async (p, valor) => {
+    const precio = parseFloat(valor);
+    if (!(precio > 0) || precio === parseFloat(p.precio_venta)) return;
+    try {
+      await farmaciaAPI.updateProducto(p.id, { precio_venta: precio });
+      await cargar();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const eliminar = async (id) => {
     if (confirm('¿Estás seguro?')) {
       try {
@@ -69,6 +80,7 @@ const FarmaciaInventario = () => {
           <tr style={{ background: '#f0f0f0' }}>
             <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Nombre</th>
             <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Código</th>
+            <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Costo</th>
             <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Precio Venta</th>
             <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Stock</th>
             <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Acciones</th>
@@ -79,7 +91,14 @@ const FarmaciaInventario = () => {
             <tr key={p.id} style={{ borderBottom: '1px solid #ddd' }}>
               <td style={{ padding: '0.75rem' }}>{p.nombre}</td>
               <td style={{ padding: '0.75rem' }}>{p.codigo_proveedor}</td>
-              <td style={{ padding: '0.75rem' }}>${p.precio_venta}</td>
+              <td style={{ padding: '0.75rem' }}>${p.precio_costo}</td>
+              <td style={{ padding: '0.75rem' }}>
+                <input type="number" min="0" step="0.01" defaultValue={parseFloat(p.precio_venta) > 0 ? p.precio_venta : ''}
+                       key={p.precio_venta} placeholder="Sin precio"
+                       onBlur={(e) => guardarPrecio(p, e.target.value)}
+                       onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+                       style={{ width: '7rem', padding: '0.25rem', border: `1px solid ${parseFloat(p.precio_venta) > 0 ? '#ddd' : '#f44336'}` }} />
+              </td>
               <td style={{ padding: '0.75rem', color: p.stock <= p.stock_minimo ? 'red' : 'black', fontWeight: p.stock <= p.stock_minimo ? 'bold' : 'normal' }}>{p.stock}</td>
               <td style={{ padding: '0.75rem' }}>
                 <button onClick={() => eliminar(p.id)} style={{ padding: '0.25rem 0.75rem', background: '#f44336', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Eliminar</button>
