@@ -48,6 +48,7 @@ const FarmaciaCatalogos = () => {
     try {
       const res = await farmaciaAPI.getProductos(null, proveedor.id);
       setProductosProveedor(res || []);
+      setError('');
     } catch (err) {
       setError('Error al cargar catálogo');
       setProductosProveedor([]);
