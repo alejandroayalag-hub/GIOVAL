@@ -29,6 +29,7 @@ exports.hoy = async (req, res, next) => {
              )) AS paciente_nombre,
              t.nombre AS tratamiento_nombre,
              t.precio,
+             CASE WHEN c.anticipo_estado IN ('pagado', 'retenido') THEN c.anticipo ELSE 0 END::numeric AS anticipo_pagado,
              c.fecha_hora,
              COALESCE(cabina.costo_cabina, 0)::numeric AS costo_cabina
       FROM citas c

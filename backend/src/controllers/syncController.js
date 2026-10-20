@@ -90,7 +90,7 @@ exports.pushAll = async (req, res, next) => {
        LEFT JOIN tratamientos t ON t.id = c.tratamiento_id
        LEFT JOIN empleados e ON e.id = c.empleada_id
        WHERE c.google_event_id IS NULL
-         AND c.estatus != 'cancelada'
+         AND c.estatus IN ('pendiente', 'realizada')
          AND c.fecha_hora >= NOW() - INTERVAL '7 days'
        ORDER BY c.fecha_hora`
     );

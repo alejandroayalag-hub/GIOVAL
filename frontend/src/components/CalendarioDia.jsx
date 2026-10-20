@@ -82,6 +82,7 @@ export default function CalendarioDia({ citas, empleadas, fecha, onSlotClick, on
                          borderRadius: 6, padding: '2px 6px', cursor: 'pointer',
                          overflow: 'hidden', zIndex: 1,
                          opacity: cita.estatus === 'cancelada' ? 0.4 : 1,
+                         ...(['por_confirmar', 'apartada'].includes(cita.estatus) && { outline: '2px dashed #dc2626', outlineOffset: -2 }),
                        }}>
                     <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-dark)' }}>
                       {cita.nombre_paciente}

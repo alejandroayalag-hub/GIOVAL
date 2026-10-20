@@ -81,7 +81,10 @@ exports.createMovimiento = async (req, res, next) => {
     const mov = await Movimiento.create({ tipo, categoria_id, concepto, monto, forma_pago, fecha: fechaMov, notas, created_by: req.user.id, cita_id });
     if (cita_id) {
       await pool.query(
-        'UPDATE citas SET cobrado = true, precio_cobrado = COALESCE(precio_cobrado, $2) WHERE id = $1',
+        // precio_cobrado incluye el anticipo pagado en línea (su ingreso ya se registró aparte)
+        `UPDATE citas SET cobrado = true,
+           precio_cobrado = COALESCE(precio_cobrado, $2 + CASE WHEN anticipo_estado IN ('pagado', 'retenido') THEN anticipo ELSE 0 END)
+         WHERE id = $1`,
         [cita_id, monto]
       );
       await pool.query(

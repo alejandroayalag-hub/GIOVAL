@@ -230,6 +230,7 @@ export default function CitaModal({ cita, fechaHoraInicial, empleadaIdInicial, o
               className="w-full border rounded-lg px-3 py-2 text-sm disabled:bg-gray-50"
               style={{ borderColor: 'var(--color-primary)' }}
             >
+              {!ESTATUSES.includes(form.estatus) && <option value={form.estatus}>{form.estatus.replace('_', ' ')} (en línea)</option>}
               {ESTATUSES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>

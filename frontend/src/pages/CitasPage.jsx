@@ -6,6 +6,8 @@ import CalendarioDia from '../components/CalendarioDia';
 import CalendarioSemana from '../components/CalendarioSemana';
 import CitaModal from '../components/CitaModal';
 import SolicitudesTab from '../components/citas/SolicitudesTab';
+import AgendaOnlineTab from '../components/citas/AgendaOnlineTab';
+import { getBandeja } from '../api/agendaOnline';
 
 function fechaLocal(d) {
   return d.toLocaleDateString('sv-SE');
@@ -34,6 +36,16 @@ export default function CitasPage() {
   const [gcConfigured, setGcConfigured] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState(null);
+  const [porConfirmar, setPorConfirmar] = useState(0);
+  const esRecepcion = rol === 'admin' || rol === 'asistente_general';
+
+  useEffect(() => {
+    if (!esRecepcion) return;
+    const contar = () => getBandeja().then(r => setPorConfirmar(r.filter(c => c.estatus === 'por_confirmar').length)).catch(() => {});
+    contar();
+    const t = setInterval(contar, 60_000);
+    return () => clearInterval(t);
+  }, [esRecepcion, tab]);
 
   const cargarCitas = useCallback(async () => {
     setLoading(true);
@@ -125,9 +137,27 @@ export default function CitasPage() {
             Solicitudes Landing
           </button>
         )}
+        {esRecepcion && (
+          <button
+            onClick={() => setTab('online')}
+            className={activeTabClass}
+            style={{
+              backgroundColor: tab === 'online' ? 'var(--color-accent)' : 'transparent',
+              color: tab === 'online' ? 'white' : 'var(--color-dark)',
+              border: tab === 'online' ? 'none' : '1px solid var(--color-sage)',
+            }}
+          >
+            En línea
+            {porConfirmar > 0 && (
+              <span className="ml-2 text-xs bg-red-500 text-white rounded-full px-1.5 py-0.5">{porConfirmar}</span>
+            )}
+          </button>
+        )}
       </div>
 
-      {tab === 'solicitudes' ? (
+      {tab === 'online' ? (
+        <AgendaOnlineTab />
+      ) : tab === 'solicitudes' ? (
         <SolicitudesTab />
       ) : (
       <div>

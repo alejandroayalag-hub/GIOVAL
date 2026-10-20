@@ -4,6 +4,8 @@ import { getCajaHoy, createMovimiento, getCategorias } from '../../api/finanzas'
 import MovimientoModal from './MovimientoModal';
 
 const fmt = n => `$${parseFloat(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`;
+// Saldo a cobrar: precio del tratamiento menos el anticipo ya pagado
+const saldo = c => c.precio ? parseFloat(c.precio) - parseFloat(c.anticipo_pagado || 0) : null;
 const fmtHora = iso => new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
 
 const FORMAS = [
@@ -54,7 +56,7 @@ export default function CajaPanel() {
       await createMovimiento({
         tipo: 'ingreso',
         concepto: cita.tratamiento_nombre || 'Tratamiento',
-        monto: parseFloat(cita.precio),
+        monto: saldo(cita),
         forma_pago,
         cita_id: cita.cita_id,
       });
@@ -146,10 +148,13 @@ export default function CajaPanel() {
                       {cita.tratamiento_nombre || '—'} · {fmtHora(cita.fecha_hora)}
                       {cita.precio
                         ? <span className="ml-2 font-semibold" style={{ color: 'var(--color-accent)' }}>
-                            {fmt(cita.precio)}
+                            {fmt(saldo(cita))}
                           </span>
                         : <span className="ml-2 text-gray-400">sin precio</span>
                       }
+                      {cita.anticipo_pagado > 0 && (
+                        <span className="ml-2 text-green-700">(anticipo {fmt(cita.anticipo_pagado)} ya pagado)</span>
+                      )}
                       {cita.costo_cabina > 0 && cita.precio && (
                         <span className="text-xs text-gray-400 ml-2">
                           Cabina: ${parseFloat(cita.costo_cabina).toFixed(0)} | Margen:{' '}
@@ -240,7 +245,7 @@ export default function CajaPanel() {
           tipo="ingreso"
           prefill={movModal.cita ? {
             concepto: movModal.cita.tratamiento_nombre || '',
-            monto: movModal.cita.precio || '',
+            monto: saldo(movModal.cita) ?? '',
             forma_pago: 'efectivo',
             fecha: new Date().toISOString().split('T')[0],
           } : undefined}

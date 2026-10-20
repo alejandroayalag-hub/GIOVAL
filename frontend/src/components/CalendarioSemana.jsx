@@ -101,6 +101,7 @@ export default function CalendarioSemana({ citas, weekOffset, onCitaClick, onSlo
                          borderRadius: 4, padding: '1px 4px', cursor: 'pointer',
                          overflow: 'hidden', zIndex: 1,
                          opacity: cita.estatus === 'cancelada' ? 0.4 : 1,
+                         ...(['por_confirmar', 'apartada'].includes(cita.estatus) && { outline: '2px dashed #dc2626', outlineOffset: -2 }),
                        }}>
                     <p className="text-xs font-semibold truncate leading-tight" style={{ color: 'var(--color-dark)' }}>
                       {cita.nombre_paciente}

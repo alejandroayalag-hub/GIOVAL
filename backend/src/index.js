@@ -22,6 +22,9 @@ app.use(cors({
     'http://localhost:3000',
     'http://62.238.3.136:8088',
     'http://62.238.3.136:8089',
+    'https://gioval.mx',
+    'https://www.gioval.mx',
+    'http://localhost:5174',
   ],
   credentials: true,
 }));
@@ -42,6 +45,7 @@ app.use('/api/pagos',     authMiddleware, require('./routes/pagos'));
 app.use('/api/formatos',  authMiddleware, require('./routes/formatos'));
 app.use('/api/checadas', require('./routes/checadas'));
 app.use('/api/citas',         authMiddleware, require('./routes/citas'));
+app.use('/api/agenda-online', authMiddleware, require('./routes/agenda-online'));
 const { insumosRouter, kitsRouter, tratamientoKitRouter } = require('./routes/insumos');
 app.use('/api/insumos',      authMiddleware, insumosRouter);
 app.use('/api/kits',         authMiddleware, kitsRouter);

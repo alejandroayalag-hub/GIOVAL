@@ -70,7 +70,7 @@ exports.hoy = async (req, res, next) => {
        LEFT JOIN empleados e       ON c.empleada_id = e.id
        LEFT JOIN consultorios co   ON fp.consultorio_id = co.id
        WHERE DATE(c.fecha_hora) = $1
-         AND c.estatus != 'cancelada'
+         AND c.estatus IN ('pendiente', 'realizada')
        ORDER BY c.fecha_hora`,
       [hoy]
     );

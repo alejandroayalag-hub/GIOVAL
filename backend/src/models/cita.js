@@ -9,6 +9,7 @@ const Cita = {
        LEFT JOIN tratamientos t ON t.id = c.tratamiento_id
        LEFT JOIN empleados e ON e.id = c.empleada_id
        WHERE c.fecha_hora BETWEEN $1 AND $2
+         AND (c.estatus <> 'apartada' OR c.apartada_hasta > NOW())
        ORDER BY c.fecha_hora`,
       [desde, hasta]
     );

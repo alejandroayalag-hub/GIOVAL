@@ -35,6 +35,8 @@ async function syncToGoogle(citaId) {
   }
 }
 
+exports.syncToGoogle = syncToGoogle;
+
 exports.list = async (req, res, next) => {
   try {
     const { desde, hasta, fecha } = req.query;
