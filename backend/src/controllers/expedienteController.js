@@ -19,9 +19,9 @@ exports.diagnosticosByPaciente = async (req, res) => {
 
 exports.createDiagnostico = async (req, res) => {
   try {
-    const { paciente_id, cie10_codigo } = req.body;
-    if (!paciente_id || !cie10_codigo)
-      return res.status(400).json({ error: 'paciente_id y cie10_codigo son requeridos' });
+    const { paciente_id, cie10_codigo, notas } = req.body;
+    if (!paciente_id || (!cie10_codigo && !notas?.trim()))
+      return res.status(400).json({ error: 'paciente_id y un código CIE-10 o texto del diagnóstico son requeridos' });
     const d = await Diagnostico.create({ ...req.body, created_by: req.user.id });
     res.status(201).json(d);
   } catch (e) { res.status(500).json({ error: e.message }); }

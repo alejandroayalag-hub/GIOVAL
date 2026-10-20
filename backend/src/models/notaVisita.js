@@ -13,7 +13,7 @@ const NotaVisita = {
       `SELECT nv.*, c.fecha_hora, c.estatus AS cita_estatus,
               t.nombre AS tratamiento_nombre, u.nombre AS creado_por_nombre
        FROM notas_visita nv
-       JOIN citas c ON c.id = nv.cita_id
+       LEFT JOIN citas c ON c.id = nv.cita_id
        LEFT JOIN tratamientos t ON t.id = c.tratamiento_id
        LEFT JOIN usuarios u ON u.id = nv.created_by
        WHERE nv.paciente_id = $1

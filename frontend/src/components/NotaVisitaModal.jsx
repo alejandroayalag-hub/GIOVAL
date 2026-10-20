@@ -53,7 +53,7 @@ export default function NotaVisitaModal({ cita, pacienteId, nota, onClose, onSav
             {esCosmética ? 'Nota de Tratamiento Cosmético' : 'Nota de Evolución'}
           </h2>
           <p className="text-xs text-gray-500 mb-4">
-            Cita: {cita ? new Date(cita.fecha_hora).toLocaleString('es-MX') : ''} · {cita?.tratamiento_nombre || ''}
+            {cita ? `Cita: ${new Date(cita.fecha_hora).toLocaleString('es-MX')} · ${cita.tratamiento_nombre || ''}` : 'Sin cita'}
           </p>
 
           {error && <p className="text-red-500 text-sm mb-3">{error}</p>}

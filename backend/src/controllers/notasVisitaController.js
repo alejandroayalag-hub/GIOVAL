@@ -27,9 +27,9 @@ exports.getByPaciente = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
-    const { cita_id, paciente_id } = req.body;
-    if (!cita_id || !paciente_id)
-      return res.status(400).json({ error: 'cita_id y paciente_id son requeridos' });
+    const { paciente_id } = req.body;
+    if (!paciente_id)
+      return res.status(400).json({ error: 'paciente_id es requerido' });
     const tipo = tipoSegunRol(req.user.rol, req.body.tipo);
     const nota = await NotaVisita.create({
       ...req.body, tipo, created_by: req.user.id,

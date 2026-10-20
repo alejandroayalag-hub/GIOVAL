@@ -3,7 +3,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { getPaciente, uploadFotoPaciente } from '../api/pacientes';
 import { getFotosByCita, uploadFotoCita, deleteFotoCita, fotoUrl } from '../api/fotosCita';
 import { getHistoria } from '../api/historiasClinicas';
-import { getNotasByPaciente } from '../api/notasVisita';
+import { getNotasByPaciente, createNota } from '../api/notasVisita';
+import BotonDictado from '../components/BotonDictado';
 import { getConsentimiento, getConsentimientoGeneral, getFirmadosByPaciente, getIneFirmado } from '../api/consentimientos';
 import HistoriaClinicaForm from '../components/HistoriaClinicaForm';
 import NotaVisitaModal from '../components/NotaVisitaModal';
@@ -26,6 +27,54 @@ function TabBtn({ active, onClick, children }) {
             style={{ color: active ? 'var(--color-accent)' : 'var(--color-dark)' }}>
       {children}
     </button>
+  );
+}
+
+function NotaRapida({ pacienteId, citas, onSaved }) {
+  const [texto, setTexto] = useState('');
+  const [citaId, setCitaId] = useState(citas[0]?.id || '');
+  const [guardando, setGuardando] = useState(false);
+
+  async function guardar() {
+    setGuardando(true);
+    try {
+      await createNota({
+        paciente_id: pacienteId, cita_id: citaId || null, evolucion: texto.trim(),
+        tipo: localStorage.getItem('rol') === 'cosmetista' ? 'cosmetico' : 'medico',
+      });
+      setTexto('');
+      onSaved();
+    } catch (e) { alert(e.response?.data?.error || 'Error al guardar la nota'); }
+    finally { setGuardando(false); }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border p-4 mb-4" style={{ borderColor: 'var(--color-sage)' }}>
+      <div className="flex justify-between items-center mb-2">
+        <p className="text-sm font-semibold" style={{ color: 'var(--color-dark)' }}>Nueva nota de visita</p>
+        <BotonDictado onTexto={t => setTexto(v => (v ? v + ' ' : '') + t)} />
+      </div>
+      <textarea rows={5} value={texto} onChange={e => setTexto(e.target.value)}
+                placeholder="Escribe o dicta la nota…"
+                className="w-full border rounded-lg px-3 py-2 text-sm mb-2"
+                style={{ borderColor: 'var(--color-primary)' }} />
+      <div className="flex flex-wrap gap-2 items-center justify-between">
+        <select value={citaId} onChange={e => setCitaId(e.target.value)}
+                className="border rounded-lg px-2 py-1 text-xs" style={{ borderColor: 'var(--color-primary)' }}>
+          <option value="">Sin cita</option>
+          {citas.map(c => (
+            <option key={c.id} value={c.id}>
+              {c.tratamiento_nombre || 'Cita'} · {new Date(c.fecha_hora).toLocaleDateString('es-MX')}
+            </option>
+          ))}
+        </select>
+        <button onClick={guardar} disabled={!texto.trim() || guardando}
+                className="px-4 py-2 text-sm text-white rounded-lg disabled:opacity-50"
+                style={{ backgroundColor: 'var(--color-accent)' }}>
+          {guardando ? 'Guardando…' : 'Guardar nota'}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -421,21 +470,17 @@ export default function PacienteDetallePage() {
 
       {tab === 'notas' && (
         <div>
-          {citasSinNota.length > 0 ? (
+          <NotaRapida key={citasSinNota.map(c => c.id).join()} pacienteId={parseInt(id)} citas={citasSinNota} onSaved={() => cargar(true)} />
+          {citasSinNota.length > 0 && (
             <div className="mb-4 flex flex-wrap gap-2">
               {citasSinNota.map(c => (
                 <button key={c.id} onClick={() => setNotaModal({ cita: c, nota: null })}
                         className="px-4 py-2 text-sm text-white rounded-lg"
                         style={{ backgroundColor: 'var(--color-accent)' }}>
-                  + Nota — {c.tratamiento_nombre || 'Cita'} · {new Date(c.fecha_hora).toLocaleDateString('es-MX')}
+                  + Nota completa (SOAP) — {c.tratamiento_nombre || 'Cita'} · {new Date(c.fecha_hora).toLocaleDateString('es-MX')}
                 </button>
               ))}
             </div>
-          ) : (
-            <p className="mb-4 text-xs text-gray-400">
-              Las notas de visita se registran sobre una cita del paciente y todas sus citas ya tienen nota
-              (o no tiene citas). Para una nota sin cita usa la pestaña <strong>Notas Médicas</strong>.
-            </p>
           )}
           {notas.length === 0 ? (
             <p className="text-sm text-gray-400">Sin notas de visita registradas.</p>
@@ -446,7 +491,7 @@ export default function PacienteDetallePage() {
                      className="bg-white rounded-xl border p-4 cursor-pointer hover:shadow-sm transition-shadow"
                      style={{ borderColor: 'var(--color-sage)' }}
                      onClick={() => {
-                       const cita = paciente.citas?.find(c => c.id === n.cita_id) || { id: n.cita_id, fecha_hora: n.fecha_hora };
+                       const cita = n.cita_id ? (paciente.citas?.find(c => c.id === n.cita_id) || { id: n.cita_id, fecha_hora: n.fecha_hora }) : null;
                        setNotaModal({ cita, nota: n });
                      }}>
                   <div className="flex justify-between items-start">

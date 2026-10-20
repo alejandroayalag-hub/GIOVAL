@@ -19,7 +19,7 @@ const Diagnostico = {
     const { rows } = await pool.query(
       `SELECT d.*, c.descripcion AS cie10_descripcion, u.nombre AS creado_por_nombre
        FROM paciente_diagnosticos d
-       JOIN cie10_catalogo c ON c.codigo = d.cie10_codigo
+       LEFT JOIN cie10_catalogo c ON c.codigo = d.cie10_codigo
        LEFT JOIN usuarios u ON u.id = d.created_by
        WHERE d.paciente_id = $1
        ORDER BY d.estatus ASC, d.fecha DESC`,
@@ -56,7 +56,7 @@ const Diagnostico = {
 const Receta = {
   async findByPaciente(pacienteId) {
     const { rows } = await pool.query(
-      `SELECT r.*, d.cie10_codigo, c.descripcion AS cie10_descripcion,
+      `SELECT r.*, d.cie10_codigo, COALESCE(c.descripcion, d.notas) AS cie10_descripcion,
               u.nombre AS medico_nombre, u.cedula_profesional
        FROM recetas r
        LEFT JOIN paciente_diagnosticos d ON d.id = r.diagnostico_id

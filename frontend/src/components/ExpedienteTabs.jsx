@@ -34,10 +34,10 @@ export function DiagnosticosTab({ pacienteId, rol, onChanged }) {
   }, [q]);
 
   async function agregar() {
-    if (!seleccion) return;
+    if (!seleccion && !notasNuevo.trim()) return;
     try {
       await createDiagnostico({
-        paciente_id: pacienteId, cie10_codigo: seleccion.codigo,
+        paciente_id: pacienteId, cie10_codigo: seleccion?.codigo || null,
         notas: notasNuevo.trim() || null,
       });
       setSeleccion(null); setQ(''); setResultados([]); setNotasNuevo('');
@@ -49,8 +49,17 @@ export function DiagnosticosTab({ pacienteId, rol, onChanged }) {
     <div>
       <div className="bg-white rounded-xl border p-4 mb-4" style={cardBorder}>
         <p className="text-sm font-semibold mb-2" style={{ color: 'var(--color-dark)' }}>
-          Agregar diagnóstico (catálogo CIE-10)
+          Agregar diagnóstico
         </p>
+        <div className="flex justify-between items-center mb-1">
+          <label className="text-xs font-medium text-gray-600">Diagnóstico</label>
+          <BotonDictado onTexto={t => setNotasNuevo(v => (v ? v + ' ' : '') + t)} />
+        </div>
+        <textarea rows={4} value={notasNuevo} onChange={e => setNotasNuevo(e.target.value)}
+                  placeholder="Escribe o dicta el diagnóstico…"
+                  className="w-full border rounded-lg px-3 py-2 text-sm mb-3"
+                  style={{ borderColor: 'var(--color-primary)' }} />
+        <p className="text-xs text-gray-500 mb-1">Código CIE-10 (opcional)</p>
         {!seleccion ? (
           <div className="relative">
             <input type="text" value={q} onChange={e => setQ(e.target.value)}
@@ -79,15 +88,12 @@ export function DiagnosticosTab({ pacienteId, rol, onChanged }) {
               <span className="text-sm">{seleccion.descripcion}</span>
               <button type="button" onClick={() => setSeleccion(null)} className="text-xs text-gray-400 hover:text-red-500">✕ cambiar</button>
             </div>
-            <textarea rows={2} value={notasNuevo} onChange={e => setNotasNuevo(e.target.value)}
-                      placeholder="Notas del diagnóstico (opcional)"
-                      className="w-full border rounded-lg px-3 py-2 text-sm mb-2"
-                      style={{ borderColor: 'var(--color-primary)' }} />
-            <button onClick={agregar} className="px-4 py-2 text-sm text-white rounded-lg" style={btnAccent}>
-              Agregar diagnóstico
-            </button>
           </div>
         )}
+        <button onClick={agregar} disabled={!seleccion && !notasNuevo.trim()}
+                className="mt-3 px-4 py-2 text-sm text-white rounded-lg disabled:opacity-50" style={btnAccent}>
+          Agregar diagnóstico
+        </button>
       </div>
 
       {diagnosticos.length === 0 ? (
@@ -99,14 +105,15 @@ export function DiagnosticosTab({ pacienteId, rol, onChanged }) {
               <div className="flex justify-between items-start gap-2">
                 <div>
                   <p className="text-sm font-semibold" style={{ color: 'var(--color-dark)' }}>
-                    <span className="font-mono mr-2" style={{ color: 'var(--color-accent)' }}>{d.cie10_codigo}</span>
-                    {d.cie10_descripcion}
+                    {d.cie10_codigo
+                      ? <><span className="font-mono mr-2" style={{ color: 'var(--color-accent)' }}>{d.cie10_codigo}</span>{d.cie10_descripcion}</>
+                      : 'Diagnóstico clínico'}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {new Date(d.fecha).toLocaleDateString('es-MX', { dateStyle: 'long' })}
                     {d.creado_por_nombre ? ` · ${d.creado_por_nombre}` : ''}
                   </p>
-                  {d.notas && <p className="text-sm text-gray-600 mt-1">{d.notas}</p>}
+                  {d.notas && <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{d.notas}</p>}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button
@@ -173,9 +180,9 @@ export function RecetasTab({ pacienteId, paciente, rol }) {
                     {new Date(r.fecha).toLocaleDateString('es-MX', { dateStyle: 'long' })}
                     {r.medico_nombre ? ` · ${r.medico_nombre}` : ''}
                   </p>
-                  {r.cie10_codigo && (
+                  {r.cie10_descripcion && (
                     <p className="text-xs text-gray-500 mt-0.5">
-                      Dx: <span className="font-mono">{r.cie10_codigo}</span> {r.cie10_descripcion}
+                      Dx: {r.cie10_codigo && <span className="font-mono">{r.cie10_codigo}</span>} {r.cie10_descripcion}
                     </p>
                   )}
                 </div>
@@ -261,7 +268,7 @@ function RecetaModal({ pacienteId, diagnosticos, onClose, onSaved }) {
                     style={{ borderColor: 'var(--color-primary)' }}>
               <option value="">— Sin diagnóstico vinculado —</option>
               {diagnosticos.map(d => (
-                <option key={d.id} value={d.id}>{d.cie10_codigo} · {d.cie10_descripcion}</option>
+                <option key={d.id} value={d.id}>{d.cie10_codigo ? `${d.cie10_codigo} · ${d.cie10_descripcion}` : d.notas?.slice(0, 80)}</option>
               ))}
             </select>
           </div>
@@ -344,7 +351,7 @@ function imprimirReceta(r, paciente) {
       <span class="campo fecha">${new Date(r.fecha).toLocaleDateString('es-MX')}</span>
       <span class="campo nombre">${nombrePaciente}</span>
       <span class="campo edad">${paciente.edad ? paciente.edad + ' años' : ''}</span>
-      <span class="campo dx">${r.cie10_codigo ? esc(r.cie10_codigo) + ' — ' + esc(r.cie10_descripcion || '') : ''}</span>
+      <span class="campo dx">${r.cie10_descripcion ? (r.cie10_codigo ? esc(r.cie10_codigo) + ' — ' : '') + esc(r.cie10_descripcion) : ''}</span>
       <div class="cuerpo">
         ${meds}
         ${r.indicaciones ? `<p class="indicaciones">${esc(r.indicaciones)}</p>` : ''}
