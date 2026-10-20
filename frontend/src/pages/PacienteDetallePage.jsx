@@ -90,6 +90,7 @@ export default function PacienteDetallePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const rol = localStorage.getItem('rol');
+  const medico = rol === 'admin' || rol === 'asistente_medico';
   const [paciente, setPaciente] = useState(null);
   const [historia, setHistoria] = useState(null);
   const [notas, setNotas] = useState([]);
@@ -200,6 +201,12 @@ export default function PacienteDetallePage() {
     .filter(c => c.estatus !== 'cancelada' && !notas.some(n => n.cita_id === c.id))
     .sort((a, b) => new Date(b.fecha_hora) - new Date(a.fecha_hora));
 
+  const subTabs = [
+    medico && { key: 'notas-medicas', label: 'Notas Médicas' },
+    rol !== 'asistente_general' && { key: 'notas', label: `Notas de Visita${notas.length ? ` (${notas.length})` : ''}` },
+    { key: 'citas', label: `Historial de Citas${paciente.citas?.length ? ` (${paciente.citas.length})` : ''}` },
+  ].filter(Boolean);
+
   return (
     <div className="max-w-5xl">
       <div className="flex items-center gap-3 mb-6">
@@ -263,45 +270,34 @@ export default function PacienteDetallePage() {
 
       <div className="border-b mb-6 flex gap-1 overflow-x-auto whitespace-nowrap" style={{ borderColor: 'var(--color-sage)' }}>
         <TabBtn active={tab === 'historia'} onClick={() => setTab('historia')}>Historia Clínica</TabBtn>
-        <TabBtn active={tab === 'citas'} onClick={() => setTab('citas')}>
-          Citas {paciente.citas?.length ? `(${paciente.citas.length})` : ''}
-        </TabBtn>
-        {rol !== 'asistente_general' && (
-          <TabBtn active={tab === 'notas'} onClick={() => setTab('notas')}>
-            Notas de Visita {notas.length ? `(${notas.length})` : ''}
-          </TabBtn>
-        )}
-        {(rol === 'admin' || rol === 'asistente_medico') && (
+        {medico && <TabBtn active={tab === 'valoraciones'} onClick={() => setTab('valoraciones')}>Valoraciones</TabBtn>}
+        {medico && <TabBtn active={tab === 'diagnosticos'} onClick={() => setTab('diagnosticos')}>Diagnósticos</TabBtn>}
+        {medico && <TabBtn active={tab === 'procedimientos'} onClick={() => setTab('procedimientos')}>Procedimientos</TabBtn>}
+        {medico && <TabBtn active={tab === 'recetas'} onClick={() => setTab('recetas')}>Recetas</TabBtn>}
+        <TabBtn active={subTabs.some(s => s.key === tab)} onClick={() => setTab(subTabs[0].key)}>Notas y Citas ▾</TabBtn>
+        {medico && (
           <TabBtn active={tab === 'consentimientos'} onClick={() => setTab('consentimientos')}>
             Consentimientos {consentsFirmados.length ? `(${consentsFirmados.length})` : ''}
           </TabBtn>
         )}
-        {(rol === 'admin' || rol === 'asistente_medico') && (
-          <TabBtn active={tab === 'documentos'} onClick={() => setTab('documentos')}>
-            Valoraciones y Procedimientos
-          </TabBtn>
-        )}
-        {(rol === 'admin' || rol === 'asistente_medico') && (
-          <TabBtn active={tab === 'diagnosticos'} onClick={() => setTab('diagnosticos')}>
-            Diagnósticos
-          </TabBtn>
-        )}
-        {(rol === 'admin' || rol === 'asistente_medico') && (
-          <TabBtn active={tab === 'recetas'} onClick={() => setTab('recetas')}>
-            Recetas
-          </TabBtn>
-        )}
-        {(rol === 'admin' || rol === 'asistente_medico') && (
-          <TabBtn active={tab === 'notas-medicas'} onClick={() => setTab('notas-medicas')}>
-            Notas Médicas
-          </TabBtn>
-        )}
-        {(rol === 'admin' || rol === 'asistente_medico' || rol === 'asistente_general') && (
-          <TabBtn active={tab === 'archivos'} onClick={() => setTab('archivos')}>
-            Archivos
-          </TabBtn>
+        {(medico || rol === 'asistente_general') && (
+          <TabBtn active={tab === 'archivos'} onClick={() => setTab('archivos')}>Archivos</TabBtn>
         )}
       </div>
+
+      {subTabs.some(s => s.key === tab) && (
+        <div className="flex gap-2 mb-6 -mt-3 flex-wrap">
+          {subTabs.map(s => (
+            <button key={s.key} onClick={() => setTab(s.key)}
+                    className="px-3 py-1 text-xs font-medium rounded-full border"
+                    style={tab === s.key
+                      ? { background: 'var(--color-accent)', borderColor: 'var(--color-accent)', color: 'white' }
+                      : { borderColor: 'var(--color-sage)', color: 'var(--color-dark)' }}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* HC siempre montada para no perder cambios no guardados al cambiar de pestaña */}
       <div style={{ display: tab === 'historia' ? 'block' : 'none' }}>
@@ -561,8 +557,12 @@ export default function PacienteDetallePage() {
         </div>
       )}
 
-      {tab === 'documentos' && (
-        <DocumentosClinicosTab pacienteId={parseInt(id)} />
+      {tab === 'valoraciones' && (
+        <DocumentosClinicosTab pacienteId={parseInt(id)} groups={['Valoraciones', 'Interconsultas']} />
+      )}
+
+      {tab === 'procedimientos' && (
+        <DocumentosClinicosTab pacienteId={parseInt(id)} groups={['Procedimientos', 'Bitácoras']} />
       )}
 
       {tab === 'diagnosticos' && (

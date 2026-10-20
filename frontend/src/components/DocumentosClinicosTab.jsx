@@ -922,7 +922,7 @@ function DocModal({ pacienteId, tipo, doc, onClose, onSaved }) {
 }
 
 // ── Tab principal ─────────────────────────────────────────────────────────────
-export default function DocumentosClinicosTab({ pacienteId }) {
+export default function DocumentosClinicosTab({ pacienteId, groups = ['Valoraciones','Procedimientos','Bitácoras','Interconsultas'] }) {
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null); // { tipo, doc? }
@@ -944,7 +944,6 @@ export default function DocumentosClinicosTab({ pacienteId }) {
     cargar();
   }
 
-  const groups = ['Valoraciones','Procedimientos','Bitácoras','Interconsultas'];
   const docsByTipo = {};
   docs.forEach(d => { if (!docsByTipo[d.tipo]) docsByTipo[d.tipo] = []; docsByTipo[d.tipo].push(d); });
 
