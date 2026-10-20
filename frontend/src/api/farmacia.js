@@ -25,6 +25,18 @@ export const deleteProducto = (id) =>
 export const getProveedores = () =>
   api.get('/farmacia/proveedores').then(r => r.data);
 
+// PDF original del proveedor (lista de precios / vademécum), con auth -> blob en pestaña nueva
+export const abrirPdfProveedor = async (id, tipo) => {
+  const win = window.open('', '_blank');
+  try {
+    const res = await api.get(`/farmacia/proveedores/${id}/pdf/${tipo}`, { responseType: 'blob' });
+    win.location.href = URL.createObjectURL(res.data);
+  } catch (err) {
+    win?.close();
+    throw err;
+  }
+};
+
 export const createProveedor = (data) =>
   api.post('/farmacia/proveedores', data).then(r => r.data);
 

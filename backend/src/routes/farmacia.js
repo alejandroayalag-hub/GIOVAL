@@ -19,6 +19,7 @@ router.delete('/productos/:id', authFarmaciaAdmin, farmaciaProductos.desactivar)
 // Proveedores - solo admin
 router.get('/proveedores', authFarmaciaAdmin, farmaciaProveedores.listar);
 router.get('/proveedores/:id', authFarmaciaAdmin, farmaciaProveedores.obtener);
+router.get('/proveedores/:id/pdf/:tipo', authFarmaciaAdmin, farmaciaProveedores.pdf);
 router.post('/proveedores', authFarmaciaAdmin, farmaciaProveedores.crear);
 router.put('/proveedores/:id', authFarmaciaAdmin, farmaciaProveedores.actualizar);
 router.delete('/proveedores/:id', authFarmaciaAdmin, farmaciaProveedores.desactivar);

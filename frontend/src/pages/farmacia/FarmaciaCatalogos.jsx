@@ -356,6 +356,16 @@ const FarmaciaCatalogos = () => {
         <div style={{ background: 'white', padding: '1.5rem', borderRadius: '8px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h2>Catálogo: {selectedProveedor.nombre}</h2>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {(selectedProveedor.pdfs || []).map(tipo => (
+              <button
+                key={tipo}
+                onClick={() => farmaciaAPI.abrirPdfProveedor(selectedProveedor.id, tipo).catch(() => setError('No se pudo abrir el PDF'))}
+                style={{ padding: '0.5rem 1rem', background: '#887482', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                📄 {tipo === 'precios' ? 'Lista de precios' : 'Vademécum'}
+              </button>
+            ))}
             <button
               onClick={() => setMostrarUpload(!mostrarUpload)}
               style={{
@@ -369,6 +379,7 @@ const FarmaciaCatalogos = () => {
             >
               📤 {mostrarUpload ? 'Cerrar' : 'Subir Catálogo'}
             </button>
+            </div>
           </div>
 
           {mostrarUpload && (

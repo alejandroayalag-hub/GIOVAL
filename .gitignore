@@ -5,3 +5,4 @@ docs/entrega/03-credenciales-entrega.md
 .worktrees/
 .env
 *.env.local
+catalogos/
