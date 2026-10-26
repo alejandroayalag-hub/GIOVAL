@@ -1,6 +1,7 @@
 // frontend/src/components/finanzas/MovimientoModal.jsx
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { EmpresaToggle, empresaSugerida } from './empresa';
 
 export default function MovimientoModal({ tipo: tipoInicial, movimiento, prefill, categorias, onSave, onClose }) {
   const isEditing = Boolean(movimiento);
@@ -13,6 +14,7 @@ export default function MovimientoModal({ tipo: tipoInicial, movimiento, prefill
     forma_pago:   prefill?.forma_pago   || 'efectivo',
     fecha:        prefill?.fecha        || new Date().toISOString().split('T')[0],
     notas:        prefill?.notas        || '',
+    empresa:      movimiento?.empresa || prefill?.empresa || empresaSugerida(),
   });
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
@@ -26,6 +28,7 @@ export default function MovimientoModal({ tipo: tipoInicial, movimiento, prefill
         forma_pago:   movimiento.forma_pago || 'efectivo',
         fecha:        movimiento.fecha?.split('T')[0] || new Date().toISOString().split('T')[0],
         notas:        movimiento.notas || '',
+        empresa:      movimiento.empresa || 'giovanna',
       });
     }
   }, [movimiento]);
@@ -36,6 +39,7 @@ export default function MovimientoModal({ tipo: tipoInicial, movimiento, prefill
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!form.empresa) return setError('Elige la empresa: Giovanna PF o Elys PM');
     if (!form.concepto.trim()) return setError('El concepto es requerido');
     if (!form.monto || parseFloat(form.monto) <= 0) return setError('El monto debe ser mayor a 0');
     setLoading(true); setError('');
@@ -68,6 +72,12 @@ export default function MovimientoModal({ tipo: tipoInicial, movimiento, prefill
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-dark)' }}>
+              Empresa *
+            </label>
+            <EmpresaToggle value={form.empresa} onChange={e => setForm(f => ({ ...f, empresa: e }))} />
+          </div>
           <div>
             <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-dark)' }}>
               Concepto *

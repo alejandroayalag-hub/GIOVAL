@@ -1,16 +1,18 @@
 const pool = require('../db/pool');
+const { filtroEmpresa } = require('../utils/empresa');
 
 exports.hoy = async (req, res, next) => {
   try {
     const hoy = new Date().toISOString().split('T')[0];
+    const empresa = filtroEmpresa(req.query);
 
     // Resumen ingresos de hoy por forma de pago
     const resumenQ = await pool.query(`
       SELECT forma_pago, COALESCE(SUM(monto), 0)::numeric AS total
       FROM movimientos
-      WHERE tipo = 'ingreso' AND fecha = $1
+      WHERE tipo = 'ingreso' AND fecha = $1 AND ($2::text IS NULL OR empresa = $2)
       GROUP BY forma_pago
-    `, [hoy]);
+    `, [hoy, empresa]);
 
     const resumen = { efectivo: 0, tarjeta: 0, transferencia: 0, total: 0 };
     for (const r of resumenQ.rows) {
@@ -51,7 +53,7 @@ exports.hoy = async (req, res, next) => {
     // Todos los movimientos de hoy
     const movsQ = await pool.query(`
       SELECT m.id, m.concepto, m.monto::numeric, m.tipo, m.forma_pago,
-             m.cita_id, m.created_at,
+             m.cita_id, m.created_at, m.empresa,
              TRIM(COALESCE(
                NULLIF(CONCAT_WS(' ',
                  NULLIF(p.apellido_paterno,''), NULLIF(p.apellido_materno,''), NULLIF(p.nombre,'')), ''),
@@ -60,9 +62,9 @@ exports.hoy = async (req, res, next) => {
       FROM movimientos m
       LEFT JOIN citas ci    ON m.cita_id      = ci.id
       LEFT JOIN pacientes p ON ci.paciente_id = p.id
-      WHERE m.fecha = $1
+      WHERE m.fecha = $1 AND ($2::text IS NULL OR m.empresa = $2)
       ORDER BY m.created_at DESC
-    `, [hoy]);
+    `, [hoy, empresa]);
 
     res.json({
       resumen,

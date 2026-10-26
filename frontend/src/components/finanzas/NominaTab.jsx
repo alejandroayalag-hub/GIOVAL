@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { getNomina, getResumenNomina, createNomina, updateNomina, deleteNomina } from '../../api/nomina';
+import { EmpresaToggle, empresaSugerida } from './empresa';
 
 const fmt = n => `$${parseFloat(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`;
 
@@ -37,6 +38,7 @@ export default function NominaTab() {
   useEffect(() => { cargar(); }, [mes]);
 
   async function handleSave() {
+    if (!form.empresa) return alert('Elige la empresa: Giovanna PF o Elys PM');
     if (!form.nombre_rol || !form.sueldo_base) return alert('Nombre del rol y sueldo base son requeridos');
     const data = {
       ...form,
@@ -73,6 +75,7 @@ export default function NominaTab() {
       rfc:          row.rfc          || '',
       nss:          row.nss          || '',
       observaciones: row.observaciones || '',
+      empresa:      row.empresa,
     });
   }
 
@@ -100,7 +103,7 @@ export default function NominaTab() {
           />
         </div>
         <button
-          onClick={() => { setForm(EMPTY_FORM); setEditing(null); }}
+          onClick={() => { setForm({ ...EMPTY_FORM, empresa: empresaSugerida() }); setEditing(null); }}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white"
           style={{ background: '#887482' }}
         >
@@ -131,6 +134,10 @@ export default function NominaTab() {
             {editing ? 'Editar registro' : 'Nuevo registro'}
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="col-span-2 md:col-span-3">
+              <label className="text-xs text-gray-400 block mb-1">Empresa</label>
+              <span className="bg-white rounded-lg inline-block"><EmpresaToggle value={form.empresa} onChange={e => setForm(p => ({ ...p, empresa: e }))} /></span>
+            </div>
             <div className="col-span-2 md:col-span-3">
               <label className="text-xs text-gray-400 block mb-1">Nombre / Rol</label>
               <input

@@ -2,6 +2,7 @@ import { useContext, useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { FarmaciaContext } from '../../context/FarmaciaContext';
 import * as farmaciaAPI from '../../api/farmacia';
+import { EmpresaToggle } from '../../components/finanzas/empresa';
 
 const fmt = n => `$${parseFloat(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
 const errMsg = err => err.response?.data?.error || err.message;
@@ -86,6 +87,9 @@ const FarmaciaPOS = () => {
   const [cobrando, setCobrando] = useState(false);
   const [ultimaVenta, setUltimaVenta] = useState(null);
   const [cliente, setCliente] = useState(null);
+  // Razón social de la venta (Giovanna PF / Elys PM); se recuerda la última elegida en esta computadora
+  const [empresa, setEmpresa] = useState(() => { try { return localStorage.getItem('farmaciaEmpresa') || ''; } catch { return ''; } });
+  const elegirEmpresa = (e) => { setEmpresa(e); try { localStorage.setItem('farmaciaEmpresa', e); } catch { /* sin storage */ } };
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -133,11 +137,12 @@ const FarmaciaPOS = () => {
 
   const cobrar = async (metodo_pago) => {
     if (cobrando) return;
+    if (!empresa) { setError('Elige la empresa de la venta: Giovanna PF o Elys PM'); return; }
     setCobrando(true);
     setError('');
     try {
       const venta = await farmaciaAPI.checkout(
-        items.map(i => ({ producto_id: i.producto_id, cantidad: i.cantidad })), metodo_pago, cliente);
+        items.map(i => ({ producto_id: i.producto_id, cantidad: i.cantidad })), metodo_pago, cliente, empresa);
       const cambio = metodo_pago === 'efectivo' && parseFloat(recibido) > 0 ? parseFloat(recibido) - total : null;
       setUltimaVenta({ ...venta, cambio });
       limpiar();
@@ -253,6 +258,10 @@ const FarmaciaPOS = () => {
             <h2>Cobrar</h2>
             <div style={{ fontSize: '1.5rem', fontWeight: 'bold', background: '#f0f0f0', padding: '1rem', borderRadius: '4px', marginBottom: '1rem', textAlign: 'center' }}>
               {fmt(total)}
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              Empresa *
+              <div style={{ marginTop: '0.25rem' }}><EmpresaToggle value={empresa} onChange={elegirEmpresa} /></div>
             </div>
             <label style={{ display: 'block', marginBottom: '1rem' }}>
               Efectivo recibido (opcional, para calcular cambio)

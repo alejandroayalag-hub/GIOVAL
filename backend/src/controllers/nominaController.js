@@ -1,13 +1,14 @@
 const { Nomina } = require('../models/nomina');
+const { filtroEmpresa, empresaEscritura } = require('../utils/empresa');
 
 exports.list = async (req, res, next) => {
-  try { res.json(await Nomina.list(req.query.mes || null)); } catch (err) { next(err); }
+  try { res.json(await Nomina.list(req.query.mes || null, filtroEmpresa(req.query))); } catch (err) { next(err); }
 };
 
 exports.resumen = async (req, res, next) => {
   try {
     const mes = req.query.mes || new Date().toISOString().slice(0, 7);
-    res.json(await Nomina.resumenMes(mes));
+    res.json(await Nomina.resumenMes(mes, filtroEmpresa(req.query)));
   } catch (err) { next(err); }
 };
 
@@ -15,12 +16,13 @@ exports.create = async (req, res, next) => {
   try {
     const { mes, nombre_rol } = req.body;
     if (!mes || !nombre_rol) return res.status(400).json({ error: 'mes y nombre_rol son requeridos' });
-    res.status(201).json(await Nomina.create(req.body));
+    res.status(201).json(await Nomina.create({ ...req.body, empresa: empresaEscritura(req.body.empresa) }));
   } catch (err) { next(err); }
 };
 
 exports.update = async (req, res, next) => {
   try {
+    if (req.body.empresa !== undefined) req.body.empresa = empresaEscritura(req.body.empresa);
     const row = await Nomina.update(req.params.id, req.body);
     if (!row) return res.status(404).json({ error: 'No encontrado' });
     res.json(row);

@@ -44,8 +44,9 @@ const Categoria = {
 };
 
 const Movimiento = {
-  async list({ tipo, categoria_id, fecha_inicio, fecha_fin, forma_pago } = {}) {
+  async list({ tipo, categoria_id, fecha_inicio, fecha_fin, forma_pago, empresa } = {}) {
     const conds = []; const vals = []; let i = 1;
+    if (empresa)      { conds.push(`m.empresa = $${i++}`);       vals.push(empresa); }
     if (tipo)         { conds.push(`m.tipo = $${i++}`);          vals.push(tipo); }
     if (categoria_id) { conds.push(`m.categoria_id = $${i++}`);  vals.push(categoria_id); }
     if (fecha_inicio) { conds.push(`m.fecha >= $${i++}`);        vals.push(fecha_inicio); }
@@ -70,19 +71,19 @@ const Movimiento = {
     return rows[0];
   },
 
-  async create({ tipo, categoria_id, concepto, monto, forma_pago, fecha, notas, created_by, cita_id }) {
+  async create({ tipo, categoria_id, concepto, monto, forma_pago, fecha, notas, created_by, cita_id, empresa }) {
     const { rows } = await pool.query(
-      `INSERT INTO movimientos (tipo, categoria_id, concepto, monto, forma_pago, fecha, notas, created_by, cita_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      `INSERT INTO movimientos (tipo, categoria_id, concepto, monto, forma_pago, fecha, notas, created_by, cita_id, empresa)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
       [tipo, categoria_id || null, concepto, monto,
        forma_pago || 'efectivo',
        fecha || new Date().toISOString().split('T')[0],
-       notas || null, created_by, cita_id || null]
+       notas || null, created_by, cita_id || null, empresa]
     );
     return rows[0];
   },
 
-  async update(id, { categoria_id, concepto, monto, forma_pago, fecha, notas }) {
+  async update(id, { categoria_id, concepto, monto, forma_pago, fecha, notas, empresa }) {
     const { rows } = await pool.query(
       `UPDATE movimientos SET
          categoria_id = COALESCE($1, categoria_id),
@@ -91,10 +92,11 @@ const Movimiento = {
          forma_pago   = COALESCE($4, forma_pago),
          fecha        = COALESCE($5, fecha),
          notas        = COALESCE($6, notas),
+         empresa      = COALESCE($8, empresa),
          updated_at   = NOW()
        WHERE id = $7 RETURNING *`,
       [categoria_id ?? null, concepto ?? null, monto ?? null,
-       forma_pago ?? null, fecha ?? null, notas ?? null, id]
+       forma_pago ?? null, fecha ?? null, notas ?? null, id, empresa ?? null]
     );
     return rows[0];
   },
@@ -103,73 +105,78 @@ const Movimiento = {
     await pool.query('DELETE FROM movimientos WHERE id = $1', [id]);
   },
 
-  async resumenPorCategoria({ fecha_inicio, fecha_fin }) {
+  async resumenPorCategoria({ fecha_inicio, fecha_fin, empresa }) {
     const { rows } = await pool.query(
       `SELECT m.tipo, c.nombre AS categoria, c.color,
               COUNT(*) AS cantidad, SUM(m.monto) AS total
        FROM movimientos m
        LEFT JOIN categorias_movimiento c ON c.id = m.categoria_id
-       WHERE m.fecha >= $1 AND m.fecha <= $2
+       WHERE m.fecha >= $1 AND m.fecha <= $2 AND ($3::text IS NULL OR m.empresa = $3)
        GROUP BY m.tipo, c.nombre, c.color
        ORDER BY m.tipo, total DESC`,
-      [fecha_inicio, fecha_fin]
+      [fecha_inicio, fecha_fin, empresa ?? null]
     );
     return rows;
   },
 
-  async resumenPorMes({ fecha_inicio, fecha_fin }) {
+  async resumenPorMes({ fecha_inicio, fecha_fin, empresa }) {
     const { rows } = await pool.query(
       `SELECT TO_CHAR(fecha, 'YYYY-MM') AS mes,
               SUM(CASE WHEN tipo='ingreso' THEN monto ELSE 0 END) AS ingresos,
               SUM(CASE WHEN tipo='egreso'  THEN monto ELSE 0 END) AS egresos
        FROM movimientos
-       WHERE fecha >= $1 AND fecha <= $2
+       WHERE fecha >= $1 AND fecha <= $2 AND ($3::text IS NULL OR empresa = $3)
        GROUP BY mes ORDER BY mes`,
-      [fecha_inicio, fecha_fin]
+      [fecha_inicio, fecha_fin, empresa ?? null]
     );
     return rows;
   },
 };
 
 const CorteCaja = {
-  async calcularHoy() {
+  // empresa null = consolidado (solo lectura; el cierre siempre es por empresa)
+  async calcularHoy(empresa = null) {
     const hoy = new Date().toISOString().split('T')[0];
     const { rows } = await pool.query(
       `SELECT
          COALESCE(SUM(CASE WHEN tipo='ingreso' THEN monto ELSE 0 END),0) AS total_ingresos,
          COALESCE(SUM(CASE WHEN tipo='egreso'  THEN monto ELSE 0 END),0) AS total_egresos
-       FROM movimientos WHERE fecha = $1`,
-      [hoy]
+       FROM movimientos WHERE fecha = $1 AND ($2::text IS NULL OR empresa = $2)`,
+      [hoy, empresa]
     );
     const ti = parseFloat(rows[0].total_ingresos);
     const te = parseFloat(rows[0].total_egresos);
     return { fecha: hoy, total_ingresos: ti, total_egresos: te, saldo: ti - te };
   },
 
-  async estaCerrado(fecha) {
+  // empresa null = ¿cerraron todas las empresas ese día?
+  async estaCerrado(fecha, empresa = null) {
     const { rows } = await pool.query(
-      'SELECT id FROM cortes_caja WHERE fecha = $1', [fecha]
+      'SELECT empresa FROM cortes_caja WHERE fecha = $1 AND ($2::text IS NULL OR empresa = $2)', [fecha, empresa]
     );
+    if (!empresa) return rows.length >= 2;
     return rows.length > 0;
   },
 
-  async cerrar({ notas, cerrado_por }) {
-    const resumen = await CorteCaja.calcularHoy();
+  async cerrar({ notas, cerrado_por, empresa }) {
+    const resumen = await CorteCaja.calcularHoy(empresa);
     const { rows } = await pool.query(
-      `INSERT INTO cortes_caja (fecha, total_ingresos, total_egresos, saldo, notas, cerrado_por)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+      `INSERT INTO cortes_caja (fecha, total_ingresos, total_egresos, saldo, notas, cerrado_por, empresa)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
       [resumen.fecha, resumen.total_ingresos, resumen.total_egresos,
-       resumen.saldo, notas || null, cerrado_por]
+       resumen.saldo, notas || null, cerrado_por, empresa]
     );
     return rows[0];
   },
 
-  async list() {
+  async list(empresa = null) {
     const { rows } = await pool.query(
       `SELECT cc.*, u.nombre AS cerrado_por_nombre
        FROM cortes_caja cc
        LEFT JOIN usuarios u ON u.id = cc.cerrado_por
-       ORDER BY cc.fecha DESC`
+       WHERE ($1::text IS NULL OR cc.empresa = $1)
+       ORDER BY cc.fecha DESC, cc.empresa`,
+      [empresa]
     );
     return rows;
   },
@@ -186,7 +193,7 @@ const CorteCaja = {
 };
 
 const Reportes = {
-  async estadoResultados(mes) {
+  async estadoResultados(mes, empresa = null) {
     // mes = 'YYYY-MM'
     const movQ = await pool.query(`
       SELECT
@@ -197,14 +204,15 @@ const Reportes = {
         COALESCE(SUM(CASE WHEN m.tipo='egreso' THEN m.monto ELSE 0 END), 0)::numeric AS total_egresos
       FROM movimientos m
       LEFT JOIN categorias_movimiento c ON c.id = m.categoria_id
-      WHERE TO_CHAR(m.fecha, 'YYYY-MM') = $1
-    `, [mes]);
+      WHERE TO_CHAR(m.fecha, 'YYYY-MM') = $1 AND ($2::text IS NULL OR m.empresa = $2)
+    `, [mes, empresa]);
 
     const citasQ = await pool.query(`
       SELECT COUNT(*)::integer AS servicios_realizados
       FROM citas
       WHERE estatus = 'realizada' AND TO_CHAR(fecha_hora, 'YYYY-MM') = $1
-    `, [mes]);
+        AND ($2::text IS NULL OR EXISTS (SELECT 1 FROM movimientos m WHERE m.cita_id = citas.id AND m.empresa = $2))
+    `, [mes, empresa]);
 
     const r = movQ.rows[0];
     const ingresos_brutos    = parseFloat(r.ingresos_brutos);
@@ -235,7 +243,7 @@ const Reportes = {
   // Ganancia real por tratamiento (Fase 3 inventario):
   // ingreso = precio_cobrado (snapshot al cobrar), costo = Σ cita_insumos con costo snapshot.
   // Solo citas cobradas con precio_cobrado (las cobradas antes de Fase 2 no lo tienen — se excluyen).
-  async gananciaTratamientos(mes) {
+  async gananciaTratamientos(mes, empresa = null) {
     const { rows } = await pool.query(`
       SELECT t.id AS tratamiento_id, t.nombre AS tratamiento,
              COUNT(*)::integer AS citas,
@@ -252,9 +260,10 @@ const Reportes = {
       WHERE c.cobrado = true
         AND c.precio_cobrado IS NOT NULL
         AND TO_CHAR(c.fecha_hora, 'YYYY-MM') = $1
+        AND ($2::text IS NULL OR EXISTS (SELECT 1 FROM movimientos m WHERE m.cita_id = c.id AND m.empresa = $2))
       GROUP BY t.id, t.nombre
       ORDER BY ganancia DESC
-    `, [mes]);
+    `, [mes, empresa]);
 
     const num = v => parseFloat(v);
     const tratamientos = rows.map(r => ({
@@ -279,8 +288,8 @@ const Reportes = {
     };
   },
 
-  async dashboardKPIs(mes) {
-    const er = await Reportes.estadoResultados(mes);
+  async dashboardKPIs(mes, empresa = null) {
+    const er = await Reportes.estadoResultados(mes, empresa);
     return {
       ingresos_netos:       er.ingresos_netos,
       total_egresos:        er.total_egresos,

@@ -16,6 +16,7 @@ import NominaTab        from '../components/finanzas/NominaTab';
 import CuentasXPagarTab from '../components/finanzas/CuentasXPagarTab';
 import GananciaTab      from '../components/finanzas/GananciaTab';
 import FarmaciaFinanzasTab from '../components/finanzas/FarmaciaFinanzasTab';
+import { EMPRESAS, EmpresaToggle, empresaVista } from '../components/finanzas/empresa';
 
 const TABS = [
   { id: 'caja',        label: 'Caja', Icon: CreditCard, roles: ['admin','asistente_general'] },
@@ -41,6 +42,8 @@ export default function FinanzasPage() {
   const rol = localStorage.getItem('rol');
   const puede_caja = localStorage.getItem('puede_caja') === 'true';
   const [tab, setTab]               = useState('caja');
+  const [empresa, setEmpresa]         = useState(empresaVista);
+  const cambiarEmpresa = (e) => { try { localStorage.setItem('finanzasEmpresa', e); } catch { /* sin storage: solo esta vista */ } setEmpresa(e); };
   const [categorias, setCategorias]   = useState([]);
   const [movimientos, setMovimientos] = useState([]);
   const [filtros, setFiltros]         = useState({ tipo: '', categoria_id: '', forma_pago: '', fecha_inicio: '', fecha_fin: '' });
@@ -64,7 +67,7 @@ export default function FinanzasPage() {
   };
 
   useEffect(() => { cargarCategorias(); }, []);
-  useEffect(() => { if (tab === 'movimientos') cargarMovimientos(); }, [tab]);
+  useEffect(() => { if (tab === 'movimientos') cargarMovimientos(); }, [tab, empresa]);
 
   // ── Handlers movimientos ────────────────────────────────────────────────────
   async function handleSaveMovimiento(data) {
@@ -114,6 +117,7 @@ export default function FinanzasPage() {
           <h1 className="text-xl font-bold" style={{ color: 'var(--color-dark)' }}>Finanzas</h1>
           <p className="text-xs" style={{ color: 'var(--color-accent)' }}>Ingresos · Egresos · Cortes de caja</p>
         </div>
+        <EmpresaToggle value={empresa} onChange={cambiarEmpresa} conTodas className="ml-auto" />
       </div>
 
       {/* Tabs */}
@@ -131,6 +135,8 @@ export default function FinanzasPage() {
         ))}
       </div>
 
+      {/* Al cambiar de empresa se remontan las pestañas y recargan con el nuevo filtro */}
+      <div key={empresa}>
       {/* ── Tab: Caja ───────────────────────────────────────────────────────── */}
       {tab === 'caja' && <CajaPanel />}
 
@@ -204,7 +210,7 @@ export default function FinanzasPage() {
             <table className="w-full text-sm">
               <thead style={{ backgroundColor: 'var(--color-primary)' }}>
                 <tr>
-                  {['Fecha','Tipo','Categoría','Concepto','Forma de pago','Monto',''].map(h => (
+                  {['Fecha', ...(empresa === 'todas' ? ['Empresa'] : []), 'Tipo','Categoría','Concepto','Forma de pago','Monto',''].map(h => (
                     <th key={h} className="text-left px-4 py-2 text-xs font-semibold"
                         style={{ color: 'var(--color-dark)' }}>{h}</th>
                   ))}
@@ -212,14 +218,15 @@ export default function FinanzasPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">Cargando…</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">Cargando…</td></tr>
                 ) : movimientos.length === 0 ? (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">Sin movimientos</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">Sin movimientos</td></tr>
                 ) : movimientos.map(m => (
                   <tr key={m.id} className="border-t" style={{ borderColor: 'var(--color-sage)' }}>
                     <td className="px-4 py-2 text-gray-600">
                       {new Date(m.fecha + 'T12:00:00').toLocaleDateString('es-MX')}
                     </td>
+                    {empresa === 'todas' && <td className="px-4 py-2 text-xs text-gray-600">{EMPRESAS[m.empresa]}</td>}
                     <td className="px-4 py-2">
                       <span className="text-xs px-2 py-0.5 rounded-full text-white"
                             style={{ backgroundColor: m.tipo === 'ingreso' ? '#4a7c6a' : '#c0675a' }}>
@@ -341,6 +348,8 @@ export default function FinanzasPage() {
           </div>
         </div>
       )}
+
+      </div>
 
       {/* ── Modales ──────────────────────────────────────────────────────────── */}
       {movModal && (

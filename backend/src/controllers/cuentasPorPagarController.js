@@ -1,23 +1,25 @@
 const { CuentaPorPagar } = require('../models/cuentasPorPagar');
+const { filtroEmpresa, empresaEscritura } = require('../utils/empresa');
 
 exports.list = async (req, res, next) => {
-  try { res.json(await CuentaPorPagar.list({ estatus: req.query.estatus, area: req.query.area })); } catch (err) { next(err); }
+  try { res.json(await CuentaPorPagar.list({ estatus: req.query.estatus, area: req.query.area, empresa: filtroEmpresa(req.query) })); } catch (err) { next(err); }
 };
 
 exports.resumen = async (req, res, next) => {
-  try { res.json(await CuentaPorPagar.resumen(req.query.area)); } catch (err) { next(err); }
+  try { res.json(await CuentaPorPagar.resumen(req.query.area, filtroEmpresa(req.query))); } catch (err) { next(err); }
 };
 
 exports.create = async (req, res, next) => {
   try {
     if (!req.body.concepto || !req.body.importe_total)
       return res.status(400).json({ error: 'concepto e importe_total son requeridos' });
-    res.status(201).json(await CuentaPorPagar.create(req.body));
+    res.status(201).json(await CuentaPorPagar.create({ ...req.body, empresa: empresaEscritura(req.body.empresa) }));
   } catch (err) { next(err); }
 };
 
 exports.update = async (req, res, next) => {
   try {
+    if (req.body.empresa !== undefined) req.body.empresa = empresaEscritura(req.body.empresa);
     const row = await CuentaPorPagar.update(req.params.id, req.body);
     if (!row) return res.status(404).json({ error: 'No encontrado' });
     res.json(row);

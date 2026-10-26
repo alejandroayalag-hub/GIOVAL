@@ -50,7 +50,7 @@ class FarmaciaVenta {
   }
 
   // Cobro completo en una transacción: o se registra todo (venta + items + stock) o nada.
-  static async checkout({ empleado_id, caja_id, items, metodo_pago, paciente_id, cliente_id }) {
+  static async checkout({ empleado_id, caja_id, items, metodo_pago, paciente_id, cliente_id, empresa = 'giovanna' }) {
     if (!METODOS.includes(metodo_pago)) throw new Error('Método de pago inválido');
     if (!Array.isArray(items) || items.length === 0) throw new Error('Carrito vacío');
 
@@ -82,9 +82,9 @@ class FarmaciaVenta {
       total = Math.round(total * 100) / 100;
 
       const { rows: [venta] } = await client.query(
-        `INSERT INTO farmacia_ventas (empleado_id, caja_id, estado, fecha, subtotal, total, metodo_pago, paciente_id, cliente_id)
-         VALUES ($1, $2, 'pagada', NOW(), $3, $3, $4, $5, $6) RETURNING *`,
-        [empleado_id, caja_id, total, metodo_pago, paciente_id || null, paciente_id ? null : (cliente_id || null)]
+        `INSERT INTO farmacia_ventas (empleado_id, caja_id, estado, fecha, subtotal, total, metodo_pago, paciente_id, cliente_id, empresa)
+         VALUES ($1, $2, 'pagada', NOW(), $3, $3, $4, $5, $6, $7) RETURNING *`,
+        [empleado_id, caja_id, total, metodo_pago, paciente_id || null, paciente_id ? null : (cliente_id || null), empresa]
       );
       for (const p of productos) {
         const cantidad = cantidades.get(p.id);

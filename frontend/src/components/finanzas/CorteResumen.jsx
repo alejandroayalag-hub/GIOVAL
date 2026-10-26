@@ -2,10 +2,12 @@
 import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, Lock } from 'lucide-react';
 import { getCorteHoy, cerrarCorte, getCortes } from '../../api/finanzas';
+import { EMPRESAS, empresaVista } from './empresa';
 
 const fmt = n => `$${parseFloat(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
 
 export default function CorteResumen({ rol }) {
+  const empresa = empresaVista(); // 'todas' = consolidado: solo consulta, el cierre es por empresa
   const [corteHoy,   setCorteHoy]   = useState(null);
   const [historial,  setHistorial]  = useState([]);
   const [loading,    setLoading]    = useState(true);
@@ -29,7 +31,7 @@ export default function CorteResumen({ rol }) {
   async function handleCerrar() {
     setCerrando(true); setError('');
     try {
-      await cerrarCorte({ notas });
+      await cerrarCorte({ notas, empresa });
       setConfirmando(false);
       setNotas('');
       cargar();
@@ -62,19 +64,22 @@ export default function CorteResumen({ rol }) {
       </div>
 
       {/* Botón / confirmación cerrar corte */}
-      {rol === 'admin' && !corteHoy?.cerrado && (
+      {rol === 'admin' && !corteHoy?.cerrado && empresa === 'todas' && (
+        <p className="text-sm text-gray-500">Para cerrar el corte elige arriba la empresa (Giovanna PF o Elys PM); cada una cierra el suyo.</p>
+      )}
+      {rol === 'admin' && !corteHoy?.cerrado && empresa !== 'todas' && (
         !confirmando ? (
           <button onClick={() => setConfirmando(true)}
                   className="flex items-center gap-2 px-4 py-2 text-sm text-white rounded-lg"
                   style={{ backgroundColor: '#c0675a' }}>
             <Lock className="w-4 h-4" />
-            Cerrar corte del día
+            Cerrar corte del día · {EMPRESAS[empresa]}
           </button>
         ) : (
           <div className="bg-white rounded-xl border p-4 max-w-md"
                style={{ borderColor: 'var(--color-sage)' }}>
             <p className="text-sm font-medium mb-3" style={{ color: 'var(--color-dark)' }}>
-              ¿Confirmas cerrar el corte de hoy? Esta acción es irreversible.
+              ¿Confirmas cerrar el corte de hoy de {EMPRESAS[empresa]}? Esta acción es irreversible.
             </p>
             <textarea
               placeholder="Notas opcionales…"
@@ -103,7 +108,7 @@ export default function CorteResumen({ rol }) {
         <div className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-gray-50"
              style={{ color: 'var(--color-accent)' }}>
           <Lock className="w-4 h-4" />
-          El corte de hoy está cerrado
+          {empresa === 'todas' ? 'Los cortes de hoy de ambas empresas están cerrados' : 'El corte de hoy está cerrado'}
         </div>
       )}
 
@@ -118,7 +123,7 @@ export default function CorteResumen({ rol }) {
             <table className="w-full text-sm">
               <thead style={{ backgroundColor: 'var(--color-primary)' }}>
                 <tr>
-                  {['Fecha','Ingresos','Egresos','Saldo','Cerrado por'].map(h => (
+                  {['Fecha', ...(empresa === 'todas' ? ['Empresa'] : []), 'Ingresos','Egresos','Saldo','Cerrado por'].map(h => (
                     <th key={h} className="text-left px-4 py-2 text-xs font-semibold"
                         style={{ color: 'var(--color-dark)' }}>{h}</th>
                   ))}
@@ -128,6 +133,7 @@ export default function CorteResumen({ rol }) {
                 {historial.map(c => (
                   <tr key={c.id} className="border-t" style={{ borderColor: 'var(--color-sage)' }}>
                     <td className="px-4 py-2">{new Date(c.fecha + 'T12:00:00').toLocaleDateString('es-MX')}</td>
+                    {empresa === 'todas' && <td className="px-4 py-2 text-xs text-gray-600">{EMPRESAS[c.empresa]}</td>}
                     <td className="px-4 py-2" style={{ color: '#4a7c6a' }}>{fmt(c.total_ingresos)}</td>
                     <td className="px-4 py-2" style={{ color: '#c0675a' }}>{fmt(c.total_egresos)}</td>
                     <td className="px-4 py-2 font-medium"

@@ -4,6 +4,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import * as farmaciaAPI from '../../api/farmacia';
 import { getCuentasPorPagar } from '../../api/cuentasPorPagar';
 import CuentasXPagarTab from './CuentasXPagarTab';
+import { EmpresaToggle, empresaSugerida } from './empresa';
 
 const fmt = n => `$${parseFloat(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
 const errMsg = e => e?.response?.data?.error || e.message || 'Error';
@@ -160,17 +161,18 @@ function Egresos({ desde, hasta, onCambio }) {
   useEffect(() => { cargar(); }, [desde, hasta]);
 
   const nuevo = async () => {
-    setForm(EGRESO_VACIO);
+    setForm({ ...EGRESO_VACIO, empresa: empresaSugerida() });
     getCuentasPorPagar(undefined, 'farmacia').then(r => setCxps(r.filter(c => c.estatus !== 'liquidada'))).catch(() => {});
   };
 
   const elegirCxp = (id) => {
     const c = cxps.find(x => String(x.id) === id);
-    setForm(f => ({ ...f, cxp_id: id, ...(c && { categoria: 'compra', monto: c.saldo_pendiente, concepto: `Pago factura ${c.folio_factura || ''} — ${c.proveedor_real || c.proveedor_nombre || ''}` }) }));
+    setForm(f => ({ ...f, cxp_id: id, ...(c && { empresa: c.empresa, categoria: 'compra', monto: c.saldo_pendiente, concepto: `Pago factura ${c.folio_factura || ''} — ${c.proveedor_real || c.proveedor_nombre || ''}` }) }));
   };
 
   const guardar = async () => {
     if (guardando) return;
+    if (!form.empresa) return setError('Elige la empresa: Giovanna PF o Elys PM');
     setGuardando(true);
     setError(null);
     try {
@@ -195,6 +197,9 @@ function Egresos({ desde, hasta, onCambio }) {
 
       {form && (
         <div className="mb-4 rounded-xl border border-gray-600 bg-gray-800 p-4 grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="text-xs text-gray-400 col-span-2 md:col-span-3">Empresa
+            <span className="block mt-1"><span className="bg-white rounded-lg inline-block"><EmpresaToggle value={form.empresa} onChange={e => setForm(f => ({ ...f, empresa: e, ...(e !== f.empresa && { cxp_id: '' }) }))} /></span></span>
+          </div>
           <label className="text-xs text-gray-400 col-span-2 md:col-span-3">¿Paga una factura de proveedor? (opcional)
             <select value={form.cxp_id} onChange={e => elegirCxp(e.target.value)} className={`${input} w-full mt-1`}>
               <option value="">— No, egreso suelto —</option>

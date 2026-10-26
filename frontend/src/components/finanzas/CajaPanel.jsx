@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { RefreshCw, CreditCard, Banknote, Smartphone, Plus } from 'lucide-react';
 import { getCajaHoy, createMovimiento, getCategorias } from '../../api/finanzas';
 import MovimientoModal from './MovimientoModal';
+import { EMPRESAS, EmpresaToggle, empresaSugerida, empresaVista } from './empresa';
 
 const fmt = n => `$${parseFloat(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`;
 // Saldo a cobrar: precio del tratamiento menos el anticipo ya pagado
@@ -22,6 +23,7 @@ export default function CajaPanel() {
   const [cobrandoId, setCobrandoId] = useState(null);
   const [movModal, setMovModal] = useState(null);
   const [categorias, setCategorias] = useState([]);
+  const [cobrarA, setCobrarA] = useState(empresaSugerida); // empresa a la que se registran los cobros rápidos
   const intervalRef = useRef(null);
 
   const cargar = useCallback(async () => {
@@ -51,6 +53,7 @@ export default function CajaPanel() {
       setMovModal({ cita });
       return;
     }
+    if (!cobrarA) { alert('Elige arriba a qué empresa se cobra: Giovanna PF o Elys PM'); return; }
     setCobrandoId(`${cita.cita_id}-${forma_pago}`);
     try {
       await createMovimiento({
@@ -59,6 +62,7 @@ export default function CajaPanel() {
         monto: saldo(cita),
         forma_pago,
         cita_id: cita.cita_id,
+        empresa: cobrarA,
       });
       await cargar();
     } catch (e) {
@@ -124,6 +128,9 @@ export default function CajaPanel() {
              style={{ backgroundColor: 'var(--color-primary)' }}>
           <span className="font-semibold text-sm" style={{ color: 'var(--color-dark)' }}>
             Pendientes de cobrar
+          </span>
+          <span className="flex items-center gap-2 text-xs ml-auto mr-2" style={{ color: 'var(--color-dark)' }}>
+            Cobrar a: <EmpresaToggle value={cobrarA} onChange={setCobrarA} />
           </span>
           {pendientes.length > 0 && (
             <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
@@ -231,7 +238,7 @@ export default function CajaPanel() {
                     {fmt(m.monto)}
                   </p>
                   <p className="text-xs text-gray-400">
-                    {m.forma_pago} · {fmtHora(m.created_at)}
+                    {m.forma_pago} · {fmtHora(m.created_at)}{empresaVista() === 'todas' && ` · ${EMPRESAS[m.empresa]}`}
                   </p>
                 </div>
               </div>
@@ -248,7 +255,8 @@ export default function CajaPanel() {
             monto: saldo(movModal.cita) ?? '',
             forma_pago: 'efectivo',
             fecha: new Date().toISOString().split('T')[0],
-          } : undefined}
+            empresa: cobrarA,
+          } : (cobrarA ? { empresa: cobrarA } : undefined)}
           categorias={categorias}
           onSave={handleSaveModal}
           onClose={() => setMovModal(null)}

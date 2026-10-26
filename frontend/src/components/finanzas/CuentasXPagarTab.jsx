@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import { getCuentasPorPagar, getResumenCXP, createCuentaPorPagar, updateCuentaPorPagar, deleteCuentaPorPagar } from '../../api/cuentasPorPagar';
+import { EmpresaToggle, empresaSugerida } from './empresa';
 
 const fmt = n => `$${parseFloat(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
 
@@ -31,6 +32,7 @@ export default function CuentasXPagarTab({ area }) {
   useEffect(() => { cargar(); }, [filtro]);
 
   async function handleSave() {
+    if (!form.empresa) return alert('Elige la empresa: Giovanna PF o Elys PM');
     if (!form.concepto || !form.importe_total) return alert('Concepto e importe total son requeridos');
     const data = { ...form, area, importe_total: parseFloat(form.importe_total) || 0, pagado: parseFloat(form.pagado) || 0 };
     try {
@@ -64,6 +66,7 @@ export default function CuentasXPagarTab({ area }) {
       estatus:          row.estatus,
       forma_pago:       row.forma_pago    || '',
       observaciones:    row.observaciones || '',
+      empresa:          row.empresa,
     });
   }
 
@@ -108,7 +111,7 @@ export default function CuentasXPagarTab({ area }) {
             <option value="liquidada">Liquidadas</option>
           </select>
         </div>
-        <button onClick={() => { setForm(EMPTY_FORM); setEditing(null); }}
+        <button onClick={() => { setForm({ ...EMPTY_FORM, empresa: empresaSugerida() }); setEditing(null); }}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white"
           style={{ background: '#887482' }}>
           <Plus size={14} /> Nueva factura
@@ -121,6 +124,10 @@ export default function CuentasXPagarTab({ area }) {
           <h3 className="text-sm font-semibold text-white mb-3">
             {editing ? 'Editar factura' : 'Nueva factura'}
           </h3>
+          <div className="mb-3">
+            <label className="text-xs text-gray-400 block mb-1">Empresa</label>
+            <span className="bg-white rounded-lg inline-block"><EmpresaToggle value={form.empresa} onChange={e => setForm(p => ({ ...p, empresa: e }))} /></span>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[
               { field: 'folio_factura',     label: 'Folio Factura' },

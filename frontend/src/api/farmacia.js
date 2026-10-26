@@ -55,9 +55,9 @@ export const getVenta = (id) =>
 
 // Cobro completo en una sola llamada (transacción en backend)
 // cliente: null (público general) o { tipo: 'paciente'|'externo', id }
-export const checkout = (items, metodo_pago, cliente) =>
+export const checkout = (items, metodo_pago, cliente, empresa) =>
   api.post('/farmacia/ventas/checkout', {
-    items, metodo_pago,
+    items, metodo_pago, empresa,
     paciente_id: cliente?.tipo === 'paciente' ? cliente.id : null,
     cliente_id: cliente?.tipo === 'externo' ? cliente.id : null,
   }).then(r => r.data);

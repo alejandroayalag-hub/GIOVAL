@@ -1,5 +1,6 @@
 const FarmaciaVenta = require('../models/farmaciaVenta');
 const FarmaciaCaja = require('../models/farmaciaCaja');
+const { empresaEscritura } = require('../utils/empresa');
 
 const esAdmin = (req) => req.user.rol === 'admin';
 
@@ -34,7 +35,8 @@ exports.checkout = async (req, res) => {
     const caja = await FarmaciaCaja.findAbiertaEmpleado(req.user.id);
     if (!caja) return res.status(400).json({ error: 'Abre tu caja antes de vender' });
     const { items, metodo_pago, paciente_id, cliente_id } = req.body;
-    const venta = await FarmaciaVenta.checkout({ empleado_id: req.user.id, caja_id: caja.id, items, metodo_pago, paciente_id, cliente_id });
+    const empresa = empresaEscritura(req.body.empresa);
+    const venta = await FarmaciaVenta.checkout({ empleado_id: req.user.id, caja_id: caja.id, items, metodo_pago, paciente_id, cliente_id, empresa });
     res.status(201).json(venta);
   } catch (error) {
     res.status(400).json({ error: error.message });
