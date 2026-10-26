@@ -34,7 +34,9 @@ const Paciente = {
       `SELECT p.id, p.apellido_paterno, p.apellido_materno, p.nombre, p.telefono,
               to_char(d, 'YYYY-MM-DD') AS fecha, (EXTRACT(YEAR FROM d) - EXTRACT(YEAR FROM p.fecha_nacimiento))::int AS edad
        FROM (SELECT generate_series($1::date, LEAST($2::date, $1::date + 62), '1 day')::date AS d) g
-       JOIN pacientes p ON p.fecha_nacimiento IS NOT NULL AND (
+       -- ponytail: 2000-01-01 y fechas del año en curso son relleno de captura, no cumpleaños reales
+       JOIN pacientes p ON p.fecha_nacimiento IS NOT NULL AND p.fecha_nacimiento <> '2000-01-01'
+         AND EXTRACT(YEAR FROM d) > EXTRACT(YEAR FROM p.fecha_nacimiento) AND (
          to_char(p.fecha_nacimiento, 'MM-DD') = to_char(d, 'MM-DD')
          OR (to_char(p.fecha_nacimiento, 'MM-DD') = '02-29' AND to_char(d, 'MM-DD') = '02-28'
              AND to_char(d + 1, 'MM-DD') = '03-01'))
