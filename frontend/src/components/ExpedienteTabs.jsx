@@ -7,7 +7,7 @@ import {
 } from '../api/expediente';
 import BotonDictado from './BotonDictado';
 import logoGioval from '../assets/gioval-logo.png';
-import recetaFondo from '../assets/receta-gv.jpg';
+import recetaFondo from '../assets/receta-2026.jpg';
 
 const btnAccent = { backgroundColor: 'var(--color-accent)' };
 const cardBorder = { borderColor: 'var(--color-sage)' };
@@ -321,8 +321,8 @@ function RecetaModal({ pacienteId, diagnosticos, onClose, onSaved }) {
   );
 }
 
-// Imprime sobre el machote oficial RECETA-GV (media carta horizontal, 8.5×5.5 in).
-// El PDF original se renderizó a receta-gv.jpg; los campos van posicionados en % sobre el fondo.
+// Imprime sobre el machote oficial RECETA 2026 (media carta horizontal, 8.5×5.5 in).
+// El PDF original se renderizó a receta-2026.jpg; los campos van posicionados en % sobre el fondo.
 function imprimirReceta(r, paciente) {
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const nombrePaciente = esc([paciente.apellido_paterno, paciente.apellido_materno, paciente.nombre].filter(Boolean).join(' '));

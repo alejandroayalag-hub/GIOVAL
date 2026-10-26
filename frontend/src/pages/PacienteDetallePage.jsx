@@ -15,6 +15,19 @@ import DocumentosClinicosTab from '../components/DocumentosClinicosTab';
 import { DiagnosticosTab, RecetasTab, NotasMedicasTab, ArchivosTab } from '../components/ExpedienteTabs';
 import logoGioval from '../assets/gioval-logo.png';
 import ZonaImpresion from '../components/ZonaImpresion';
+import CitaModal from '../components/CitaModal';
+
+// Abre WhatsApp con el recordatorio de la cita ya redactado.
+function recordatorioWhatsApp(c, paciente) {
+  const tel = String(paciente.telefono || c.telefono || '').replace(/\D/g, '');
+  if (!tel) { alert('El paciente no tiene teléfono registrado.'); return; }
+  const f = new Date(c.fecha_hora);
+  const msg = `Hola ${paciente.nombre || ''}, le recordamos su cita en Gioval Medicina Estética`
+    + `${c.tratamiento_nombre ? ` para ${c.tratamiento_nombre}` : ''}`
+    + ` el ${f.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}`
+    + ` a las ${f.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}. ¡Le esperamos!`;
+  window.open(`https://wa.me/${tel.length === 10 ? '52' + tel : tel}?text=${encodeURIComponent(msg)}`, '_blank');
+}
 
 const TITULO_IMPRESION = {
   citas: 'Historial de Citas', notas: 'Notas de Visita', 'notas-medicas': 'Notas Médicas',
@@ -160,6 +173,7 @@ export default function PacienteDetallePage() {
   const [citaFotosOpen, setCitaFotosOpen] = useState({});
   const [fotosByCita, setFotosByCita] = useState({});
   const [lightbox, setLightbox] = useState(null);
+  const [nuevaCita, setNuevaCita] = useState(false);
 
   async function cargar(soloMeta = false) {
     if (!soloMeta) setLoading(true);
@@ -368,6 +382,14 @@ export default function PacienteDetallePage() {
       <ZonaImpresion titulo={TITULO_IMPRESION[tab] || 'Expediente'} paciente={paciente}>
 
       {tab === 'citas' && (
+        <>
+        <div className="flex justify-end mb-3 print:hidden">
+          <button onClick={() => setNuevaCita(true)}
+                  className="px-4 py-2 rounded-lg text-white text-sm font-medium"
+                  style={{ backgroundColor: 'var(--color-accent)' }}>
+            + Nueva cita
+          </button>
+        </div>
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden"
              style={{ borderColor: 'var(--color-sage)' }}>
           {!paciente.citas?.length ? (
@@ -376,7 +398,7 @@ export default function PacienteDetallePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ backgroundColor: 'var(--color-primary)' }}>
-                  {['Fecha y hora','Tratamiento','Empleada','Estatus', ...(rol === 'admin' || rol === 'asistente_medico' ? ['Fotos'] : [])].map(col => (
+                  {['Fecha y hora','Tratamiento','Empleada','Estatus','Recordatorio', ...(rol === 'admin' || rol === 'asistente_medico' ? ['Fotos'] : [])].map(col => (
                     <th key={col} className="text-left px-4 py-3 text-xs font-semibold"
                         style={{ color: 'var(--color-dark)' }}>{col}</th>
                   ))}
@@ -403,6 +425,15 @@ export default function PacienteDetallePage() {
                             {c.estatus}
                           </span>
                         </td>
+                        <td className="px-4 py-3">
+                          {c.estatus === 'pendiente' && new Date(c.fecha_hora) > new Date() && (
+                            <button onClick={() => recordatorioWhatsApp(c, paciente)}
+                                    className="text-xs px-2 py-1 rounded border print:hidden"
+                                    style={{ borderColor: '#25d366', color: '#128c7e' }}>
+                              💬 WhatsApp
+                            </button>
+                          )}
+                        </td>
                         {(rol === 'admin' || rol === 'asistente_medico') && (
                           <td className="px-4 py-3">
                             <button
@@ -421,7 +452,7 @@ export default function PacienteDetallePage() {
                       </tr>
                       {fotosAbiertas && (rol === 'admin' || rol === 'asistente_medico') && (
                         <tr className="border-t" style={{ borderColor: 'var(--color-sage)', backgroundColor: '#faf9fb' }}>
-                          <td colSpan={5} className="px-4 py-4">
+                          <td colSpan={6} className="px-4 py-4">
                             {!fotosData ? (
                               <p className="text-xs text-gray-400">Cargando fotos…</p>
                             ) : (
@@ -477,6 +508,7 @@ export default function PacienteDetallePage() {
             </table>
           )}
         </div>
+        </>
       )}
 
       {tab === 'notas' && (
@@ -670,6 +702,14 @@ export default function PacienteDetallePage() {
           cita={consentModal.cita}
           onClose={() => setConsentModal(null)}
           onFirmado={() => { setConsentModal(null); cargar(true); }}
+        />
+      )}
+
+      {nuevaCita && (
+        <CitaModal
+          cita={{ paciente_id: paciente.id, telefono: paciente.telefono }}
+          onClose={() => setNuevaCita(false)}
+          onSaved={() => { setNuevaCita(false); cargar(true); }}
         />
       )}
 
