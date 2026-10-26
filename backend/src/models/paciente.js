@@ -28,6 +28,23 @@ const Paciente = {
     return rows;
   },
 
+  // Cumpleaños dentro de [desde, hasta]; nacidos 29-feb salen el 28-feb en años no bisiestos
+  async cumpleanos(desde, hasta, empleadoId) {
+    const { rows } = await pool.query(
+      `SELECT p.id, p.apellido_paterno, p.apellido_materno, p.nombre, p.telefono,
+              to_char(d, 'YYYY-MM-DD') AS fecha, (EXTRACT(YEAR FROM d) - EXTRACT(YEAR FROM p.fecha_nacimiento))::int AS edad
+       FROM (SELECT generate_series($1::date, LEAST($2::date, $1::date + 62), '1 day')::date AS d) g
+       JOIN pacientes p ON p.fecha_nacimiento IS NOT NULL AND (
+         to_char(p.fecha_nacimiento, 'MM-DD') = to_char(d, 'MM-DD')
+         OR (to_char(p.fecha_nacimiento, 'MM-DD') = '02-29' AND to_char(d, 'MM-DD') = '02-28'
+             AND to_char(d + 1, 'MM-DD') = '03-01'))
+       ${empleadoId ? 'WHERE EXISTS (SELECT 1 FROM citas c WHERE c.paciente_id = p.id AND c.empleada_id = $3)' : ''}
+       ORDER BY d, p.nombre`,
+      empleadoId ? [desde, hasta, empleadoId] : [desde, hasta]
+    );
+    return rows;
+  },
+
   async findById(id) {
     const { rows } = await pool.query(
       `SELECT p.*,

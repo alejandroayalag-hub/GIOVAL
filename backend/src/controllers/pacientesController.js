@@ -19,6 +19,15 @@ exports.buscar = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+exports.cumpleanos = async (req, res, next) => {
+  try {
+    const { desde, hasta } = req.query;
+    const iso = /^\d{4}-\d{2}-\d{2}$/;
+    if (!iso.test(desde || '') || !iso.test(hasta || '')) return res.status(400).json({ error: 'desde y hasta (YYYY-MM-DD) requeridos' });
+    res.json(await Paciente.cumpleanos(desde, hasta, await empleadoAcotado(req)));
+  } catch (err) { next(err); }
+};
+
 exports.getOne = async (req, res, next) => {
   try {
     const paciente = await Paciente.findById(req.params.id);

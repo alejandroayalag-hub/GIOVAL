@@ -6,6 +6,7 @@ const upload = require('../middleware/upload');
 const { requireRol } = require('../middleware/roles');
 
 router.get('/buscar', ctrl.buscar);
+router.get('/cumpleanos', ctrl.cumpleanos);
 router.get('/', ctrl.list);
 router.post('/', requireRol('admin'), ctrl.create);
 router.get('/:id', ctrl.getOne);

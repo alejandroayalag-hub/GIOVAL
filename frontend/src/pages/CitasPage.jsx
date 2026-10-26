@@ -8,6 +8,8 @@ import CitaModal from '../components/CitaModal';
 import SolicitudesTab from '../components/citas/SolicitudesTab';
 import AgendaOnlineTab from '../components/citas/AgendaOnlineTab';
 import { getBandeja } from '../api/agendaOnline';
+import { getCumpleanos } from '../api/pacientes';
+import { Link } from 'react-router-dom';
 
 function fechaLocal(d) {
   return d.toLocaleDateString('sv-SE');
@@ -30,6 +32,7 @@ export default function CitasPage() {
   const [fecha, setFecha] = useState(fechaLocal(new Date()));
   const [weekOffset, setWeekOffset] = useState(0);
   const [citas, setCitas] = useState([]);
+  const [cumples, setCumples] = useState([]);
   const [empleadas, setEmpleadas] = useState([]);
   const [modal, setModal] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -52,6 +55,7 @@ export default function CitasPage() {
     try {
       const params = vista === 'dia' ? { fecha } : getLunesViernes(weekOffset);
       setCitas(await getCitas(params));
+      getCumpleanos(vista === 'dia' ? { desde: fecha, hasta: fecha } : params).then(setCumples).catch(() => setCumples([]));
     } catch (err) {
       console.error(err);
     } finally {
@@ -234,6 +238,19 @@ export default function CitasPage() {
           </button>
         </div>
       </div>
+
+      {cumples.length > 0 && (
+        <div className="mb-3 px-4 py-2 rounded-lg text-sm flex flex-wrap gap-x-4 gap-y-1"
+             style={{ backgroundColor: '#fdf4ff', border: '1px solid var(--color-primary)', color: 'var(--color-dark)' }}>
+          <span className="font-medium">🎂 Cumpleaños:</span>
+          {cumples.map(c => (
+            <Link key={`${c.id}-${c.fecha}`} to={`/pacientes/${c.id}`} className="hover:underline">
+              {c.nombre} {c.apellido_paterno}
+              <span className="opacity-70"> · {new Date(c.fecha).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', timeZone: 'UTC' })} · {c.edad} años</span>
+            </Link>
+          ))}
+        </div>
+      )}
 
       {loading && <p className="text-sm text-gray-400 mb-2">Cargando...</p>}
       {syncMsg && (
