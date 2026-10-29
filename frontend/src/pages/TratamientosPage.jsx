@@ -14,6 +14,8 @@ function agrupar(items) {
   return cats;
 }
 
+import PromocionesSection from '../components/PromocionesSection';
+
 export default function TratamientosPage() {
   const rol = localStorage.getItem('rol');
   const [items, setItems] = useState([]);
@@ -153,6 +155,8 @@ export default function TratamientosPage() {
           </button>
         </div>
       )}
+
+      {rol === 'admin' && <PromocionesSection />}
 
       <div className="space-y-3">
         {Object.entries(grupos).map(([cat, subs]) => {
