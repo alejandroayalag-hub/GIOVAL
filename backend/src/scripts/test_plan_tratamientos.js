@@ -87,9 +87,67 @@ async function testSyncValoracion() {
   }
 }
 
+async function testAvanceEHistorial() {
+  const Cita = require('../models/cita');
+  const DocClinico = require('../models/documentoClinico');
+  const { listarPorPaciente, actualizarAvance, historial } = require('../services/planTratamiento');
+  const { rows: [p] } = await pool.query('SELECT id FROM pacientes LIMIT 1');
+  const { rows: [t] } = await pool.query(`SELECT id, nombre FROM tratamientos WHERE activo AND nombre NOT ILIKE 'valoraci%' ORDER BY id LIMIT 1`);
+  const { rows: [plan] } = await pool.query(
+    `INSERT INTO plan_tratamientos (paciente_id, tratamiento_id, sesiones_estimadas, estatus)
+     VALUES ($1,$2,2,'aceptado') RETURNING id`, [p.id, t.id]);
+  const citas = [], docs = [];
+  try {
+    const c1 = await Cita.create({ nombre_paciente: 'Test', tratamiento_id: t.id, paciente_id: p.id,
+      fecha_hora: '2020-01-01T10:00:00', plan_tratamiento_id: plan.id });
+    citas.push(c1.id);
+    assert.strictEqual(c1.plan_tratamiento_id, plan.id, 'Cita.create no guardó plan_tratamiento_id');
+    await Cita.update(c1.id, { estatus: 'realizada' });
+    await actualizarAvance(plan.id);
+    let mio = (await listarPorPaciente(p.id)).find(x => x.id === plan.id);
+    assert.strictEqual(mio.sesiones_realizadas, 1);
+    assert.strictEqual(mio.estatus, 'aceptado');
+    assert.strictEqual(mio.tratamiento_nombre, t.nombre);
+
+    const c2 = await Cita.create({ nombre_paciente: 'Test', tratamiento_id: t.id, paciente_id: p.id,
+      fecha_hora: '2020-01-15T10:00:00', plan_tratamiento_id: plan.id });
+    citas.push(c2.id);
+    await Cita.update(c2.id, { estatus: 'realizada' });
+    await actualizarAvance(plan.id);
+    mio = (await listarPorPaciente(p.id)).find(x => x.id === plan.id);
+    assert.strictEqual(mio.estatus, 'completado');
+
+    // update puede desligar plan con null explícito
+    const c3 = await Cita.create({ nombre_paciente: 'Test', tratamiento_id: t.id, paciente_id: p.id,
+      fecha_hora: '2020-02-01T10:00:00', plan_tratamiento_id: plan.id });
+    citas.push(c3.id);
+    assert.strictEqual((await Cita.update(c3.id, { plan_tratamiento_id: null })).plan_tratamiento_id, null);
+    assert.strictEqual((await Cita.update(c3.id, { notas: 'x' })).plan_tratamiento_id, null);
+
+    const dLigado = await DocClinico.create({ paciente_id: p.id, tipo: 'proc_01', datos: {}, cita_id: c1.id });
+    const dSuelto = await DocClinico.create({ paciente_id: p.id, tipo: 'bit_01', datos: {} });
+    docs.push(dLigado.id, dSuelto.id);
+    const h = await historial(p.id);
+    const s1 = h.sesiones.find(s => s.cita_id === c1.id);
+    const s2 = h.sesiones.find(s => s.cita_id === c2.id);
+    assert.strictEqual(s1.sesion_n, 1);
+    assert.strictEqual(s2.sesion_n, 2);
+    assert.strictEqual(s1.sesiones_estimadas, 2);
+    assert.deepStrictEqual(s1.documentos.map(d => d.id), [dLigado.id]);
+    assert.ok(h.sin_sesion.some(d => d.id === dSuelto.id), 'doc sin cita no está en sin_sesion');
+    assert.ok(!h.sesiones.some(s => s.cita_id === c3.id), 'cita no realizada en historial');
+    console.log('✓ avance de sesiones + historial');
+  } finally {
+    await pool.query('DELETE FROM documentos_clinicos WHERE id = ANY($1)', [docs]);
+    await pool.query('DELETE FROM citas WHERE id = ANY($1)', [citas]);
+    await pool.query('DELETE FROM plan_tratamientos WHERE id=$1', [plan.id]);
+  }
+}
+
 async function run() {
   await testMigracion();
   await testSyncValoracion();
+  await testAvanceEHistorial();
 }
 
 run()

@@ -1,5 +1,6 @@
 const { empleadoAcotado } = require('../middleware/misPacientes');
 const Cita = require('../models/cita');
+const { actualizarAvance } = require('../services/planTratamiento');
 const pool = require('../db/pool');
 const gc   = require('../services/googleCalendar');
 
@@ -82,6 +83,7 @@ exports.update = async (req, res, next) => {
     }
 
     const cita = await Cita.update(req.params.id, req.body);
+    if (cita.estatus === 'realizada') await actualizarAvance(cita.plan_tratamiento_id);
     res.json(cita);
     // Sync en background
     syncToGoogle(cita.id);

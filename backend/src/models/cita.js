@@ -20,11 +20,11 @@ const Cita = {
   },
 
   async create(data) {
-    const { nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id, fecha_hora, notas, created_by } = data;
+    const { nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id, fecha_hora, notas, created_by, plan_tratamiento_id } = data;
     const { rows } = await pool.query(
-      `INSERT INTO citas (nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id, fecha_hora, notas, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id || null, fecha_hora, notas, created_by]
+      `INSERT INTO citas (nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id, fecha_hora, notas, created_by, plan_tratamiento_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id || null, fecha_hora, notas, created_by, plan_tratamiento_id || null]
     );
     return rows[0];
   },
@@ -41,9 +41,12 @@ const Cita = {
          fecha_hora      = COALESCE($6, fecha_hora),
          notas           = COALESCE($7, notas),
          estatus         = COALESCE($8, estatus),
+         -- plan_tratamiento_id solo cambia si viene en el body (null explícito desliga)
+         plan_tratamiento_id = CASE WHEN $10 THEN $11::int ELSE plan_tratamiento_id END,
          updated_at      = NOW()
        WHERE id = $9 RETURNING *`,
-      [nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id, fecha_hora, notas, estatus, id]
+      [nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id, fecha_hora, notas, estatus, id,
+       'plan_tratamiento_id' in data, data.plan_tratamiento_id || null]
     );
     return rows[0];
   },

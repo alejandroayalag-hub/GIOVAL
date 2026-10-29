@@ -70,4 +70,65 @@ async function syncDesdeValoracion(doc, userId) {
   }
 }
 
-module.exports = { VALORACION_TIPOS, syncDesdeValoracion };
+const SESIONES_REALIZADAS = `(SELECT count(*)::int FROM citas c WHERE c.plan_tratamiento_id = pt.id AND c.estatus = 'realizada')`;
+
+async function listarPorPaciente(pacienteId) {
+  const { rows } = await pool.query(
+    `SELECT pt.id, pt.tratamiento_id, t.nombre AS tratamiento_nombre, pt.sesiones_estimadas,
+            ${SESIONES_REALIZADAS} AS sesiones_realizadas,
+            pt.frecuencia, pt.notas, pt.estatus, pt.motivo_cancelacion,
+            pt.valoracion_id, dc.tipo AS valoracion_tipo, dc.fecha AS valoracion_fecha,
+            pt.diagnostico_id,
+            COALESCE(NULLIF(CONCAT_WS(' · ', pd.cie10_codigo, cie.descripcion), ''), pd.notas) AS diagnostico_label,
+            (SELECT json_build_object('id', c.id, 'fecha_hora', c.fecha_hora) FROM citas c
+              WHERE c.plan_tratamiento_id = pt.id AND c.estatus = 'pendiente' AND c.fecha_hora >= NOW()
+              ORDER BY c.fecha_hora LIMIT 1) AS proxima_cita,
+            pt.created_at
+     FROM plan_tratamientos pt
+     JOIN tratamientos t ON t.id = pt.tratamiento_id
+     LEFT JOIN documentos_clinicos dc ON dc.id = pt.valoracion_id
+     LEFT JOIN paciente_diagnosticos pd ON pd.id = pt.diagnostico_id
+     LEFT JOIN cie10_catalogo cie ON cie.codigo = pd.cie10_codigo
+     WHERE pt.paciente_id = $1
+     ORDER BY pt.created_at DESC, pt.id DESC`,
+    [pacienteId]);
+  return rows;
+}
+
+async function actualizarAvance(planId) {
+  if (!planId) return;
+  await pool.query(
+    `UPDATE plan_tratamientos pt SET estatus = 'completado', updated_at = NOW()
+     WHERE pt.id = $1 AND pt.estatus = 'aceptado' AND ${SESIONES_REALIZADAS} >= pt.sesiones_estimadas`,
+    [planId]);
+}
+
+async function historial(pacienteId) {
+  const { rows: sesiones } = await pool.query(
+    `SELECT c.id AS cita_id, c.fecha_hora, t.nombre AS tratamiento_nombre,
+            TRIM(CONCAT(COALESCE(e.nombre,''), ' ', COALESCE(e.apellido_paterno,''))) AS empleada_nombre,
+            c.plan_tratamiento_id AS plan_id,
+            CASE WHEN c.plan_tratamiento_id IS NOT NULL THEN
+              (SELECT count(*)::int FROM citas c2 WHERE c2.plan_tratamiento_id = c.plan_tratamiento_id
+                 AND c2.estatus = 'realizada' AND (c2.fecha_hora, c2.id) <= (c.fecha_hora, c.id)) END AS sesion_n,
+            pt.sesiones_estimadas,
+            COALESCE((SELECT json_agg(json_build_object('id', d.id, 'tipo', d.tipo, 'fecha', d.fecha) ORDER BY d.id)
+                      FROM documentos_clinicos d WHERE d.cita_id = c.id
+                        AND (d.tipo LIKE 'proc\\_%' OR d.tipo LIKE 'bit\\_%')), '[]') AS documentos
+     FROM citas c
+     LEFT JOIN tratamientos t ON t.id = c.tratamiento_id
+     LEFT JOIN empleados e ON e.id = c.empleada_id
+     LEFT JOIN plan_tratamientos pt ON pt.id = c.plan_tratamiento_id
+     WHERE c.paciente_id = $1 AND c.estatus = 'realizada'
+       AND (t.nombre IS NULL OR t.nombre NOT ILIKE 'valoraci%')
+     ORDER BY c.fecha_hora DESC`,
+    [pacienteId]);
+  const { rows: sin_sesion } = await pool.query(
+    `SELECT id, tipo, fecha FROM documentos_clinicos
+     WHERE paciente_id = $1 AND cita_id IS NULL AND (tipo LIKE 'proc\\_%' OR tipo LIKE 'bit\\_%')
+     ORDER BY fecha DESC, id DESC`,
+    [pacienteId]);
+  return { sesiones, sin_sesion };
+}
+
+module.exports = { VALORACION_TIPOS, syncDesdeValoracion, listarPorPaciente, actualizarAvance, historial };

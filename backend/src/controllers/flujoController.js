@@ -1,4 +1,5 @@
 const pool = require('../db/pool');
+const { actualizarAvance } = require('../services/planTratamiento');
 
 const ORDEN_ESTATUS = {
   checkin: 1, en_consultorio: 2, en_procedimiento: 3,
@@ -162,7 +163,9 @@ exports.avanzar = async (req, res, next) => {
          WHERE id=$3`,
         [siguiente, notas[0].id, flujo.id]
       );
-      await pool.query('UPDATE citas SET estatus=$1 WHERE id=$2', ['realizada', cita_id]);
+      const { rows: [realizada] } = await pool.query(
+        'UPDATE citas SET estatus=$1 WHERE id=$2 RETURNING plan_tratamiento_id', ['realizada', cita_id]);
+      await actualizarAvance(realizada?.plan_tratamiento_id);
       const { rows: updated } = await pool.query('SELECT * FROM flujo_paciente WHERE id=$1', [flujo.id]);
       return res.json(updated[0]);
     }
