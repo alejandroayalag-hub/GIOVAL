@@ -5,6 +5,7 @@ import { createCita, updateCita, deleteCita } from '../api/citas';
 import { buscarPacientes, getPaciente } from '../api/pacientes';
 import PacienteMiniModal from './PacienteMiniModal';
 import { getPlanes } from '../api/planTratamientos';
+import { elegirPlan } from '../utils/elegirPlan';
 
 const ESTATUSES = ['pendiente', 'realizada', 'cancelada'];
 
@@ -54,8 +55,14 @@ export default function CitaModal({ cita, fechaHoraInicial, empleadaIdInicial, o
   }, [pacienteQuery]);
 
   useEffect(() => {
-    if (!pacienteSeleccionado?.id) { setPlanes([]); return; }
-    getPlanes(pacienteSeleccionado.id).then(setPlanes).catch(() => setPlanes([]));
+    setPlanes(null);
+    // Cita existente: su paciente aún no carga → planes sigue null y no se toca la liga
+    if (!pacienteSeleccionado?.id) { if (!cita?.paciente_id) setPlanes([]); return; }
+    let vigente = true;
+    getPlanes(pacienteSeleccionado.id)
+      .then(ps => { if (vigente) setPlanes(ps); })
+      .catch(() => {}); // falló la carga: planes queda null y se conserva la liga
+    return () => { vigente = false; };
   }, [pacienteSeleccionado?.id]);
 
   // Planes aceptados del tratamiento elegido (+ el ya ligado, aunque esté completado)
@@ -64,10 +71,8 @@ export default function CitaModal({ cita, fechaHoraInicial, empleadaIdInicial, o
     (p.estatus === 'aceptado' || p.id === cita?.plan_tratamiento_id));
 
   useEffect(() => {
-    if (planes === null) return;
-    const ids = planesCandidatos.map(p => p.id);
-    if (ids.includes(Number(form.plan_tratamiento_id))) return;
-    set('plan_tratamiento_id', ids.length === 1 ? ids[0] : '');
+    const nuevo = elegirPlan({ candidatos: planes && planesCandidatos.map(p => p.id), actual: form.plan_tratamiento_id });
+    if (nuevo !== form.plan_tratamiento_id) set('plan_tratamiento_id', nuevo);
   }, [planes, planesCandidatos.map(p => p.id).join(',')]);
 
   const puedeEliminar = rol === 'admin' || cita?.estatus !== 'realizada';
