@@ -149,10 +149,78 @@ async function testPresupuestos() {
   }
 }
 
+async function testRequisitos() {
+  const R = require('../services/requisitosProcedimiento');
+  const Consentimiento = require('../models/consentimiento');
+  const f = await fixtures();
+  const cita = async (tratamientoId, planId = null) => (await pool.query(
+    `INSERT INTO citas (nombre_paciente, paciente_id, tratamiento_id, fecha_hora, plan_tratamiento_id)
+     VALUES ('T',$1,$2,NOW(),$3) RETURNING id`, [f.pa, tratamientoId, planId])).rows[0].id;
+  const { rows: [val] } = await pool.query(`SELECT id FROM tratamientos WHERE nombre ILIKE 'valoraci%' LIMIT 1`);
+  const citasVal = [];
+  try {
+    // plantilla de CI solo para T1
+    const { rows: [ci] } = await pool.query(
+      `INSERT INTO consentimientos (tratamiento_id, titulo, texto_consentimiento) VALUES ($1,'TEST CI','x') RETURNING id`, [f.t1]);
+
+    const cv = (await pool.query(`INSERT INTO citas (nombre_paciente, paciente_id, tratamiento_id, fecha_hora)
+      VALUES ('T',$1,$2,NOW()) RETURNING id`, [f.pa, val.id])).rows[0].id;
+    citasVal.push(cv);
+    assert.deepStrictEqual(await R.requisitosProcedimiento(cv), { exento: true, faltan: [], paciente_id: f.pa, plan_id: null });
+
+    const c1 = await cita(f.t1);
+    assert.deepStrictEqual((await R.requisitosProcedimiento(c1)).faltan, ['presupuesto', 'consentimiento']);
+
+    // 1 plan aceptado del tratamiento → se liga solo; falta solo CI
+    const p1 = await plan(f.pa, f.t1, 3, 'aceptado');
+    let r = await R.requisitosProcedimiento(c1);
+    assert.strictEqual(r.plan_id, p1);
+    assert.deepStrictEqual(r.faltan, ['consentimiento']);
+    assert.strictEqual((await pool.query('SELECT plan_tratamiento_id FROM citas WHERE id=$1', [c1])).rows[0].plan_tratamiento_id, p1);
+
+    // CI de otro tratamiento no vale; el correcto sí
+    assert.strictEqual(await R.validarConsentimientoPlan(p1, f.pa, ci.id), true);
+    assert.strictEqual(await R.validarConsentimientoPlan(p1, f.pb, ci.id), false);
+    const { rows: [ciOtro] } = await pool.query(
+      `INSERT INTO consentimientos (tratamiento_id, titulo, texto_consentimiento) VALUES ($1,'TEST CI2','x') RETURNING id`, [f.t2]);
+    assert.strictEqual(await R.validarConsentimientoPlan(p1, f.pa, ciOtro.id), false);
+    await pool.query('DELETE FROM consentimientos WHERE id=$1', [ciOtro.id]);
+
+    const firmado = await Consentimiento.createFirmado({ consentimiento_id: ci.id, paciente_id: f.pa, cita_id: null,
+      nombre_paciente: 'T', tratamiento_nombre: 'T1', firma_imagen: FIRMA, firmado_por: null, plan_tratamiento_id: p1 });
+    await R.ligarConsentimientoAPlan(firmado.id, p1);
+    r = await R.requisitosProcedimiento(c1);
+    assert.deepStrictEqual(r.faltan, []);
+    assert.strictEqual(r.exento, false);
+
+    // 2 planes aceptados del mismo tratamiento → no liga, pide presupuesto
+    await plan(f.pa, f.t2, 1, 'aceptado'); await plan(f.pa, f.t2, 1, 'aceptado');
+    const c2 = await cita(f.t2);
+    r = await R.requisitosProcedimiento(c2);
+    assert.strictEqual(r.plan_id, null);
+    assert.deepStrictEqual(r.faltan, ['presupuesto']);
+
+    // T2 sin plantilla de CI: con plan ligado aceptado no pide CI
+    const p2 = await plan(f.pa, f.t2, 1, 'aceptado');
+    const c3 = await cita(f.t2, p2);
+    assert.deepStrictEqual((await R.requisitosProcedimiento(c3)).faltan, []);
+
+    // cita sin tratamiento
+    const c4 = (await pool.query(`INSERT INTO citas (nombre_paciente, paciente_id, fecha_hora) VALUES ('T',$1,NOW()) RETURNING id`, [f.pa])).rows[0].id;
+    citasVal.push(c4);
+    assert.deepStrictEqual((await R.requisitosProcedimiento(c4)).faltan, ['tratamiento']);
+    console.log('✓ requisitos de procedimiento + CI por tratamiento');
+  } finally {
+    await pool.query('DELETE FROM citas WHERE id = ANY($1)', [citasVal]);
+    await limpiarFixtures(f);
+  }
+}
+
 async function run() {
   await testMigracion();
   await testPromociones();
   await testPresupuestos();
+  await testRequisitos();
 }
 
 run()

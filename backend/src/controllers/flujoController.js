@@ -1,5 +1,6 @@
 const pool = require('../db/pool');
 const { actualizarAvance } = require('../services/planTratamiento');
+const { requisitosProcedimiento, mensajeFaltan } = require('../services/requisitosProcedimiento');
 
 const ORDEN_ESTATUS = {
   checkin: 1, en_consultorio: 2, en_procedimiento: 3,
@@ -113,6 +114,10 @@ exports.checkin = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+exports.requisitos = async (req, res, next) => {
+  try { res.json(await requisitosProcedimiento(req.params.cita_id)); } catch (err) { next(err); }
+};
+
 exports.avanzar = async (req, res, next) => {
   try {
     const { cita_id } = req.params;
@@ -146,6 +151,15 @@ exports.avanzar = async (req, res, next) => {
           error: `Faltan consentimientos firmados: ${c.faltan.join(', ')}`,
           paciente_id: c.paciente_id,
         });
+      }
+    }
+
+    // Bloqueo: en_consultorio → en_procedimiento requiere presupuesto firmado y CI del tratamiento
+    if (flujo.estatus === 'en_consultorio') {
+      const req_ = await requisitosProcedimiento(cita_id);
+      if (req_.faltan.length) {
+        return res.status(409).json({ error: mensajeFaltan(req_.faltan), faltan: req_.faltan,
+          paciente_id: req_.paciente_id, cita_id: Number(cita_id) });
       }
     }
 

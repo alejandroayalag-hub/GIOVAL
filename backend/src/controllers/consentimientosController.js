@@ -1,3 +1,4 @@
+const { validarConsentimientoPlan, ligarConsentimientoAPlan } = require('../services/requisitosProcedimiento');
 const Consentimiento = require('../models/consentimiento');
 
 exports.getByTratamiento = async (req, res, next) => {
@@ -49,20 +50,24 @@ const esDataUrlImagen = (s) => typeof s === 'string' && s.startsWith('data:image
 exports.firmar = async (req, res, next) => {
   try {
     const { consentimiento_id, paciente_id, cita_id, nombre_paciente, tratamiento_nombre, firma_imagen, autoriza_fotos,
-            geo_lat, geo_lng, geo_precision_m, ine_frente, ine_reverso, respuestas } = req.body;
+            geo_lat, geo_lng, geo_precision_m, ine_frente, ine_reverso, respuestas, plan_tratamiento_id } = req.body;
     if (!firma_imagen || !consentimiento_id || !paciente_id || !nombre_paciente) {
       return res.status(400).json({ error: 'Faltan datos requeridos' });
     }
     if (!esDataUrlImagen(ine_frente) || !esDataUrlImagen(ine_reverso)) {
       return res.status(400).json({ error: 'Se requiere foto de la INE por ambas caras' });
     }
+    if (plan_tratamiento_id && !(await validarConsentimientoPlan(plan_tratamiento_id, paciente_id, consentimiento_id))) {
+      return res.status(400).json({ error: 'El consentimiento no corresponde al tratamiento del paciente' });
+    }
     const data = await Consentimiento.createFirmado({
       consentimiento_id, paciente_id, cita_id, nombre_paciente, tratamiento_nombre,
       firma_imagen, firmado_por: req.user.id, autoriza_fotos,
       ip: req.ip,
       user_agent: (req.headers['user-agent'] || '').slice(0, 500) || null,
-      geo_lat, geo_lng, geo_precision_m, ine_frente, ine_reverso, respuestas,
+      geo_lat, geo_lng, geo_precision_m, ine_frente, ine_reverso, respuestas, plan_tratamiento_id,
     });
+    if (plan_tratamiento_id) await ligarConsentimientoAPlan(data.id, plan_tratamiento_id);
     res.status(201).json(data);
   } catch (e) { next(e); }
 };
