@@ -50,7 +50,7 @@ function RadioGroup({ value, onChange, options }) {
 }
 
 // ── Tipos de documentos ───────────────────────────────────────────────────────
-const TIPOS = [
+export const TIPOS = [
   { key: 'val_01',   label: 'VAL-01 · Valoración Facial',           group: 'Valoraciones' },
   { key: 'val_01b',  label: 'VAL-01B · Análisis de Piel',           group: 'Valoraciones' },
   { key: 'val_02',   label: 'VAL-02 · Valoración Corporal',         group: 'Valoraciones' },
@@ -856,7 +856,7 @@ function renderForm(tipo, datos, set) {
 }
 
 // ── Modal de edición/creación ─────────────────────────────────────────────────
-function DocModal({ pacienteId, tipo, doc, onClose, onSaved }) {
+export function DocModal({ pacienteId, tipo, doc, citaId, onClose, onSaved }) {
   const [datos, setDatos] = useState(doc?.datos || {});
   const [fecha, setFecha] = useState(doc?.fecha?.slice(0,10) || new Date().toISOString().slice(0,10));
   const [loading, setLoading] = useState(false);
@@ -871,7 +871,7 @@ function DocModal({ pacienteId, tipo, doc, onClose, onSaved }) {
       if (doc?.id) {
         await updateDoc(doc.id, { datos, fecha });
       } else {
-        await createDoc({ paciente_id: pacienteId, tipo, fecha, datos });
+        await createDoc({ paciente_id: pacienteId, tipo, fecha, datos, cita_id: citaId || null });
       }
       onSaved();
     } catch (e) {

@@ -12,6 +12,7 @@ import NotaVisitaModal from '../components/NotaVisitaModal';
 import PacienteFormModal from '../components/PacienteFormModal';
 import ConsentimientoFirmaModal from '../components/ConsentimientoFirmaModal';
 import DocumentosClinicosTab from '../components/DocumentosClinicosTab';
+import ProcedimientosTab from '../components/ProcedimientosTab';
 import { DiagnosticosTab, RecetasTab, NotasMedicasTab, ArchivosTab } from '../components/ExpedienteTabs';
 import logoGioval from '../assets/gioval-logo.png';
 import ZonaImpresion from '../components/ZonaImpresion';
@@ -656,7 +657,7 @@ export default function PacienteDetallePage() {
       )}
 
       {tab === 'procedimientos' && (
-        <DocumentosClinicosTab pacienteId={parseInt(id)} groups={['Procedimientos', 'Bitácoras']} />
+        <ProcedimientosTab pacienteId={parseInt(id)} />
       )}
 
       {tab === 'diagnosticos' && (
