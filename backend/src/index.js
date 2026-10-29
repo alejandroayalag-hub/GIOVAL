@@ -59,6 +59,7 @@ app.use('/api/consentimientos',      authMiddleware, misPacientes, require('./ro
 app.use('/api/documentos-clinicos',  authMiddleware, misPacientes, require('./routes/documentos-clinicos'));
 app.use('/api/plan-tratamientos',    authMiddleware, misPacientes, require('./routes/planTratamientos'));
 app.use('/api/promociones',         authMiddleware, require('./routes/promociones'));
+app.use('/api/presupuestos',        authMiddleware, misPacientes, require('./routes/presupuestos'));
 app.use('/api/fotos-cita',    authMiddleware, misPacientes, require('./routes/fotos-cita'));
 app.use('/api/laboratorios',  authMiddleware, misPacientes, require('./routes/laboratorios'));
 app.use('/api/expediente',    authMiddleware, misPacientes, require('./routes/expediente'));

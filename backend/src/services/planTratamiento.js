@@ -83,9 +83,13 @@ async function listarPorPaciente(pacienteId) {
             (SELECT json_build_object('id', c.id, 'fecha_hora', c.fecha_hora) FROM citas c
               WHERE c.plan_tratamiento_id = pt.id AND c.estatus = 'pendiente' AND c.fecha_hora >= NOW()
               ORDER BY c.fecha_hora LIMIT 1) AS proxima_cita,
-            pt.created_at
+            pt.created_at,
+            pi.presupuesto_id, pi.modalidad, pi.subtotal::float AS subtotal, pi.descuento_pct::float AS descuento_pct,
+            pt.consentimiento_firmado_id,
+            EXISTS (SELECT 1 FROM consentimientos ci WHERE ci.tratamiento_id = pt.tratamiento_id AND ci.activo) AS requiere_ci
      FROM plan_tratamientos pt
      JOIN tratamientos t ON t.id = pt.tratamiento_id
+     LEFT JOIN presupuesto_items pi ON pi.id = pt.presupuesto_item_id
      LEFT JOIN documentos_clinicos dc ON dc.id = pt.valoracion_id
      LEFT JOIN paciente_diagnosticos pd ON pd.id = pt.diagnostico_id
      LEFT JOIN cie10_catalogo cie ON cie.codigo = pd.cie10_codigo

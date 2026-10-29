@@ -64,9 +64,95 @@ async function testPromociones() {
   }
 }
 
+// Fixtures temporales: 3 tratamientos (2 con precio, 1 sin precio) y 2 pacientes existentes
+async function fixtures() {
+  const { rows: ts } = await pool.query(
+    `INSERT INTO tratamientos (nombre, precio) VALUES ('TEST T1', 1000), ('TEST T2', 500), ('TEST T3 sin precio', NULL)
+     RETURNING id`);
+  const { rows: ps } = await pool.query('SELECT id FROM pacientes ORDER BY id LIMIT 2');
+  return { t1: ts[0].id, t2: ts[1].id, t3: ts[2].id, pa: ps[0].id, pb: ps[1].id };
+}
+async function limpiarFixtures(f) {
+  await pool.query('DELETE FROM presupuesto_items WHERE plan_tratamiento_id IN (SELECT id FROM plan_tratamientos WHERE tratamiento_id = ANY($1))', [[f.t1, f.t2, f.t3]]);
+  await pool.query('DELETE FROM presupuestos WHERE id NOT IN (SELECT presupuesto_id FROM presupuesto_items)');
+  await pool.query('UPDATE citas SET plan_tratamiento_id = NULL WHERE tratamiento_id = ANY($1)', [[f.t1, f.t2, f.t3]]);
+  await pool.query('DELETE FROM citas WHERE tratamiento_id = ANY($1)', [[f.t1, f.t2, f.t3]]);
+  await pool.query('DELETE FROM consentimientos_firmados WHERE plan_tratamiento_id IN (SELECT id FROM plan_tratamientos WHERE tratamiento_id = ANY($1))', [[f.t1, f.t2, f.t3]]);
+  await pool.query('DELETE FROM plan_tratamientos WHERE tratamiento_id = ANY($1)', [[f.t1, f.t2, f.t3]]);
+  await pool.query('DELETE FROM consentimientos WHERE tratamiento_id = ANY($1)', [[f.t1, f.t2, f.t3]]);
+  await pool.query('DELETE FROM promociones WHERE nombre LIKE $1', ['TEST%']);
+  await pool.query('DELETE FROM tratamientos WHERE id = ANY($1)', [[f.t1, f.t2, f.t3]]);
+}
+async function plan(pacienteId, tratamientoId, sesiones = 1, estatus = 'sugerido') {
+  const { rows: [p] } = await pool.query(
+    `INSERT INTO plan_tratamientos (paciente_id, tratamiento_id, sesiones_estimadas, estatus) VALUES ($1,$2,$3,$4) RETURNING id`,
+    [pacienteId, tratamientoId, sesiones, estatus]);
+  return p.id;
+}
+const FIRMA = 'data:image/png;base64,iVBORw0KGgo=';
+const hoy = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+
+async function testPresupuestos() {
+  const { crearPresupuesto, getPresupuesto, crearPlanDesdeCita } = require('../services/presupuestos');
+  const Promos = require('../services/promociones');
+  const f = await fixtures();
+  const contar = async () => Number((await pool.query('SELECT count(*) n FROM presupuestos')).rows[0].n);
+  try {
+    const promo = await Promos.crear({ nombre: 'TEST 20 completo', descuento_pct: 20, fecha_inicio: hoy(), fecha_fin: hoy(),
+      solo_completo: true, tratamiento_ids: [f.t1] }, null);
+    const p1 = await plan(f.pa, f.t1, 3), p2 = await plan(f.pa, f.t2, 1), p3 = await plan(f.pa, f.t2, 2);
+
+    // promo solo_completo pedida en por_sesion → 400, nada guardado
+    const antes = await contar();
+    await assert.rejects(crearPresupuesto({ paciente_id: f.pa, firma: FIRMA,
+      items: [{ plan_id: p1, modalidad: 'por_sesion', promocion_id: promo.id }] }, null), e => e.status === 400);
+    assert.strictEqual(await contar(), antes);
+
+    // cliente intenta mandar precio/subtotal: se ignoran
+    const pres = await crearPresupuesto({ paciente_id: f.pa, firma: FIRMA, items: [
+      { plan_id: p1, modalidad: 'completo', promocion_id: promo.id, precio_unitario: 1, subtotal: 1 },
+      { plan_id: p2, modalidad: 'por_sesion' },
+    ] }, null);
+    assert.strictEqual(pres.total, 2900);
+    const i1 = pres.items.find(i => i.plan_tratamiento_id === p1);
+    assert.deepStrictEqual([i1.precio_unitario, i1.sesiones, i1.descuento_pct, i1.subtotal], [1000, 3, 20, 2400]);
+    const { rows: est } = await pool.query('SELECT id, estatus, presupuesto_item_id FROM plan_tratamientos WHERE id = ANY($1) ORDER BY id', [[p1, p2, p3]]);
+    assert.deepStrictEqual(est.map(r => r.estatus), ['aceptado', 'aceptado', 'sugerido']);
+    assert.ok(est[0].presupuesto_item_id && est[1].presupuesto_item_id && !est[2].presupuesto_item_id);
+
+    // plan ya aceptado / de otro paciente / sin firma / sin precio → 400
+    await assert.rejects(crearPresupuesto({ paciente_id: f.pa, firma: FIRMA, items: [{ plan_id: p1, modalidad: 'completo' }] }, null), e => e.status === 400);
+    const pB = await plan(f.pb, f.t2);
+    await assert.rejects(crearPresupuesto({ paciente_id: f.pa, firma: FIRMA, items: [{ plan_id: pB, modalidad: 'por_sesion' }] }, null), e => e.status === 400);
+    await assert.rejects(crearPresupuesto({ paciente_id: f.pa, firma: '', items: [{ plan_id: p3, modalidad: 'por_sesion' }] }, null), e => e.status === 400);
+    const pSin = await plan(f.pa, f.t3);
+    await assert.rejects(crearPresupuesto({ paciente_id: f.pa, firma: FIRMA, items: [{ plan_id: pSin, modalidad: 'por_sesion' }] }, null),
+      e => e.status === 400 && /precio/.test(e.message));
+    await assert.rejects(crearPresupuesto({ paciente_id: f.pa, firma: FIRMA, items: [] }, null), e => e.status === 400);
+
+    const leido = await getPresupuesto(pres.id);
+    assert.strictEqual(leido.firma, FIRMA, 'firma no se descifra igual');
+    assert.strictEqual(leido.items.length, 2);
+    const { rows: [crudo] } = await pool.query('SELECT firma FROM presupuestos WHERE id=$1', [pres.id]);
+    assert.notStrictEqual(crudo.firma, FIRMA, 'firma no está cifrada');
+
+    // pase directo
+    const { rows: [cita] } = await pool.query(
+      `INSERT INTO citas (nombre_paciente, paciente_id, tratamiento_id, fecha_hora) VALUES ('T',$1,$2,NOW()) RETURNING id`, [f.pa, f.t2]);
+    const directo = await crearPlanDesdeCita(cita.id, null);
+    assert.strictEqual(directo.estatus, 'sugerido');
+    assert.strictEqual((await pool.query('SELECT plan_tratamiento_id FROM citas WHERE id=$1', [cita.id])).rows[0].plan_tratamiento_id, directo.id);
+    assert.strictEqual((await crearPlanDesdeCita(cita.id, null)).id, directo.id);
+    console.log('✓ presupuestos');
+  } finally {
+    await limpiarFixtures(f);
+  }
+}
+
 async function run() {
   await testMigracion();
   await testPromociones();
+  await testPresupuestos();
 }
 
 run()
