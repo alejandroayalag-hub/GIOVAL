@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getDocsByPaciente, createDoc, updateDoc, deleteDoc } from '../api/documentosClinicos';
+import PlanTratamientoBlock from './PlanTratamientoBlock';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const inputCls = 'w-full border rounded-lg px-3 py-2 text-sm';
@@ -122,9 +123,6 @@ function FormVal01({ d, set }) {
       </div>
       <SubHead>Plan de tratamiento facial</SubHead>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Diagnóstico principal" span2><TA value={d.diagnostico} onChange={v=>set('diagnostico',v)} /></Field>
-        <Field label="Tratamientos propuestos" span2><TA value={d.tratamientos_propuestos} onChange={v=>set('tratamientos_propuestos',v)} /></Field>
-        <Field label="Sesiones estimadas / frecuencia"><TI value={d.sesiones} onChange={v=>set('sesiones',v)} /></Field>
         <Field label="Pronóstico"><TI value={d.pronostico} onChange={v=>set('pronostico',v)} /></Field>
       </div>
     </div>
@@ -222,9 +220,7 @@ function FormVal01b({ d, set }) {
       </div>
       <SubHead>Diagnóstico cutáneo</SubHead>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Diagnóstico cutáneo principal" span2><TA value={d.diagnostico_cutaneo} onChange={v=>set('diagnostico_cutaneo',v)} /></Field>
         <Field label="Objetivo principal"><TI value={d.objetivo_piel} onChange={v=>set('objetivo_piel',v)} /></Field>
-        <Field label="Plan / protocolo sugerido"><TA value={d.plan_piel} onChange={v=>set('plan_piel',v)} /></Field>
       </div>
     </div>
   );
@@ -268,8 +264,6 @@ function FormVal02({ d, set }) {
         <Field label="Peso actual (kg)"><TI value={d.peso_actual} onChange={v=>set('peso_actual',v)} /></Field>
         <Field label="Peso meta (kg)"><TI value={d.peso_meta} onChange={v=>set('peso_meta',v)} /></Field>
         <Field label="Cintura meta (cm)"><TI value={d.cintura_meta} onChange={v=>set('cintura_meta',v)} /></Field>
-        <Field label="Plan corporal propuesto" span2><TA value={d.plan_corporal} onChange={v=>set('plan_corporal',v)} /></Field>
-        <Field label="Sesiones / frecuencia"><TI value={d.sesiones} onChange={v=>set('sesiones',v)} /></Field>
       </div>
     </div>
   );
@@ -336,12 +330,6 @@ function FormVal03({ d, set }) {
           ))}</tbody>
         </table>
       </div>
-      <SubHead>Plan de tratamiento capilar</SubHead>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Diagnóstico capilar" span2><TA value={d.diagnostico_capilar} onChange={v=>set('diagnostico_capilar',v)} /></Field>
-        <Field label="Plan propuesto"><TA value={d.plan_capilar} onChange={v=>set('plan_capilar',v)} /></Field>
-        <Field label="Sesiones / frecuencia"><TI value={d.sesiones} onChange={v=>set('sesiones',v)} /></Field>
-      </div>
     </div>
   );
 }
@@ -396,8 +384,6 @@ function FormVal04({ d, set }) {
       </div>
       <SubHead>Plan de tratamiento</SubHead>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Diagnóstico / categoría de obesidad"><TI value={d.diagnostico} onChange={v=>set('diagnostico',v)} /></Field>
-        <Field label="Tratamiento propuesto"><TA value={d.tratamiento_propuesto} onChange={v=>set('tratamiento_propuesto',v)} /></Field>
         <Field label="Meta a 1 mes"><TI value={d.meta_1mes} onChange={v=>set('meta_1mes',v)} /></Field>
         <Field label="Meta a 3-6 meses"><TI value={d.meta_3meses} onChange={v=>set('meta_3meses',v)} /></Field>
       </div>
@@ -471,7 +457,6 @@ function FormVal05({ d, set }) {
           <TA value={d.indicacion_regen} onChange={v=>set('indicacion_regen',v)} />
         </Field>
         <Field label="Concentración / protocolo"><TI value={d.concentracion} onChange={v=>set('concentracion',v)} /></Field>
-        <Field label="Sesiones / frecuencia"><TI value={d.sesiones} onChange={v=>set('sesiones',v)} /></Field>
         <Field label="Objetivos de salud y longevidad" span2><TA value={d.objetivos_longevidad} onChange={v=>set('objetivos_longevidad',v)} /></Field>
         <Field label="Plan terapéutico integral" span2><TA value={d.plan_terapeutico} onChange={v=>set('plan_terapeutico',v)} /></Field>
       </div>
@@ -907,6 +892,10 @@ function DocModal({ pacienteId, tipo, doc, onClose, onSaved }) {
         </div>
         <div className="p-5 max-h-[75vh] overflow-y-auto">
           {renderForm(tipo, datos, set)}
+          {tipoInfo?.group === 'Valoraciones' && (
+            <PlanTratamientoBlock pacienteId={pacienteId} plan={datos.plan}
+              onChange={plan => set('plan', plan)} legacy={datos} />
+          )}
         </div>
         {error && <p className="px-5 text-red-500 text-sm">{error}</p>}
         <div className="flex justify-end gap-3 p-5 border-t" style={{ borderColor: 'var(--color-sage)' }}>

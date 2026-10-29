@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  searchCie10, getDiagnosticos, createDiagnostico, updateDiagnostico, deleteDiagnostico,
+  getDiagnosticos, createDiagnostico, updateDiagnostico, deleteDiagnostico,
   getRecetas, createReceta, deleteReceta,
   getNotasMedicas, createNotaMedica, updateNotaMedica, deleteNotaMedica,
   getArchivos, uploadArchivo, deleteArchivo, archivoUrl,
 } from '../api/expediente';
 import BotonDictado from './BotonDictado';
+import Cie10Picker from './Cie10Picker';
 import logoGioval from '../assets/gioval-logo.png';
 import recetaFondo from '../assets/receta-2026.jpg';
 
@@ -15,23 +16,12 @@ const cardBorder = { borderColor: 'var(--color-sage)' };
 // ── Diagnósticos (CIE-10) ─────────────────────────────────────────────────────
 export function DiagnosticosTab({ pacienteId, rol, onChanged }) {
   const [diagnosticos, setDiagnosticos] = useState([]);
-  const [q, setQ] = useState('');
-  const [resultados, setResultados] = useState([]);
   const [notasNuevo, setNotasNuevo] = useState('');
   const [seleccion, setSeleccion] = useState(null);
-  const timer = useRef(null);
 
   const cargar = () => getDiagnosticos(pacienteId).then(d => { setDiagnosticos(d); onChanged?.(d); }).catch(console.error);
   useEffect(() => { cargar(); }, [pacienteId]);
 
-  useEffect(() => {
-    clearTimeout(timer.current);
-    if (q.trim().length < 2) { setResultados([]); return; }
-    timer.current = setTimeout(() => {
-      searchCie10(q.trim()).then(setResultados).catch(() => setResultados([]));
-    }, 300);
-    return () => clearTimeout(timer.current);
-  }, [q]);
 
   async function agregar() {
     if (!seleccion && !notasNuevo.trim()) return;
@@ -40,7 +30,7 @@ export function DiagnosticosTab({ pacienteId, rol, onChanged }) {
         paciente_id: pacienteId, cie10_codigo: seleccion?.codigo || null,
         notas: notasNuevo.trim() || null,
       });
-      setSeleccion(null); setQ(''); setResultados([]); setNotasNuevo('');
+      setSeleccion(null); setNotasNuevo('');
       cargar();
     } catch (e) { alert(e.response?.data?.error || 'Error al agregar diagnóstico'); }
   }
@@ -60,36 +50,7 @@ export function DiagnosticosTab({ pacienteId, rol, onChanged }) {
                   className="w-full border rounded-lg px-3 py-2 text-sm mb-3"
                   style={{ borderColor: 'var(--color-primary)' }} />
         <p className="text-xs text-gray-500 mb-1">Código CIE-10 (opcional)</p>
-        {!seleccion ? (
-          <div className="relative">
-            <input type="text" value={q} onChange={e => setQ(e.target.value)}
-                   placeholder="Busca por código o descripción (ej. E11 o diabetes)…"
-                   className="w-full border rounded-lg px-3 py-2 text-sm"
-                   style={{ borderColor: 'var(--color-primary)' }} />
-            {resultados.length > 0 && (
-              <div className="absolute z-10 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-64 overflow-y-auto" style={cardBorder}>
-                {resultados.map(r => (
-                  <button key={r.codigo} type="button"
-                          onClick={() => setSeleccion(r)}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-b-0" style={cardBorder}>
-                    <span className="font-mono font-semibold mr-2" style={{ color: 'var(--color-accent)' }}>{r.codigo}</span>
-                    {r.descripcion}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="font-mono font-semibold text-sm px-2 py-1 rounded" style={{ backgroundColor: 'var(--color-cream)', color: 'var(--color-accent)' }}>
-                {seleccion.codigo}
-              </span>
-              <span className="text-sm">{seleccion.descripcion}</span>
-              <button type="button" onClick={() => setSeleccion(null)} className="text-xs text-gray-400 hover:text-red-500">✕ cambiar</button>
-            </div>
-          </div>
-        )}
+        <Cie10Picker value={seleccion} onChange={setSeleccion} />
         <button onClick={agregar} disabled={!seleccion && !notasNuevo.trim()}
                 className="mt-3 px-4 py-2 text-sm text-white rounded-lg disabled:opacity-50" style={btnAccent}>
           Agregar diagnóstico
