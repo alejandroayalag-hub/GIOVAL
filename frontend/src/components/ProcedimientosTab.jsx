@@ -6,7 +6,12 @@ import { TIPOS, DocModal } from './DocumentosClinicosTab';
 const cardBorder = { borderColor: 'var(--color-sage)' };
 const FORMATOS_SESION = TIPOS.filter(t => t.group === 'Procedimientos' || t.group === 'Bitácoras');
 const etiquetaTipo = tipo => TIPOS.find(t => t.key === tipo)?.label || tipo;
-const fecha = f => (f ? new Date(f).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+// 'YYYY-MM-DD' (json_build_object de un DATE) se lee como fecha local, no como medianoche UTC
+const fecha = f => {
+  if (!f) return '';
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(f) ? new Date(`${f}T00:00:00`) : new Date(f);
+  return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+};
 
 function SubTab({ active, onClick, children }) {
   return (
