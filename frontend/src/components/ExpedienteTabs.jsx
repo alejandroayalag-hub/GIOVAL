@@ -147,7 +147,7 @@ export function DiagnosticosTab({ pacienteId, rol, onChanged }) {
 }
 
 // ── Recetas ───────────────────────────────────────────────────────────────────
-const MED_VACIO = { nombre: '', dosis: '', frecuencia: '', duracion: '' };
+const MED_VACIO = { nombre: '', presentacion: '', dosis: '', via: '', frecuencia: '', duracion: '' };
 
 export function RecetasTab({ pacienteId, paciente, rol }) {
   const [recetas, setRecetas] = useState([]);
@@ -205,8 +205,9 @@ export function RecetasTab({ pacienteId, paciente, rol }) {
                 {(r.medicamentos || []).map((m, i) => (
                   <li key={i}>
                     <span className="font-medium">{m.nombre}</span>
-                    {[m.dosis, m.frecuencia, m.duracion].filter(Boolean).length > 0 &&
-                      ` — ${[m.dosis, m.frecuencia, m.duracion].filter(Boolean).join(', ')}`}
+                    {m.presentacion && ` ${m.presentacion}`}
+                    {[m.dosis, m.via, m.frecuencia, m.duracion].filter(Boolean).length > 0 &&
+                      ` — ${[m.dosis, m.via, m.frecuencia, m.duracion].filter(Boolean).join(', ')}`}
                   </li>
                 ))}
               </ul>
@@ -277,10 +278,14 @@ function RecetaModal({ pacienteId, diagnosticos, onClose, onSaved }) {
             <label className="block text-xs font-medium text-gray-600 mb-1">Medicamentos</label>
             <div className="space-y-2">
               {meds.map((m, i) => (
-                <div key={i} className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-2 items-center">
+                <div key={i} className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_auto] gap-2 items-center">
                   <input placeholder="Medicamento" value={m.nombre} onChange={e => setMed(i, 'nombre', e.target.value)}
                          className="border rounded-lg px-2 py-1.5 text-sm" style={{ borderColor: 'var(--color-primary)' }} />
+                  <input placeholder="Presentación" value={m.presentacion || ''} onChange={e => setMed(i, 'presentacion', e.target.value)}
+                         className="border rounded-lg px-2 py-1.5 text-sm" style={{ borderColor: 'var(--color-primary)' }} />
                   <input placeholder="Dosis" value={m.dosis} onChange={e => setMed(i, 'dosis', e.target.value)}
+                         className="border rounded-lg px-2 py-1.5 text-sm" style={{ borderColor: 'var(--color-primary)' }} />
+                  <input placeholder="Vía de administración" value={m.via || ''} onChange={e => setMed(i, 'via', e.target.value)}
                          className="border rounded-lg px-2 py-1.5 text-sm" style={{ borderColor: 'var(--color-primary)' }} />
                   <input placeholder="Frecuencia" value={m.frecuencia} onChange={e => setMed(i, 'frecuencia', e.target.value)}
                          className="border rounded-lg px-2 py-1.5 text-sm" style={{ borderColor: 'var(--color-primary)' }} />
@@ -327,8 +332,8 @@ function imprimirReceta(r, paciente) {
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const nombrePaciente = esc([paciente.apellido_paterno, paciente.apellido_materno, paciente.nombre].filter(Boolean).join(' '));
   const meds = (r.medicamentos || []).map((m, i) => `
-    <p class="med">${i + 1}. <strong>${esc(m.nombre)}</strong>${[m.dosis, m.frecuencia, m.duracion].filter(Boolean).length
-      ? ' — ' + [m.dosis, m.frecuencia, m.duracion].filter(Boolean).map(esc).join(', ') : ''}</p>`).join('');
+    <p class="med">${i + 1}. <strong>${esc(m.nombre)}</strong>${m.presentacion ? ' ' + esc(m.presentacion) : ''}${[m.dosis, m.via, m.frecuencia, m.duracion].filter(Boolean).length
+      ? ' — ' + [m.dosis, m.via, m.frecuencia, m.duracion].filter(Boolean).map(esc).join(', ') : ''}</p>`).join('');
   const w = window.open('', '_blank');
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Receta — ${nombrePaciente}</title>
     <style>
