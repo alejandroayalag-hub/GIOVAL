@@ -1,5 +1,5 @@
 const DocClinico = require('../models/documentoClinico');
-const { syncDesdeValoracion } = require('../services/planTratamiento');
+const { syncDesdeValoracion, citaDePaciente } = require('../services/planTratamiento');
 
 module.exports = {
   async getByPaciente(req, res) {
@@ -19,6 +19,8 @@ module.exports = {
   async create(req, res) {
     try {
       const { paciente_id, tipo, fecha, datos, cita_id } = req.body;
+      if (!(await citaDePaciente(cita_id, paciente_id)))
+        return res.status(400).json({ error: 'La cita no corresponde al paciente' });
       let doc = await DocClinico.create({
         paciente_id, tipo, fecha, datos, cita_id,
         creado_por: req.user?.id,

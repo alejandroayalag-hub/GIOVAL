@@ -113,7 +113,7 @@ async function historial(pacienteId) {
                  AND c2.estatus = 'realizada' AND (c2.fecha_hora, c2.id) <= (c.fecha_hora, c.id)) END AS sesion_n,
             pt.sesiones_estimadas,
             COALESCE((SELECT json_agg(json_build_object('id', d.id, 'tipo', d.tipo, 'fecha', d.fecha) ORDER BY d.id)
-                      FROM documentos_clinicos d WHERE d.cita_id = c.id
+                      FROM documentos_clinicos d WHERE d.cita_id = c.id AND d.paciente_id = c.paciente_id
                         AND (d.tipo LIKE 'proc\\_%' OR d.tipo LIKE 'bit\\_%')), '[]') AS documentos
      FROM citas c
      LEFT JOIN tratamientos t ON t.id = c.tratamiento_id
@@ -137,4 +137,10 @@ async function validarPlanDeCita(planId, pacienteId) {
   return rows.length === 1;
 }
 
-module.exports = { VALORACION_TIPOS, syncDesdeValoracion, listarPorPaciente, actualizarAvance, historial, validarPlanDeCita };
+async function citaDePaciente(citaId, pacienteId) {
+  if (!citaId) return true;
+  const { rows } = await pool.query('SELECT 1 FROM citas WHERE id=$1 AND paciente_id=$2', [citaId, pacienteId]);
+  return rows.length === 1;
+}
+
+module.exports = { citaDePaciente, VALORACION_TIPOS, syncDesdeValoracion, listarPorPaciente, actualizarAvance, historial, validarPlanDeCita };

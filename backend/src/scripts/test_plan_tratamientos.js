@@ -161,11 +161,35 @@ async function testValidarPlanDeCita() {
   }
 }
 
+async function testCitaDeOtroPaciente() {
+  const DocClinico = require('../models/documentoClinico');
+  const { historial, citaDePaciente } = require('../services/planTratamiento');
+  const { rows: ps } = await pool.query('SELECT id FROM pacientes ORDER BY id LIMIT 2');
+  const { rows: [c] } = await pool.query(
+    `INSERT INTO citas (nombre_paciente, paciente_id, fecha_hora, estatus) VALUES ('T',$1,'2020-03-01','realizada') RETURNING id`, [ps[0].id]);
+  let d;
+  try {
+    assert.strictEqual(await citaDePaciente(c.id, ps[0].id), true);
+    assert.strictEqual(await citaDePaciente(c.id, ps[1].id), false);
+    assert.strictEqual(await citaDePaciente(null, ps[1].id), true);
+    // doc de B colgado (mal) de la cita de A no aparece en el historial de A
+    d = await DocClinico.create({ paciente_id: ps[1].id, tipo: 'proc_01', datos: {}, cita_id: c.id });
+    const h = await historial(ps[0].id);
+    const s = h.sesiones.find(x => x.cita_id === c.id);
+    assert.deepStrictEqual(s.documentos, [], 'doc de otro paciente se filtró al historial');
+    console.log('✓ docs de otro paciente no se cruzan');
+  } finally {
+    if (d) await pool.query('DELETE FROM documentos_clinicos WHERE id=$1', [d.id]);
+    await pool.query('DELETE FROM citas WHERE id=$1', [c.id]);
+  }
+}
+
 async function run() {
   await testMigracion();
   await testSyncValoracion();
   await testAvanceEHistorial();
   await testValidarPlanDeCita();
+  await testCitaDeOtroPaciente();
 }
 
 run()
