@@ -344,7 +344,7 @@ export default function PacienteDetallePage() {
         <TabBtn active={tab === 'historia'} onClick={() => setTab('historia')}>Historia Clínica</TabBtn>
         {medico && <TabBtn active={tab === 'valoraciones'} onClick={() => setTab('valoraciones')}>Valoraciones</TabBtn>}
         {medico && <TabBtn active={tab === 'diagnosticos'} onClick={() => setTab('diagnosticos')}>Diagnósticos</TabBtn>}
-        {medico && <TabBtn active={tab === 'procedimientos'} onClick={() => setTab('procedimientos')}>Procedimientos</TabBtn>}
+        {(medico || rol === 'asistente_general') && <TabBtn active={tab === 'procedimientos'} onClick={() => setTab('procedimientos')}>Procedimientos</TabBtn>}
         {medico && <TabBtn active={tab === 'recetas'} onClick={() => setTab('recetas')}>Recetas</TabBtn>}
         <TabBtn active={subTabs.some(s => s.key === tab)} onClick={() => setTab(subTabs[0].key)}>Notas y Citas ▾</TabBtn>
         {medico && (
@@ -657,7 +657,7 @@ export default function PacienteDetallePage() {
       )}
 
       {tab === 'procedimientos' && (
-        <ProcedimientosTab pacienteId={parseInt(id)} />
+        <ProcedimientosTab pacienteId={parseInt(id)} paciente={paciente} rol={rol} />
       )}
 
       {tab === 'diagnosticos' && (

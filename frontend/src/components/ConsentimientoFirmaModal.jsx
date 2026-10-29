@@ -40,7 +40,7 @@ function expId(id) {
   return String(id || 0).padStart(6, '0');
 }
 
-export default function ConsentimientoFirmaModal({ consentimiento, paciente, cita, onClose, onFirmado }) {
+export default function ConsentimientoFirmaModal({ consentimiento, paciente, cita, plan, onClose, onFirmado }) {
   const sigRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -123,6 +123,7 @@ export default function ConsentimientoFirmaModal({ consentimiento, paciente, cit
         consentimiento_id: consentimiento.id,
         paciente_id: paciente.id,
         cita_id: cita?.id || null,
+        plan_tratamiento_id: plan?.id || null,
         nombre_paciente: nombreCompleto,
         tratamiento_nombre: procedimiento || consentimiento.titulo || '',
         firma_imagen,

@@ -1,7 +1,16 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { getPlanes, getHistorialProcedimientos } from '../api/planTratamientos';
 import { getDocsByPaciente } from '../api/documentosClinicos';
 import { TIPOS, DocModal } from './DocumentosClinicosTab';
+import { getConsentimiento } from '../api/consentimientos';
+import PresupuestoModal from './PresupuestoModal';
+import ConsentimientoFirmaModal from './ConsentimientoFirmaModal';
+import { imprimirPresupuesto } from './imprimirPresupuesto';
+import { pesos } from '../utils/presupuesto';
+
+const ROLES_PRESUPUESTO = ['admin', 'asistente_general', 'asistente_medico'];
+const ROLES_CI = ['admin', 'asistente_medico', 'cosmetista'];
 
 const cardBorder = { borderColor: 'var(--color-sage)' };
 const FORMATOS_SESION = TIPOS.filter(t => t.group === 'Procedimientos' || t.group === 'Bitácoras');
@@ -49,13 +58,16 @@ function PlanCard({ plan, children }) {
   );
 }
 
-export default function ProcedimientosTab({ pacienteId }) {
+export default function ProcedimientosTab({ pacienteId, paciente, rol }) {
+  const location = useLocation();
   const [planes, setPlanes] = useState([]);
   const [hist, setHist] = useState({ sesiones: [], sin_sesion: [] });
   const [docs, setDocs] = useState([]);
   const [sub, setSub] = useState(null);
   const [modal, setModal] = useState(null); // { tipo, doc?, citaId? }
   const [menuCita, setMenuCita] = useState(null);
+  const [presupuestoModal, setPresupuestoModal] = useState(false);
+  const [colaCI, setColaCI] = useState([]); // planes aceptados que esperan su CI: [{ plan, consentimiento }]
 
   async function cargar() {
     const [p, h, d] = await Promise.all([
@@ -64,7 +76,26 @@ export default function ProcedimientosTab({ pacienteId }) {
       getDocsByPaciente(pacienteId).catch(() => []),
     ]);
     setPlanes(p); setHist(h); setDocs(d);
-    setSub(s => s || (p.some(x => x.estatus === 'sugerido') ? 'sugeridos' : 'realizar'));
+    setSub(s => s || location.state?.sub || (p.some(x => x.estatus === 'sugerido') ? 'sugeridos' : 'realizar'));
+    return p;
+  }
+
+  async function pedirCI(planesCI) {
+    if (!ROLES_CI.includes(rol)) return;
+    const cola = [];
+    for (const plan of planesCI.filter(x => x.requiere_ci && !x.consentimiento_firmado_id)) {
+      const consentimiento = await getConsentimiento(plan.tratamiento_id).catch(() => null);
+      if (consentimiento?.id) cola.push({ plan, consentimiento });
+    }
+    setColaCI(cola);
+  }
+
+  async function presupuestoFirmado(pres) {
+    setPresupuestoModal(false);
+    const p = await cargar();
+    setSub('realizar');
+    const ids = pres.items.map(i => i.plan_tratamiento_id);
+    await pedirCI(p.filter(x => ids.includes(x.id)));
   }
   useEffect(() => { cargar(); }, [pacienteId]);
 
@@ -84,13 +115,19 @@ export default function ProcedimientosTab({ pacienteId }) {
       <div className="flex gap-2 mb-4 print:hidden">
         <SubTab active={sub === 'sugeridos'} onClick={() => setSub('sugeridos')}>Sugeridos ({sugeridos.length})</SubTab>
         <SubTab active={sub === 'realizar'} onClick={() => setSub('realizar')}>A realizar ({aceptados.length})</SubTab>
-        <SubTab active={sub === 'historial'} onClick={() => setSub('historial')}>Historial</SubTab>
+        {rol !== 'asistente_general' && <SubTab active={sub === 'historial'} onClick={() => setSub('historial')}>Historial</SubTab>}
       </div>
 
       {sub === 'sugeridos' && (
         sugeridos.length === 0
           ? <p className="text-sm text-gray-400">Sin tratamientos sugeridos. Se agregan desde una valoración.</p>
           : <div className="space-y-3">
+              {ROLES_PRESUPUESTO.includes(rol) && (
+                <button onClick={() => setPresupuestoModal(true)}
+                        className="px-4 py-2 text-sm text-white rounded-lg print:hidden" style={{ backgroundColor: 'var(--color-accent)' }}>
+                  📝 Armar presupuesto
+                </button>
+              )}
               {sugeridos.map(p => (
                 <PlanCard key={p.id} plan={p}>
                   <p className="text-xs text-gray-400 mt-2">Pendiente de presupuesto</p>
@@ -114,6 +151,23 @@ export default function ProcedimientosTab({ pacienteId }) {
                       <div className="h-1.5 rounded-full"
                            style={{ width: `${Math.min(100, 100 * p.sesiones_realizadas / p.sesiones_estimadas)}%`, backgroundColor: 'var(--color-accent)' }} />
                     </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 mt-3 text-xs">
+                    {p.modalidad && (
+                      <span className="text-gray-600">
+                        {p.modalidad === 'completo' ? 'Tratamiento completo' : 'Pago por sesión'} · {pesos(p.subtotal)}{p.descuento_pct ? ` (−${p.descuento_pct}%)` : ''}
+                      </span>
+                    )}
+                    {!p.requiere_ci ? <span className="text-gray-400">Sin plantilla de CI</span>
+                      : p.consentimiento_firmado_id ? <span style={{ color: '#3d7a3d' }}>CI ✓ firmado</span>
+                      : ROLES_CI.includes(rol)
+                        ? <button onClick={() => pedirCI([p])} className="px-2 py-1 rounded-lg text-white print:hidden" style={{ backgroundColor: 'var(--color-accent)' }}>✍️ Firmar consentimiento</button>
+                        : <span className="text-red-500">CI pendiente</span>}
+                    {p.presupuesto_id && ROLES_PRESUPUESTO.includes(rol) && (
+                      <button onClick={() => imprimirPresupuesto(p.presupuesto_id)} className="underline print:hidden" style={{ color: 'var(--color-accent)' }}>
+                        Ver presupuesto
+                      </button>
+                    )}
                   </div>
                 </PlanCard>
               ))}
@@ -171,6 +225,18 @@ export default function ProcedimientosTab({ pacienteId }) {
             </div>
           )}
         </div>
+      )}
+
+      {presupuestoModal && (
+        <PresupuestoModal paciente={paciente} planes={sugeridos}
+                          onClose={() => setPresupuestoModal(false)} onFirmado={presupuestoFirmado} />
+      )}
+
+      {colaCI.length > 0 && (
+        <ConsentimientoFirmaModal key={colaCI[0].plan.id} consentimiento={colaCI[0].consentimiento}
+                                  paciente={paciente} cita={null} plan={colaCI[0].plan}
+                                  onFirmado={cargar}
+                                  onClose={() => setColaCI(c => c.slice(1))} />
       )}
 
       {modal && (
