@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getDocsByPaciente, createDoc, updateDoc, deleteDoc } from '../api/documentosClinicos';
 import PlanTratamientoBlock from './PlanTratamientoBlock';
+import { resumenPlan } from '../utils/resumenPlan';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const inputCls = 'w-full border rounded-lg px-3 py-2 text-sm';
@@ -952,6 +953,9 @@ export default function DocumentosClinicosTab({ pacienteId, groups = ['Valoracio
               {doc.creado_por_nombre && ` · ${doc.creado_por_nombre}`}
             </p>
             <fieldset disabled>{renderForm(doc.tipo, doc.datos || {}, () => {})}</fieldset>
+            {TIPOS.find(t => t.key === doc.tipo)?.group === 'Valoraciones' && resumenPlan(doc.datos).map(([label, texto]) => (
+              <p key={label} className="text-sm mt-1"><span className="font-medium">{label}:</span> {texto}</p>
+            ))}
           </div>
         ))}
         {!docs.some(d => groups.includes(TIPOS.find(t => t.key === d.tipo)?.group)) && <p className="text-sm">Sin registros.</p>}

@@ -3,18 +3,11 @@ import { getTratamientosActivos } from '../api/tratamientos';
 import { getPlanes } from '../api/planTratamientos';
 import Cie10Picker from './Cie10Picker';
 import BotonDictado from './BotonDictado';
+import { LEGACY_CAMPOS } from '../utils/resumenPlan';
 
 const inputCls = 'border rounded-lg px-2 py-1.5 text-sm';
 const bStyle = { borderColor: 'var(--color-primary)' };
 const FILA_VACIA = { tratamiento_id: '', sesiones: 1, frecuencia: '', notas: '' };
-// Campos de texto libre que este bloque reemplazó en los formatos de valoración
-const LEGACY_CAMPOS = [
-  ['diagnostico', 'Diagnóstico'], ['diagnostico_cutaneo', 'Diagnóstico cutáneo'],
-  ['diagnostico_capilar', 'Diagnóstico capilar'], ['tratamientos_propuestos', 'Tratamientos propuestos'],
-  ['tratamiento_propuesto', 'Tratamiento propuesto'], ['plan_piel', 'Plan / protocolo sugerido'],
-  ['plan_corporal', 'Plan corporal propuesto'], ['plan_capilar', 'Plan propuesto'],
-  ['sesiones', 'Sesiones / frecuencia'],
-];
 const ESTATUS_LABEL = { aceptado: 'Aceptado', completado: 'Completado', cancelado: 'Cancelado' };
 
 // Contrato datos.plan (lo sincroniza el backend en services/planTratamiento.js):
@@ -37,7 +30,7 @@ export default function PlanTratamientoBlock({ pacienteId, plan, onChange, legac
   const setFila = (i, k, v) => set('tratamientos', filas.map((f, j) => (j === i ? { ...f, [k]: v } : f)));
   const bloqueada = f => f.plan_id && estatusPlanes[f.plan_id] && estatusPlanes[f.plan_id] !== 'sugerido';
 
-  const legacyTxt = LEGACY_CAMPOS.map(([k, label]) => [label, legacy?.[k]]).filter(([, v]) => v);
+  const legacyTxt = LEGACY_CAMPOS.map(([k, label]) => [label, legacy?.[k]]).filter(([, v]) => typeof v === 'string' && v);
 
   return (
     <div className="mt-6 pt-4 border-t" style={{ borderColor: 'var(--color-sage)' }}>
@@ -77,7 +70,13 @@ export default function PlanTratamientoBlock({ pacienteId, plan, onChange, legac
             </div>
           ) : (
             <div key={i} className="grid grid-cols-[2fr_80px_1fr_1fr_auto] gap-2 items-center">
-              <select value={f.tratamiento_id} onChange={e => setFila(i, 'tratamiento_id', Number(e.target.value) || '')}
+              <select value={f.tratamiento_id}
+                      onChange={e => {
+                        const id = Number(e.target.value) || '';
+                        set('tratamientos', filas.map((x, j) => (j === i
+                          ? { ...x, tratamiento_id: id, tratamiento_nombre: catalogo.find(t => t.id === id)?.nombre || '' }
+                          : x)));
+                      }}
                       className={inputCls} style={bStyle}>
                 <option value="">— Tratamiento —</option>
                 {catalogo.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}
