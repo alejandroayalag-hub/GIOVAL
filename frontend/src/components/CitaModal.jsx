@@ -4,6 +4,7 @@ import { getEmpleados } from '../api/empleados';
 import { createCita, updateCita, deleteCita } from '../api/citas';
 import { buscarPacientes, getPaciente } from '../api/pacientes';
 import PacienteMiniModal from './PacienteMiniModal';
+import { getPlanes } from '../api/planTratamientos';
 
 const ESTATUSES = ['pendiente', 'realizada', 'cancelada'];
 
@@ -21,7 +22,9 @@ export default function CitaModal({ cita, fechaHoraInicial, empleadaIdInicial, o
       : (fechaHoraInicial || ''),
     notas: cita?.notas || '',
     estatus: cita?.estatus || 'pendiente',
+    plan_tratamiento_id: cita?.plan_tratamiento_id || '',
   });
+  const [planes, setPlanes] = useState(null); // null = aún no cargan
   const [tratamientos, setTratamientos] = useState([]);
   const [empleadas, setEmpleadas] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -50,6 +53,23 @@ export default function CitaModal({ cita, fechaHoraInicial, empleadaIdInicial, o
     return () => clearTimeout(timer);
   }, [pacienteQuery]);
 
+  useEffect(() => {
+    if (!pacienteSeleccionado?.id) { setPlanes([]); return; }
+    getPlanes(pacienteSeleccionado.id).then(setPlanes).catch(() => setPlanes([]));
+  }, [pacienteSeleccionado?.id]);
+
+  // Planes aceptados del tratamiento elegido (+ el ya ligado, aunque esté completado)
+  const planesCandidatos = (planes || []).filter(p =>
+    String(p.tratamiento_id) === String(form.tratamiento_id) &&
+    (p.estatus === 'aceptado' || p.id === cita?.plan_tratamiento_id));
+
+  useEffect(() => {
+    if (planes === null) return;
+    const ids = planesCandidatos.map(p => p.id);
+    if (ids.includes(Number(form.plan_tratamiento_id))) return;
+    set('plan_tratamiento_id', ids.length === 1 ? ids[0] : '');
+  }, [planes, planesCandidatos.map(p => p.id).join(',')]);
+
   const puedeEliminar = rol === 'admin' || cita?.estatus !== 'realizada';
   const puedeEditar = esNueva || rol === 'admin' || cita?.estatus !== 'realizada';
 
@@ -58,6 +78,10 @@ export default function CitaModal({ cita, fechaHoraInicial, empleadaIdInicial, o
   async function handleSubmit(e) {
     e.preventDefault();
     if (!puedeEditar) return;
+    if (planesCandidatos.length > 1 && !form.plan_tratamiento_id) {
+      setError('Elige a qué plan de tratamiento corresponde esta cita');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -70,6 +94,7 @@ export default function CitaModal({ cita, fechaHoraInicial, empleadaIdInicial, o
         tratamiento_id: form.tratamiento_id || null,
         empleada_id: form.empleada_id || null,
         paciente_id: pacienteSeleccionado?.id || undefined,
+        plan_tratamiento_id: form.plan_tratamiento_id || null,
       };
       if (esNueva) {
         await createCita(payload);
@@ -197,6 +222,27 @@ export default function CitaModal({ cita, fechaHoraInicial, empleadaIdInicial, o
                 <option key={t.id} value={t.id}>{t.nombre} ({t.duracion_min} min)</option>
               ))}
             </select>
+            {planesCandidatos.length === 1 && (() => {
+              const p = planesCandidatos[0];
+              return (
+                <p className="text-xs mt-1" style={{ color: 'var(--color-accent)' }}>
+                  Sesión {Math.min(p.sesiones_realizadas + 1, p.sesiones_estimadas)} de {p.sesiones_estimadas} · plan del {new Date(p.created_at).toLocaleDateString('es-MX')}
+                </p>
+              );
+            })()}
+            {planesCandidatos.length > 1 && (
+              <select value={form.plan_tratamiento_id} disabled={!puedeEditar}
+                      onChange={e => set('plan_tratamiento_id', Number(e.target.value) || '')}
+                      className="w-full border rounded-lg px-3 py-2 text-sm mt-2"
+                      style={{ borderColor: 'var(--color-accent)' }}>
+                <option value="">— ¿De qué plan es esta sesión? —</option>
+                {planesCandidatos.map(p => (
+                  <option key={p.id} value={p.id}>
+                    Plan del {new Date(p.created_at).toLocaleDateString('es-MX')} · {p.sesiones_realizadas} de {p.sesiones_estimadas} sesiones
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Fecha y hora *</label>

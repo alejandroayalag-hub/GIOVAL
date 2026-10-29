@@ -1,6 +1,6 @@
 const { empleadoAcotado } = require('../middleware/misPacientes');
 const Cita = require('../models/cita');
-const { actualizarAvance } = require('../services/planTratamiento');
+const { actualizarAvance, validarPlanDeCita } = require('../services/planTratamiento');
 const pool = require('../db/pool');
 const gc   = require('../services/googleCalendar');
 
@@ -62,11 +62,14 @@ exports.list = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
-    const { nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id, fecha_hora, notas } = req.body;
+    const { nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id, fecha_hora, notas, plan_tratamiento_id } = req.body;
     if (!nombre_paciente || !fecha_hora) {
       return res.status(400).json({ error: 'nombre_paciente y fecha_hora son requeridos' });
     }
-    const cita = await Cita.create({ nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id, fecha_hora, notas, created_by: req.user.id });
+    if (!(await validarPlanDeCita(plan_tratamiento_id, paciente_id))) {
+      return res.status(400).json({ error: 'El plan no corresponde al paciente' });
+    }
+    const cita = await Cita.create({ nombre_paciente, telefono, tratamiento_id, empleada_id, paciente_id, fecha_hora, notas, plan_tratamiento_id, created_by: req.user.id });
     res.status(201).json(cita);
     // Push a Google Calendar en background (no bloquea la respuesta al cliente)
     syncToGoogle(cita.id);
@@ -82,6 +85,9 @@ exports.update = async (req, res, next) => {
       return res.status(403).json({ error: 'No puedes editar una cita ya realizada' });
     }
 
+    if (!(await validarPlanDeCita(req.body.plan_tratamiento_id, req.body.paciente_id || existing.paciente_id))) {
+      return res.status(400).json({ error: 'El plan no corresponde al paciente' });
+    }
     const cita = await Cita.update(req.params.id, req.body);
     if (cita.estatus === 'realizada') await actualizarAvance(cita.plan_tratamiento_id);
     res.json(cita);

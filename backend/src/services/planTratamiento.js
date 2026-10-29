@@ -131,4 +131,10 @@ async function historial(pacienteId) {
   return { sesiones, sin_sesion };
 }
 
-module.exports = { VALORACION_TIPOS, syncDesdeValoracion, listarPorPaciente, actualizarAvance, historial };
+async function validarPlanDeCita(planId, pacienteId) {
+  if (!planId) return true;
+  const { rows } = await pool.query('SELECT 1 FROM plan_tratamientos WHERE id=$1 AND paciente_id=$2', [planId, pacienteId]);
+  return rows.length === 1;
+}
+
+module.exports = { VALORACION_TIPOS, syncDesdeValoracion, listarPorPaciente, actualizarAvance, historial, validarPlanDeCita };

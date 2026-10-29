@@ -144,10 +144,28 @@ async function testAvanceEHistorial() {
   }
 }
 
+async function testValidarPlanDeCita() {
+  const { validarPlanDeCita } = require('../services/planTratamiento');
+  const { rows: ps } = await pool.query('SELECT id FROM pacientes ORDER BY id LIMIT 2');
+  assert.ok(ps.length === 2, 'se necesitan 2 pacientes locales');
+  const { rows: [t] } = await pool.query('SELECT id FROM tratamientos LIMIT 1');
+  const { rows: [plan] } = await pool.query(
+    `INSERT INTO plan_tratamientos (paciente_id, tratamiento_id, estatus) VALUES ($1,$2,'aceptado') RETURNING id`, [ps[0].id, t.id]);
+  try {
+    assert.strictEqual(await validarPlanDeCita(plan.id, ps[0].id), true);
+    assert.strictEqual(await validarPlanDeCita(plan.id, ps[1].id), false);
+    assert.strictEqual(await validarPlanDeCita(null, ps[1].id), true);
+    console.log('✓ validarPlanDeCita');
+  } finally {
+    await pool.query('DELETE FROM plan_tratamientos WHERE id=$1', [plan.id]);
+  }
+}
+
 async function run() {
   await testMigracion();
   await testSyncValoracion();
   await testAvanceEHistorial();
+  await testValidarPlanDeCita();
 }
 
 run()
