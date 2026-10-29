@@ -33,11 +33,11 @@ const DocumentoClinico = {
     return rows[0] || null;
   },
 
-  async create({ paciente_id, tipo, fecha, datos, creado_por }) {
+  async create({ paciente_id, tipo, fecha, datos, creado_por, cita_id }) {
     const { rows } = await pool.query(
-      `INSERT INTO documentos_clinicos (paciente_id, tipo, fecha, datos, creado_por)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [paciente_id, tipo, fecha || new Date().toISOString().slice(0, 10), JSON.stringify(datos || {}), creado_por]
+      `INSERT INTO documentos_clinicos (paciente_id, tipo, fecha, datos, creado_por, cita_id)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [paciente_id, tipo, fecha || new Date().toISOString().slice(0, 10), JSON.stringify(datos || {}), creado_por, cita_id || null]
     );
     return rows[0];
   },

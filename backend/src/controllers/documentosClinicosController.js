@@ -1,4 +1,5 @@
 const DocClinico = require('../models/documentoClinico');
+const { syncDesdeValoracion } = require('../services/planTratamiento');
 
 module.exports = {
   async getByPaciente(req, res) {
@@ -17,11 +18,12 @@ module.exports = {
 
   async create(req, res) {
     try {
-      const { paciente_id, tipo, fecha, datos } = req.body;
-      const doc = await DocClinico.create({
-        paciente_id, tipo, fecha, datos,
+      const { paciente_id, tipo, fecha, datos, cita_id } = req.body;
+      let doc = await DocClinico.create({
+        paciente_id, tipo, fecha, datos, cita_id,
         creado_por: req.user?.id,
       });
+      doc = await syncDesdeValoracion(doc, req.user?.id);
       res.status(201).json(doc);
     } catch (e) { res.status(500).json({ error: e.message }); }
   },
@@ -29,8 +31,9 @@ module.exports = {
   async update(req, res) {
     try {
       const { datos, fecha } = req.body;
-      const doc = await DocClinico.update(req.params.id, { datos, fecha });
+      let doc = await DocClinico.update(req.params.id, { datos, fecha });
       if (!doc) return res.status(404).json({ error: 'No encontrado' });
+      doc = await syncDesdeValoracion(doc, req.user?.id);
       res.json(doc);
     } catch (e) { res.status(500).json({ error: e.message }); }
   },
