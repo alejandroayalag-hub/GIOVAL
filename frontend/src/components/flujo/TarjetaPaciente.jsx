@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { checkinCita, avanzarFlujo } from '../../api/flujo';
 import NotaVisitaModal from '../NotaVisitaModal';
 import ConsumoInsumosModal from './ConsumoInsumosModal';
@@ -31,6 +32,8 @@ export default function TarjetaPaciente({ cita, rol, consultorios, onRefresh }) 
   const [error, setError] = useState('');
   const [notaModal, setNotaModal] = useState(false);
   const [insumosModal, setInsumosModal] = useState(false);
+  const [firmarPacienteId, setFirmarPacienteId] = useState(null);
+  const navigate = useNavigate();
 
   const cfg = ESTATUS_CONFIG[cita.estatus] || ESTATUS_CONFIG.agendada;
   const ordenActual = ORDEN[cita.estatus] ?? 0;
@@ -54,12 +57,13 @@ export default function TarjetaPaciente({ cita, rol, consultorios, onRefresh }) 
   }
 
   async function handleAvanzar() {
-    setLoading(true); setError('');
+    setLoading(true); setError(''); setFirmarPacienteId(null);
     try {
       await avanzarFlujo(cita.cita_id);
       onRefresh();
     } catch (e) {
       setError(e.response?.data?.error || 'Error al avanzar');
+      setFirmarPacienteId(e.response?.data?.paciente_id || null);
     } finally { setLoading(false); }
   }
 
@@ -116,6 +120,13 @@ export default function TarjetaPaciente({ cita, rol, consultorios, onRefresh }) 
         </div>
 
         {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+        {firmarPacienteId && (
+          <button onClick={() => navigate(`/pacientes/${firmarPacienteId}`, { state: { tab: 'consentimientos' } })}
+                  className="w-full text-sm py-1.5 mt-2 rounded-lg text-white font-medium"
+                  style={{ backgroundColor: 'var(--color-accent)' }}>
+            ✍️ Firmar consentimientos
+          </button>
+        )}
 
         {/* Acción */}
         <div className="mt-3">

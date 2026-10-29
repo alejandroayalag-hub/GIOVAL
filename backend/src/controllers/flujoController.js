@@ -125,6 +125,29 @@ exports.avanzar = async (req, res, next) => {
     const siguiente = SIGUIENTE[flujo.estatus];
     if (!siguiente) return res.status(400).json({ error: 'No hay siguiente estado' });
 
+    // Bloqueo: checkin → en_consultorio requiere CI-00/01/02 firmados
+    if (flujo.estatus === 'checkin') {
+      const { rows: [c] } = await pool.query(
+        `SELECT ci.paciente_id,
+                ARRAY(SELECT g FROM unnest(ARRAY['CI-00','CI-01','CI-02']) g
+                      WHERE NOT EXISTS (
+                        SELECT 1 FROM consentimientos_firmados cf
+                        JOIN consentimientos co ON co.id = cf.consentimiento_id
+                        WHERE cf.paciente_id = ci.paciente_id AND co.codigo = g)) AS faltan
+         FROM citas ci WHERE ci.id = $1`,
+        [cita_id]
+      );
+      if (!c?.paciente_id) {
+        return res.status(409).json({ error: 'Vincula la cita a un expediente y firma los consentimientos antes de pasar' });
+      }
+      if (c.faltan.length) {
+        return res.status(409).json({
+          error: `Faltan consentimientos firmados: ${c.faltan.join(', ')}`,
+          paciente_id: c.paciente_id,
+        });
+      }
+    }
+
     // Bloqueo: cierre → en_caja requiere nota SOAP
     if (flujo.estatus === 'cierre') {
       const { rows: notas } = await pool.query(
