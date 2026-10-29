@@ -216,11 +216,55 @@ async function testRequisitos() {
   }
 }
 
+async function testRevisionFinal() {
+  const { crearPresupuesto, crearPlanDesdeCita } = require('../services/presupuestos');
+  const R = require('../services/requisitosProcedimiento');
+  const f = await fixtures();
+  const cita = async (tratamientoId, planId = null) => (await pool.query(
+    `INSERT INTO citas (nombre_paciente, paciente_id, tratamiento_id, fecha_hora, plan_tratamiento_id)
+     VALUES ('T',$1,$2,NOW(),$3) RETURNING id`, [f.pa, tratamientoId, planId])).rows[0].id;
+  try {
+    // 1. mismo plan dos veces → 400
+    const p = await plan(f.pa, f.t2);
+    await assert.rejects(crearPresupuesto({ paciente_id: f.pa, firma: FIRMA,
+      items: [{ plan_id: p, modalidad: 'por_sesion' }, { plan_id: p, modalidad: 'por_sesion' }] }, null), e => e.status === 400);
+
+    // 2. firma que no es base64 limpio → 400
+    await assert.rejects(crearPresupuesto({ paciente_id: f.pa, firma: 'data:image/png" onerror="alert(1)',
+      items: [{ plan_id: p, modalidad: 'por_sesion' }] }, null), e => e.status === 400);
+
+    // 3a. desde-cita reutiliza el sugerido existente del mismo tratamiento
+    const c1 = await cita(f.t2);
+    assert.strictEqual((await crearPlanDesdeCita(c1, null)).id, p);
+    // 3b. con 2 aceptados del tratamiento → 400 (elegir en la cita), no crea otro
+    await plan(f.pa, f.t1, 1, 'aceptado'); await plan(f.pa, f.t1, 1, 'aceptado');
+    const c2 = await cita(f.t1);
+    const antes = Number((await pool.query('SELECT count(*) n FROM plan_tratamientos WHERE tratamiento_id=$1', [f.t1])).rows[0].n);
+    await assert.rejects(crearPlanDesdeCita(c2, null), e => e.status === 400);
+    assert.strictEqual(Number((await pool.query('SELECT count(*) n FROM plan_tratamientos WHERE tratamiento_id=$1', [f.t1])).rows[0].n), antes);
+
+    // 4. cita ligada a plan cancelado/completado: no cuenta como presupuesto y desde-cita crea uno nuevo
+    const cancelado = await plan(f.pa, f.t3, 1, 'cancelado');
+    const c3 = await cita(f.t3, cancelado);
+    assert.ok((await R.requisitosProcedimiento(c3)).faltan.includes('presupuesto'));
+    const nuevo = await crearPlanDesdeCita(c3, null);
+    assert.notStrictEqual(nuevo.id, cancelado);
+    assert.strictEqual(nuevo.estatus, 'sugerido');
+    const completado = await plan(f.pa, f.t2, 1, 'completado');
+    const c4 = await cita(f.t2, completado);
+    assert.ok((await R.requisitosProcedimiento(c4)).faltan.includes('presupuesto'), 'plan completado no debe cubrir sesiones extra');
+    console.log('✓ correcciones de revisión final');
+  } finally {
+    await limpiarFixtures(f);
+  }
+}
+
 async function run() {
   await testMigracion();
   await testPromociones();
   await testPresupuestos();
   await testRequisitos();
+  await testRevisionFinal();
 }
 
 run()

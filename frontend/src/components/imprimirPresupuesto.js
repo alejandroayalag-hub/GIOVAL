@@ -32,7 +32,7 @@ export async function imprimirPresupuesto(id) {
       <tbody>${filas}<tr class="total"><td colspan="5">Total</td><td class="r">${pesos(p.total)}</td></tr></tbody>
     </table>
     <p class="legal">Acepto el costo de los tratamientos descritos en este presupuesto. Precios y promociones vigentes al momento de la firma.</p>
-    <div class="firma"><img src="${p.firma}" alt="Firma" /><br/>${esc(p.paciente_nombre)} · firmado ${new Date(p.firmado_at).toLocaleString('es-MX')}</div>
+    <div class="firma"><img src="${esc(p.firma)}" alt="Firma" /><br/>${esc(p.paciente_nombre)} · firmado ${new Date(p.firmado_at).toLocaleString('es-MX')}</div>
     <script>window.onload = () => setTimeout(() => window.print(), 300);</script>
     </body></html>`);
   w.document.close();

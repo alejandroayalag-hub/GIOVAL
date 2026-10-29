@@ -3,14 +3,16 @@ const { encrypt, decrypt } = require('../utils/cifrado');
 const { calcularItem, promoAplicable } = require('./promociones');
 
 const err400 = msg => Object.assign(new Error(msg), { status: 400 });
-const esDataUrlImagen = s => typeof s === 'string' && s.startsWith('data:image/');
+// Estricto: la firma se inserta en <img src> al imprimir
+const esFirmaValida = s => typeof s === 'string' && /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(s);
 const hoyMx = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
 
 // Precio, sesiones y descuento se calculan aquí; lo que mande el cliente además de
 // { plan_id, modalidad, promocion_id } se ignora.
 async function crearPresupuesto({ paciente_id, items, firma, ip, user_agent }, userId) {
   if (!Array.isArray(items) || items.length === 0) throw err400('Elige al menos un tratamiento');
-  if (!esDataUrlImagen(firma)) throw err400('Falta la firma de aceptación');
+  if (!esFirmaValida(firma)) throw err400('Falta la firma de aceptación');
+  if (new Set(items.map(i => Number(i.plan_id))).size !== items.length) throw err400('Un tratamiento está repetido en el presupuesto');
   const fecha = hoyMx();
 
   const client = await pool.connect();
@@ -107,13 +109,27 @@ async function crearPlanDesdeCita(citaId, userId) {
     'SELECT id, paciente_id, tratamiento_id, plan_tratamiento_id FROM citas WHERE id = $1', [citaId]);
   if (!c) throw Object.assign(new Error('Cita no encontrada'), { status: 404 });
   if (c.plan_tratamiento_id) {
-    return (await pool.query('SELECT * FROM plan_tratamientos WHERE id = $1', [c.plan_tratamiento_id])).rows[0];
+    const { rows: [ligado] } = await pool.query('SELECT * FROM plan_tratamientos WHERE id = $1', [c.plan_tratamiento_id]);
+    // cancelado/completado ya no sirve para esta cita: se trata como sin plan
+    if (ligado && ['sugerido', 'aceptado'].includes(ligado.estatus)) return ligado;
   }
   if (!c.paciente_id) throw err400('Vincula la cita a un expediente primero');
   if (!c.tratamiento_id) throw err400('La cita no tiene tratamiento');
-  const { rows: [plan] } = await pool.query(
-    `INSERT INTO plan_tratamientos (paciente_id, tratamiento_id, sesiones_estimadas, created_by)
-     VALUES ($1,$2,1,$3) RETURNING *`, [c.paciente_id, c.tratamiento_id, userId]);
+
+  const { rows: existentes } = await pool.query(
+    `SELECT * FROM plan_tratamientos WHERE paciente_id = $1 AND tratamiento_id = $2 AND estatus IN ('sugerido', 'aceptado')
+     ORDER BY estatus DESC, created_at DESC`, [c.paciente_id, c.tratamiento_id]);
+  const aceptados = existentes.filter(p => p.estatus === 'aceptado');
+  if (aceptados.length > 1) {
+    throw err400('La paciente tiene varios tratamientos aceptados de este tipo: elige cuál en la cita (Editar cita)');
+  }
+  // Reusa el sugerido (p. ej. de su valoración) en vez de duplicarlo
+  let plan = existentes.find(p => p.estatus === 'sugerido');
+  if (!plan) {
+    ({ rows: [plan] } = await pool.query(
+      `INSERT INTO plan_tratamientos (paciente_id, tratamiento_id, sesiones_estimadas, created_by)
+       VALUES ($1,$2,1,$3) RETURNING *`, [c.paciente_id, c.tratamiento_id, userId]));
+  }
   await pool.query('UPDATE citas SET plan_tratamiento_id = $1 WHERE id = $2', [plan.id, citaId]);
   return plan;
 }

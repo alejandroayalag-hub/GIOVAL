@@ -14,6 +14,11 @@ async function requisitosProcedimiento(citaId) {
   if (!c.tratamiento_id) return { exento: false, faltan: ['tratamiento'], paciente_id: c.paciente_id, plan_id: null };
 
   let planId = c.plan_tratamiento_id;
+  if (planId) {
+    // cita ligada a un plan cancelado/completado: se ignora la liga (sesión extra = presupuesto nuevo)
+    const { rows: [l] } = await pool.query('SELECT estatus FROM plan_tratamientos WHERE id = $1', [planId]);
+    if (!l || !['sugerido', 'aceptado'].includes(l.estatus)) planId = null;
+  }
   if (!planId && c.paciente_id) {
     const { rows } = await pool.query(
       `SELECT id FROM plan_tratamientos WHERE paciente_id = $1 AND tratamiento_id = $2 AND estatus = 'aceptado'`,
@@ -28,7 +33,7 @@ async function requisitosProcedimiento(citaId) {
     ? await pool.query('SELECT estatus, consentimiento_firmado_id FROM plan_tratamientos WHERE id = $1', [planId])
     : { rows: [] };
   const faltan = [];
-  if (!p || !['aceptado', 'completado'].includes(p.estatus)) faltan.push('presupuesto');
+  if (p?.estatus !== 'aceptado') faltan.push('presupuesto');
   const { rows: plantilla } = await pool.query(
     'SELECT 1 FROM consentimientos WHERE tratamiento_id = $1 AND activo LIMIT 1', [c.tratamiento_id]);
   if (plantilla.length && !p?.consentimiento_firmado_id) faltan.push('consentimiento');
