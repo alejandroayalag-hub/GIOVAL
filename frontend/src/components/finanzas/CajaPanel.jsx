@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { RefreshCw, CreditCard, Banknote, Smartphone, Plus } from 'lucide-react';
-import { getCajaHoy, createMovimiento, getCategorias } from '../../api/finanzas';
+import { getCajaHoy, createMovimiento, getCategorias, cubrirConPaquete } from '../../api/finanzas';
+import AbonoForm from './AbonoForm';
+import PaqueteInfo from '../PaqueteInfo';
 import MovimientoModal from './MovimientoModal';
 import { EMPRESAS, EmpresaToggle, empresaSugerida, empresaVista } from './empresa';
 
@@ -67,6 +69,18 @@ export default function CajaPanel() {
       await cargar();
     } catch (e) {
       alert(e.response?.data?.error || 'Error al registrar cobro');
+    } finally {
+      setCobrandoId(null);
+    }
+  }
+
+  async function cubrir(cita) {
+    setCobrandoId(`${cita.cita_id}-paquete`);
+    try {
+      await cubrirConPaquete(cita.cita_id);
+      await cargar();
+    } catch (e) {
+      alert(e.response?.data?.error || 'Error al marcar la sesión');
     } finally {
       setCobrandoId(null);
     }
@@ -153,7 +167,7 @@ export default function CajaPanel() {
                     </p>
                     <p className="text-xs text-gray-500">
                       {cita.tratamiento_nombre || '—'} · {fmtHora(cita.fecha_hora)}
-                      {cita.precio
+                      {cita.paquete ? null : cita.precio
                         ? <span className="ml-2 font-semibold" style={{ color: 'var(--color-accent)' }}>
                             {fmt(saldo(cita))}
                           </span>
@@ -174,8 +188,23 @@ export default function CajaPanel() {
                         </span>
                       )}
                     </p>
+                    {cita.paquete && <PaqueteInfo paquete={cita.paquete} />}
                   </div>
                 </div>
+                {cita.paquete ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  {cita.paquete.saldo > 0 && (
+                    // key: al recargar, el monto sugerido se recalcula
+                    <AbonoForm key={cita.paquete.abonado} itemId={cita.paquete.presupuesto_item_id}
+                               paquete={cita.paquete} empresa={cobrarA} onDone={cargar} />
+                  )}
+                  <button disabled={!!cobrandoId} onClick={() => cubrir(cita)}
+                          className="text-xs px-3 py-1.5 rounded-lg border font-medium disabled:opacity-50"
+                          style={{ borderColor: 'var(--color-accent)', color: 'var(--color-accent)' }}>
+                    {cobrandoId === `${cita.cita_id}-paquete` ? '...' : '✓ Sesión cubierta por paquete'}
+                  </button>
+                </div>
+                ) : (
                 <div className="flex flex-wrap gap-2">
                   {FORMAS.map(({ key, label, color }) => (
                     <button key={key}
@@ -192,6 +221,7 @@ export default function CajaPanel() {
                     ✎ Editar monto
                   </button>
                 </div>
+                )}
               </div>
             ))}
           </div>

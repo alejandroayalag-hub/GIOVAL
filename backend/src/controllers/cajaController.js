@@ -1,5 +1,6 @@
 const pool = require('../db/pool');
 const { filtroEmpresa } = require('../utils/empresa');
+const { PAQUETE_JOIN, PAQUETE_COLS, conPaquete, ligarCitasSinPlan } = require('../services/abonos');
 
 exports.hoy = async (req, res, next) => {
   try {
@@ -21,6 +22,7 @@ exports.hoy = async (req, res, next) => {
       resumen.total += val;
     }
 
+    await ligarCitasSinPlan(hoy);
     // Citas realizadas hoy pendientes de cobro
     const pendientesQ = await pool.query(`
       SELECT c.id AS cita_id,
@@ -30,11 +32,15 @@ exports.hoy = async (req, res, next) => {
                c.nombre_paciente
              )) AS paciente_nombre,
              t.nombre AS tratamiento_nombre,
-             t.precio,
+             -- pago por sesión: precio congelado en el presupuesto (con promo)
+             CASE WHEN ps.id IS NOT NULL THEN ROUND(ps.subtotal / ps.sesiones, 2) ELSE t.precio END AS precio,
              CASE WHEN c.anticipo_estado IN ('pagado', 'retenido') THEN c.anticipo ELSE 0 END::numeric AS anticipo_pagado,
              c.fecha_hora,
-             COALESCE(cabina.costo_cabina, 0)::numeric AS costo_cabina
+             COALESCE(cabina.costo_cabina, 0)::numeric AS costo_cabina,
+             ${PAQUETE_COLS}
       FROM citas c
+      ${PAQUETE_JOIN}
+      LEFT JOIN presupuesto_items ps ON ps.id = pq_pt.presupuesto_item_id AND ps.modalidad = 'por_sesion'
       LEFT JOIN pacientes p    ON c.paciente_id    = p.id
       LEFT JOIN tratamientos t ON c.tratamiento_id = t.id
       LEFT JOIN tratamiento_kit tk ON tk.tratamiento_id = t.id
@@ -61,14 +67,16 @@ exports.hoy = async (req, res, next) => {
              )) AS paciente_nombre
       FROM movimientos m
       LEFT JOIN citas ci    ON m.cita_id      = ci.id
-      LEFT JOIN pacientes p ON ci.paciente_id = p.id
+      LEFT JOIN presupuesto_items pim ON pim.id = m.presupuesto_item_id
+      LEFT JOIN presupuestos prm      ON prm.id = pim.presupuesto_id
+      LEFT JOIN pacientes p ON p.id = COALESCE(ci.paciente_id, prm.paciente_id)
       WHERE m.fecha = $1 AND ($2::text IS NULL OR m.empresa = $2)
       ORDER BY m.created_at DESC
     `, [hoy, empresa]);
 
     res.json({
       resumen,
-      pendientes: pendientesQ.rows,
+      pendientes: pendientesQ.rows.map(conPaquete),
       movimientos: movsQ.rows,
     });
   } catch (err) { next(err); }

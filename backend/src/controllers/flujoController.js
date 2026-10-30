@@ -1,6 +1,7 @@
 const pool = require('../db/pool');
 const { actualizarAvance } = require('../services/planTratamiento');
 const { requisitosProcedimiento, mensajeFaltan } = require('../services/requisitosProcedimiento');
+const { PAQUETE_JOIN, PAQUETE_COLS, conPaquete } = require('../services/abonos');
 
 const ORDEN_ESTATUS = {
   checkin: 1, en_consultorio: 2, en_procedimiento: 3,
@@ -64,8 +65,10 @@ exports.hoy = async (req, res, next) => {
          fp.hora_cierre,
          fp.hora_caja,
          fp.hora_completado,
-         fp.nota_visita_id
+         fp.nota_visita_id,
+         ${PAQUETE_COLS}
        FROM citas c
+       ${PAQUETE_JOIN}
        LEFT JOIN flujo_paciente fp ON fp.cita_id = c.id
        LEFT JOIN pacientes p       ON c.paciente_id = p.id
        LEFT JOIN tratamientos t    ON c.tratamiento_id = t.id
@@ -77,11 +80,12 @@ exports.hoy = async (req, res, next) => {
       [hoy]
     );
 
-    const activos = rows
+    const filas = rows.map(conPaquete);
+    const activos = filas
       .filter(r => r.estatus !== 'completado')
       .sort((a, b) => (ORDEN_ESTATUS[a.estatus] || 99) - (ORDEN_ESTATUS[b.estatus] || 99));
 
-    const completados = rows.filter(r => r.estatus === 'completado');
+    const completados = filas.filter(r => r.estatus === 'completado');
 
     res.json({ activos, completados });
   } catch (err) { next(err); }

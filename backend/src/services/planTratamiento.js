@@ -1,4 +1,5 @@
 const pool = require('../db/pool');
+const { ABONADO } = require('./abonos');
 
 const VALORACION_TIPOS = ['val_01', 'val_01b', 'val_02', 'val_03', 'val_04', 'val_05', 'hist_lax'];
 
@@ -84,7 +85,8 @@ async function listarPorPaciente(pacienteId) {
               WHERE c.plan_tratamiento_id = pt.id AND c.estatus = 'pendiente' AND c.fecha_hora >= NOW()
               ORDER BY c.fecha_hora LIMIT 1) AS proxima_cita,
             pt.created_at,
-            pi.presupuesto_id, pi.modalidad, pi.subtotal::float AS subtotal, pi.descuento_pct::float AS descuento_pct,
+            pi.id AS presupuesto_item_id, pi.presupuesto_id, pi.modalidad, pi.subtotal::float AS subtotal,
+            CASE WHEN pi.id IS NOT NULL THEN ${ABONADO('pi.id')}::float END AS abonado, pi.descuento_pct::float AS descuento_pct,
             pt.consentimiento_firmado_id,
             EXISTS (SELECT 1 FROM consentimientos ci WHERE ci.tratamiento_id = pt.tratamiento_id AND ci.activo) AS requiere_ci
      FROM plan_tratamientos pt

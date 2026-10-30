@@ -1,6 +1,7 @@
 // backend/src/controllers/finanzas.js
 const { Categoria, Movimiento, CorteCaja, Reportes } = require('../models/finanzas');
 const { filtroEmpresa, empresaEscritura } = require('../utils/empresa');
+const { validarEdicionAbono } = require('../services/abonos');
 
 // ── Categorías ────────────────────────────────────────────────────────────────
 
@@ -108,6 +109,7 @@ exports.updateMovimiento = async (req, res, next) => {
     if (!existing) return res.status(404).json({ error: 'Movimiento no encontrado' });
     if (await CorteCaja.estaCerrado(existing.fecha, existing.empresa))
       return res.status(409).json({ error: 'El corte de esa fecha ya está cerrado' });
+    if (existing.presupuesto_item_id) await validarEdicionAbono(existing, req.body.monto, req.user.rol);
     if (req.body.empresa !== undefined) {
       req.body.empresa = empresaEscritura(req.body.empresa);
       if (req.body.empresa !== existing.empresa && await CorteCaja.estaCerrado(existing.fecha, req.body.empresa))
@@ -123,6 +125,7 @@ exports.deleteMovimiento = async (req, res, next) => {
     if (!existing) return res.status(404).json({ error: 'Movimiento no encontrado' });
     if (await CorteCaja.estaCerrado(existing.fecha, existing.empresa))
       return res.status(409).json({ error: 'El corte de esa fecha ya está cerrado' });
+    if (existing.presupuesto_item_id) await validarEdicionAbono(existing, undefined, req.user.rol);
     await Movimiento.delete(req.params.id);
     res.json({ mensaje: 'Movimiento eliminado' });
   } catch (err) { next(err); }
