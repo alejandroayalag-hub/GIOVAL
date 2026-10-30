@@ -156,6 +156,9 @@ export default function ProcedimientosTab({ pacienteId, paciente, rol }) {
                     {p.modalidad && (
                       <span className="text-gray-600">
                         {p.modalidad === 'completo' ? 'Tratamiento completo' : 'Pago por sesión'} · {pesos(p.subtotal)}{p.descuento_pct ? ` (−${p.descuento_pct}%)` : ''}
+                        {p.modalidad === 'completo' && (p.subtotal - p.abonado > 0.004
+                          ? <span className="font-semibold text-amber-700"> · abonado {pesos(p.abonado)} · saldo {pesos(p.subtotal - p.abonado)}</span>
+                          : <span style={{ color: '#3d7a3d' }}> · liquidado</span>)}
                       </span>
                     )}
                     {!p.requiere_ci ? <span className="text-gray-400">Sin plantilla de CI</span>

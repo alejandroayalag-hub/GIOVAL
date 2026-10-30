@@ -4,6 +4,7 @@ import { checkinCita, avanzarFlujo } from '../../api/flujo';
 import { crearPlanDesdeCita } from '../../api/planTratamientos';
 import NotaVisitaModal from '../NotaVisitaModal';
 import ConsumoInsumosModal from './ConsumoInsumosModal';
+import PaqueteInfo from '../PaqueteInfo';
 
 const ESTATUS_CONFIG = {
   agendada:         { color: '#cccad8', label: 'Agendada' },
@@ -95,6 +96,7 @@ export default function TarjetaPaciente({ cita, rol, consultorios, onRefresh }) 
                 <span className="ml-2 text-gray-400">· {cita.consultorio_nombre}</span>
               )}
             </p>
+            {cita.paquete && <PaqueteInfo paquete={cita.paquete} />}
           </div>
           <div className="text-right flex-shrink-0">
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white"
