@@ -4,7 +4,9 @@ const { CorteCaja } = require('../models/finanzas');
 
 const err = (status, msg) => Object.assign(new Error(msg), { status });
 const round2 = n => Math.round(n * 100) / 100;
-const hoyMx = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+// ponytail: misma fecha (UTC) que usan Caja y createMovimiento, para que el abono caiga en el mismo corte.
+// Si Caja pasa a hora de México, cambiar aquí también.
+const hoyCaja = () => new Date().toISOString().split('T')[0];
 const FORMAS = ['efectivo', 'tarjeta', 'transferencia'];
 
 const ABONADO = id => `(SELECT COALESCE(SUM(m.monto), 0) FROM movimientos m WHERE m.presupuesto_item_id = ${id} AND m.tipo = 'ingreso')`;
@@ -46,7 +48,7 @@ async function registrarAbono({ presupuesto_item_id, monto, forma_pago, empresa 
   if (!(importe > 0)) throw err(400, 'El abono debe ser mayor a 0');
   if (forma_pago && !FORMAS.includes(forma_pago)) throw err(400, 'Forma de pago inválida');
   const emp = empresaEscritura(empresa);
-  const fecha = hoyMx();
+  const fecha = hoyCaja();
   if (await CorteCaja.estaCerrado(fecha, emp)) throw err(409, 'El corte de hoy ya está cerrado');
 
   const client = await pool.connect();

@@ -107,6 +107,9 @@ async function run() {
     const pendPaq = out.pendientes.find(p => p.cita_id === c2);
     assert.deepStrictEqual([pendPaq.paquete.saldo, pendPaq.paquete.sesion_n], [2000, 2]);
     assert.ok(!out.pendientes.some(p => p.cita_id === c1), 'cita cubierta ya no está pendiente');
+    const movAbono = out.movimientos.find(m => m.id === movimiento.id);
+    assert.ok(movAbono, 'el abono debe salir en los movimientos de hoy de Caja');
+    assert.ok(movAbono.paciente_nombre, 'el abono debe mostrar a la paciente');
 
     // A realizar muestra lo abonado
     await pool.query(`UPDATE plan_tratamientos SET estatus='cancelado' WHERE id=$1`, [pPaq]);
