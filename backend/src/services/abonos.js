@@ -9,13 +9,16 @@ const round2 = n => Math.round(n * 100) / 100;
 const hoyCaja = () => new Date().toISOString().split('T')[0];
 const FORMAS = ['efectivo', 'tarjeta', 'transferencia'];
 
-const ABONADO = id => `(SELECT COALESCE(SUM(m.monto), 0) FROM movimientos m WHERE m.presupuesto_item_id = ${id} AND m.tipo = 'ingreso')`;
+// Abonado = abonos del item + lo pagado en citas del paquete (p. ej. anticipo en línea)
+const ABONADO = id => `(SELECT COALESCE(SUM(m.monto), 0) FROM movimientos m WHERE m.tipo = 'ingreso' AND (m.presupuesto_item_id = ${id}
+  OR m.cita_id IN (SELECT cx.id FROM citas cx JOIN plan_tratamientos px ON px.id = cx.plan_tratamiento_id WHERE px.presupuesto_item_id = ${id})))`;
 
 // Para cualquier consulta sobre citas `c`: ligar su paquete (tratamiento completo) si lo tiene.
 // sesion_n = sesiones realizadas antes de esta cita + 1.
 const PAQUETE_JOIN = `
   LEFT JOIN plan_tratamientos pq_pt ON pq_pt.id = c.plan_tratamiento_id
-  LEFT JOIN presupuesto_items pq ON pq.id = pq_pt.presupuesto_item_id AND pq.modalidad = 'completo'`;
+  LEFT JOIN presupuesto_items pq ON pq.id = pq_pt.presupuesto_item_id AND pq.modalidad = 'completo'
+    AND pq_pt.estatus IN ('aceptado', 'completado')`;
 const PAQUETE_COLS = `
   pq.id AS pq_id, pq.subtotal::float AS pq_subtotal, pq.sesiones AS pq_sesiones,
   CASE WHEN pq.id IS NOT NULL THEN ${ABONADO('pq.id')}::float END AS pq_abonado,
@@ -29,7 +32,8 @@ function aviso50({ sesion_n, sesiones, subtotal, abonado }) {
 // Saca las columnas pq_* de la fila y las deja como `paquete` (o null)
 function conPaquete(row) {
   const { pq_id, pq_subtotal, pq_sesiones, pq_abonado, pq_sesion_n, ...resto } = row;
-  if (!pq_id) return { ...resto, paquete: null };
+  // sesiones de más (más allá de las pactadas) ya no son del paquete: nuevo presupuesto
+  if (!pq_id || pq_sesion_n > pq_sesiones) return { ...resto, paquete: null };
   const paquete = {
     presupuesto_item_id: pq_id, subtotal: pq_subtotal, sesiones: pq_sesiones, abonado: pq_abonado,
     saldo: round2(pq_subtotal - pq_abonado), sesion_n: pq_sesion_n, precio_sesion: round2(pq_subtotal / pq_sesiones),
@@ -87,7 +91,9 @@ async function cubrirConPaquete(citaId) {
   const paquete = await paqueteDeCita(citaId);
   if (!paquete) throw err(400, 'La cita no es de un tratamiento completo');
   const { rowCount } = await pool.query(
-    'UPDATE citas SET cobrado = true, precio_cobrado = $2 WHERE id = $1 AND NOT cobrado', [citaId, paquete.precio_sesion]);
+    `UPDATE citas SET cobrado = true, precio_cobrado = $2 WHERE id = $1 AND NOT cobrado AND estatus = 'realizada'`, [citaId, paquete.precio_sesion]);
+  if (!rowCount && (await pool.query('SELECT estatus FROM citas WHERE id = $1', [citaId])).rows[0]?.estatus !== 'realizada')
+    throw err(400, 'La cita aún no está realizada');
   if (!rowCount) throw err(409, 'La cita ya estaba cobrada');
   await pool.query(
     `UPDATE flujo_paciente SET estatus = 'completado', hora_completado = NOW(), updated_at = NOW()
@@ -95,4 +101,32 @@ async function cubrirConPaquete(citaId) {
   return paquete;
 }
 
-module.exports = { ABONADO, PAQUETE_JOIN, PAQUETE_COLS, aviso50, conPaquete, paqueteDeCita, registrarAbono, cubrirConPaquete };
+// Citas realizadas sin cobrar que nunca se ligaron a su plan (marcadas realizadas desde la agenda):
+// si la paciente tiene exactamente un plan aceptado de ese tratamiento, se ligan para cobrarlas bien.
+async function ligarCitasSinPlan(fecha) {
+  const { rows } = await pool.query(
+    `UPDATE citas c SET plan_tratamiento_id = u.plan_id
+     FROM (SELECT c.id, min(pt.id) AS plan_id
+           FROM citas c JOIN plan_tratamientos pt ON pt.paciente_id = c.paciente_id
+             AND pt.tratamiento_id = c.tratamiento_id AND pt.estatus = 'aceptado'
+           WHERE c.plan_tratamiento_id IS NULL AND c.estatus = 'realizada' AND NOT c.cobrado AND DATE(c.fecha_hora) = $1
+           GROUP BY c.id HAVING count(*) = 1) u
+     WHERE c.id = u.id RETURNING c.plan_tratamiento_id`, [fecha]);
+  const { actualizarAvance } = require('./planTratamiento'); // aquí para evitar require circular
+  for (const r of rows) await actualizarAvance(r.plan_tratamiento_id);
+}
+
+const ROLES_COBRO = ['admin', 'asistente_general', 'asistente_medico'];
+
+// Editar/borrar un abono desde Finanzas: mismos roles que Caja y sin rebasar el saldo
+async function validarEdicionAbono(mov, nuevoMonto, rol) {
+  if (!ROLES_COBRO.includes(rol)) throw err(403, 'Solo recepción o admin pueden modificar abonos');
+  if (nuevoMonto === undefined) return;
+  const { rows: [r] } = await pool.query(
+    `SELECT pi.subtotal::float AS subtotal, ${ABONADO('pi.id')}::float AS abonado FROM presupuesto_items pi WHERE pi.id = $1`,
+    [mov.presupuesto_item_id]);
+  const saldo = round2(r.subtotal - r.abonado + Number(mov.monto));
+  if (round2(Number(nuevoMonto)) > saldo) throw err(400, `El abono excede el saldo ($${saldo})`);
+}
+
+module.exports = { ROLES_COBRO, ligarCitasSinPlan, validarEdicionAbono, ABONADO, PAQUETE_JOIN, PAQUETE_COLS, aviso50, conPaquete, paqueteDeCita, registrarAbono, cubrirConPaquete };

@@ -8,9 +8,28 @@ import PresupuestoModal from './PresupuestoModal';
 import ConsentimientoFirmaModal from './ConsentimientoFirmaModal';
 import { imprimirPresupuesto } from './imprimirPresupuesto';
 import { pesos } from '../utils/presupuesto';
+import AbonoForm from './finanzas/AbonoForm';
 
 const ROLES_PRESUPUESTO = ['admin', 'asistente_general', 'asistente_medico'];
 const ROLES_CI = ['admin', 'asistente_medico', 'cosmetista'];
+
+// Abonado / saldo de un tratamiento completo
+const saldoPlan = p => Math.round(100 * (p.subtotal - p.abonado)) / 100;
+function SaldoPaquete({ plan }) {
+  if (plan.modalidad !== 'completo') return null;
+  return saldoPlan(plan) > 0
+    ? <span className="font-semibold text-amber-700"> · abonado {pesos(plan.abonado)} · saldo {pesos(saldoPlan(plan))}</span>
+    : <span style={{ color: '#3d7a3d' }}> · liquidado</span>;
+}
+function AbonoPlan({ plan, rol, onDone }) {
+  if (plan.modalidad !== 'completo' || saldoPlan(plan) <= 0 || plan.estatus === 'cancelado' || !ROLES_PRESUPUESTO.includes(rol)) return null;
+  return (
+    <div className="mt-2 print:hidden">
+      <AbonoForm key={plan.abonado} itemId={plan.presupuesto_item_id} onDone={onDone}
+                 paquete={{ subtotal: plan.subtotal, abonado: plan.abonado, saldo: saldoPlan(plan) }} />
+    </div>
+  );
+}
 
 const cardBorder = { borderColor: 'var(--color-sage)' };
 const FORMATOS_SESION = TIPOS.filter(t => t.group === 'Procedimientos' || t.group === 'Bitácoras');
@@ -156,9 +175,7 @@ export default function ProcedimientosTab({ pacienteId, paciente, rol }) {
                     {p.modalidad && (
                       <span className="text-gray-600">
                         {p.modalidad === 'completo' ? 'Tratamiento completo' : 'Pago por sesión'} · {pesos(p.subtotal)}{p.descuento_pct ? ` (−${p.descuento_pct}%)` : ''}
-                        {p.modalidad === 'completo' && (p.subtotal - p.abonado > 0.004
-                          ? <span className="font-semibold text-amber-700"> · abonado {pesos(p.abonado)} · saldo {pesos(p.subtotal - p.abonado)}</span>
-                          : <span style={{ color: '#3d7a3d' }}> · liquidado</span>)}
+                        <SaldoPaquete plan={p} />
                       </span>
                     )}
                     {!p.requiere_ci ? <span className="text-gray-400">Sin plantilla de CI</span>
@@ -172,6 +189,7 @@ export default function ProcedimientosTab({ pacienteId, paciente, rol }) {
                       </button>
                     )}
                   </div>
+                  <AbonoPlan plan={p} rol={rol} onDone={cargar} />
                 </PlanCard>
               ))}
             </div>
@@ -220,10 +238,12 @@ export default function ProcedimientosTab({ pacienteId, paciente, rol }) {
             <div className="pt-2">
               <p className="text-xs font-medium text-gray-500 mb-2">Tratamientos cerrados</p>
               {cerrados.map(p => (
-                <p key={p.id} className="text-xs text-gray-600">
+                <div key={p.id} className="text-xs text-gray-600 mb-1">
                   {p.tratamiento_nombre} · {p.sesiones_realizadas} de {p.sesiones_estimadas} ·{' '}
                   {p.estatus === 'completado' ? 'Completado' : `Cancelado${p.motivo_cancelacion ? ` (${p.motivo_cancelacion})` : ''}`}
-                </p>
+                  <SaldoPaquete plan={p} />
+                  <AbonoPlan plan={p} rol={rol} onDone={cargar} />
+                </div>
               ))}
             </div>
           )}

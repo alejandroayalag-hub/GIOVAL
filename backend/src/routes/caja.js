@@ -1,9 +1,9 @@
 const router = require('express').Router();
 const ctrl = require('../controllers/cajaController');
 const { requireRol } = require('../middleware/roles');
-const { registrarAbono, cubrirConPaquete } = require('../services/abonos');
+const { registrarAbono, cubrirConPaquete, ROLES_COBRO } = require('../services/abonos');
 
-const rolesCobro = requireRol('admin', 'asistente_general', 'asistente_medico');
+const rolesCobro = requireRol(...ROLES_COBRO);
 const wrap = fn => (req, res, next) => fn(req, res).catch(next);
 
 router.get('/hoy', ctrl.hoy);

@@ -1,6 +1,6 @@
 const pool = require('../db/pool');
 const { filtroEmpresa } = require('../utils/empresa');
-const { PAQUETE_JOIN, PAQUETE_COLS, conPaquete } = require('../services/abonos');
+const { PAQUETE_JOIN, PAQUETE_COLS, conPaquete, ligarCitasSinPlan } = require('../services/abonos');
 
 exports.hoy = async (req, res, next) => {
   try {
@@ -22,6 +22,7 @@ exports.hoy = async (req, res, next) => {
       resumen.total += val;
     }
 
+    await ligarCitasSinPlan(hoy);
     // Citas realizadas hoy pendientes de cobro
     const pendientesQ = await pool.query(`
       SELECT c.id AS cita_id,
@@ -32,7 +33,7 @@ exports.hoy = async (req, res, next) => {
              )) AS paciente_nombre,
              t.nombre AS tratamiento_nombre,
              -- pago por sesión: precio congelado en el presupuesto (con promo)
-             CASE WHEN ps.id IS NOT NULL THEN ROUND(ps.precio_unitario * (1 - ps.descuento_pct / 100), 2) ELSE t.precio END AS precio,
+             CASE WHEN ps.id IS NOT NULL THEN ROUND(ps.subtotal / ps.sesiones, 2) ELSE t.precio END AS precio,
              CASE WHEN c.anticipo_estado IN ('pagado', 'retenido') THEN c.anticipo ELSE 0 END::numeric AS anticipo_pagado,
              c.fecha_hora,
              COALESCE(cabina.costo_cabina, 0)::numeric AS costo_cabina,

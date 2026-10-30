@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { RefreshCw, CreditCard, Banknote, Smartphone, Plus } from 'lucide-react';
-import { getCajaHoy, createMovimiento, getCategorias, registrarAbono, cubrirConPaquete } from '../../api/finanzas';
+import { getCajaHoy, createMovimiento, getCategorias, cubrirConPaquete } from '../../api/finanzas';
+import AbonoForm from './AbonoForm';
 import PaqueteInfo from '../PaqueteInfo';
 import MovimientoModal from './MovimientoModal';
 import { EMPRESAS, EmpresaToggle, empresaSugerida, empresaVista } from './empresa';
@@ -8,8 +9,6 @@ import { EMPRESAS, EmpresaToggle, empresaSugerida, empresaVista } from './empres
 const fmt = n => `$${parseFloat(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`;
 // Saldo a cobrar: precio del tratamiento menos el anticipo ya pagado
 const saldo = c => c.precio ? parseFloat(c.precio) - parseFloat(c.anticipo_pagado || 0) : null;
-// Abono sugerido: completar la mitad del paquete; ya cubierta la mitad, el saldo
-const abonoSugerido = p => Math.round(100 * Math.min(p.saldo, p.abonado < p.subtotal / 2 ? p.subtotal / 2 - p.abonado : p.saldo)) / 100;
 const fmtHora = iso => new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
 
 const FORMAS = [
@@ -27,7 +26,6 @@ export default function CajaPanel() {
   const [movModal, setMovModal] = useState(null);
   const [categorias, setCategorias] = useState([]);
   const [cobrarA, setCobrarA] = useState(empresaSugerida); // empresa a la que se registran los cobros rápidos
-  const [abonos, setAbonos] = useState({}); // monto capturado por cita_id
   const intervalRef = useRef(null);
 
   const cargar = useCallback(async () => {
@@ -71,25 +69,6 @@ export default function CajaPanel() {
       await cargar();
     } catch (e) {
       alert(e.response?.data?.error || 'Error al registrar cobro');
-    } finally {
-      setCobrandoId(null);
-    }
-  }
-
-  async function abonar(cita, forma_pago) {
-    if (!cobrarA) { alert('Elige arriba a qué empresa se cobra: Giovanna PF o Elys PM'); return; }
-    setCobrandoId(`${cita.cita_id}-abono-${forma_pago}`);
-    try {
-      await registrarAbono({
-        presupuesto_item_id: cita.paquete.presupuesto_item_id,
-        monto: abonos[cita.cita_id] ?? abonoSugerido(cita.paquete),
-        forma_pago,
-        empresa: cobrarA,
-      });
-      setAbonos(a => { const { [cita.cita_id]: _, ...resto } = a; return resto; });
-      await cargar();
-    } catch (e) {
-      alert(e.response?.data?.error || 'Error al registrar abono');
     } finally {
       setCobrandoId(null);
     }
@@ -215,20 +194,9 @@ export default function CajaPanel() {
                 {cita.paquete ? (
                 <div className="flex flex-wrap items-center gap-2">
                   {cita.paquete.saldo > 0 && (
-                    <>
-                      <span className="text-xs text-gray-500">Abono $</span>
-                      <input type="number" min="1" step="0.01" max={cita.paquete.saldo}
-                             value={abonos[cita.cita_id] ?? abonoSugerido(cita.paquete)}
-                             onChange={e => setAbonos(a => ({ ...a, [cita.cita_id]: e.target.value }))}
-                             className="w-24 border rounded-lg px-2 py-1 text-xs" style={{ borderColor: 'var(--color-sage)' }} />
-                      {FORMAS.map(({ key, label, color }) => (
-                        <button key={key} disabled={!!cobrandoId} onClick={() => abonar(cita, key)}
-                                className="text-xs px-3 py-1.5 rounded-lg text-white font-medium disabled:opacity-50"
-                                style={{ backgroundColor: color }}>
-                          {cobrandoId === `${cita.cita_id}-abono-${key}` ? '...' : label}
-                        </button>
-                      ))}
-                    </>
+                    // key: al recargar, el monto sugerido se recalcula
+                    <AbonoForm key={cita.paquete.abonado} itemId={cita.paquete.presupuesto_item_id}
+                               paquete={cita.paquete} empresa={cobrarA} onDone={cargar} />
                   )}
                   <button disabled={!!cobrandoId} onClick={() => cubrir(cita)}
                           className="text-xs px-3 py-1.5 rounded-lg border font-medium disabled:opacity-50"

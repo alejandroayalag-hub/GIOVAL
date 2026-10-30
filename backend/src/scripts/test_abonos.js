@@ -123,6 +123,67 @@ async function run() {
   }
 }
 
-run()
+// Hallazgos de la revisión final
+async function testRevision() {
+  const A = require('../services/abonos');
+  const { crearPresupuesto } = require('../services/presupuestos');
+  const caja = require('../controllers/cajaController');
+  const fin = require('../controllers/finanzas');
+  const f = await fixtures();
+  const res = () => { const r = { code: 200 }; r.status = c => { r.code = c; return r; }; r.json = d => { r.body = d; return r; }; return r; };
+  try {
+    const mk = async (t, n) => (await pool.query(
+      `INSERT INTO plan_tratamientos (paciente_id, tratamiento_id, sesiones_estimadas) VALUES ($1,$2,$3) RETURNING id`,
+      [f.pa, t, n])).rows[0].id;
+    const pPaq = await mk(f.t1, 2);
+    const pres = await crearPresupuesto({ paciente_id: f.pa, firma: FIRMA, items: [{ plan_id: pPaq, modalidad: 'completo' }] }, null);
+    const item = pres.items[0].id;
+
+    // 1. el anticipo pagado en una cita del paquete cuenta como abonado
+    const cA = await cita(f, f.t1, pPaq, 3);
+    await pool.query(`INSERT INTO movimientos (tipo, concepto, monto, fecha, cita_id) VALUES ('ingreso','Anticipo TEST',300,CURRENT_DATE,$1)`, [cA]);
+    assert.strictEqual((await A.paqueteDeCita(cA)).abonado, 300, 'anticipo no cuenta para el paquete');
+
+    // 2. cita realizada sin liga al plan: Caja la liga sola al único plan aceptado y la trata como paquete
+    const cSin = await cita(f, f.t1, null, 2);
+    let out = res();
+    await caja.hoy({ query: {} }, out, e => { throw e; });
+    const pend = out.body.pendientes.find(p => p.cita_id === cSin);
+    assert.ok(pend && pend.paquete, 'cita sin liga debe salir como paquete');
+    assert.strictEqual((await pool.query('SELECT plan_tratamiento_id FROM citas WHERE id=$1', [cSin])).rows[0].plan_tratamiento_id, pPaq);
+
+    // 5. sesión de más sobre el paquete o cita no realizada: no se cubre gratis
+    const cExtra = await cita(f, f.t1, pPaq, 1); // tercera sesión de un paquete de 2
+    assert.strictEqual(await A.paqueteDeCita(cExtra), null, 'sesión extra no es del paquete');
+    const cFut = await cita(f, f.t1, pPaq, -60, 'pendiente');
+    await assert.rejects(A.cubrirConPaquete(cFut), e => e.status === 400);
+    await pool.query(`UPDATE plan_tratamientos SET estatus='cancelado' WHERE id=$1`, [pPaq]);
+    assert.strictEqual(await A.paqueteDeCita(cA), null, 'plan cancelado no cubre sesiones');
+    await assert.rejects(A.cubrirConPaquete(cA), e => e.status === 400);
+    await pool.query(`UPDATE plan_tratamientos SET estatus='completado' WHERE id=$1`, [pPaq]);
+    assert.ok(await A.paqueteDeCita(cA), 'plan completado sigue mostrando su paquete');
+
+    // 3/4. A realizar y cerrados traen el item para abonar
+    const { listarPorPaciente } = require('../services/planTratamiento');
+    assert.strictEqual((await listarPorPaciente(f.pa)).find(p => p.id === pPaq).presupuesto_item_id, item);
+
+    // 6. editar un abono en Finanzas: no puede rebasar el saldo y solo roles de cobro
+    const { movimiento } = await A.registrarAbono({ presupuesto_item_id: item, monto: 500 }, null);
+    out = res();
+    await fin.updateMovimiento({ params: { id: movimiento.id }, body: { monto: 5000 }, user: { rol: 'admin' } }, out, e => { out.code = e.status; });
+    assert.strictEqual(out.code, 400, 'editar abono por encima del saldo debe fallar');
+    out = res();
+    await fin.updateMovimiento({ params: { id: movimiento.id }, body: { monto: 400 }, user: { rol: 'cosmetista' } }, out, e => { out.code = e.status; });
+    assert.strictEqual(out.code, 403);
+    out = res();
+    await fin.updateMovimiento({ params: { id: movimiento.id }, body: { monto: 600 }, user: { rol: 'asistente_general' } }, out, e => { throw e; });
+    assert.strictEqual(Number(out.body.monto), 600);
+    console.log('✓ revisión final');
+  } finally {
+    await limpiar(f);
+  }
+}
+
+run().then(testRevision)
   .then(() => { console.log('OK'); return pool.end(); })
   .catch(async e => { console.error('✗', e.stack); await pool.end(); process.exit(1); });
