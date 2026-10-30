@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import { getCuentasPorPagar, getResumenCXP, createCuentaPorPagar, updateCuentaPorPagar, deleteCuentaPorPagar } from '../../api/cuentasPorPagar';
 import { EmpresaToggle, empresaSugerida } from './empresa';
+import { hoyLocal } from '../../utils/fecha';
 
 const fmt = n => `$${parseFloat(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
 
@@ -70,7 +71,7 @@ export default function CuentasXPagarTab({ area }) {
     });
   }
 
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyLocal();
 
   return (
     <div>

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { EmpresaToggle, empresaSugerida } from './empresa';
+import { hoyLocal } from '../../utils/fecha';
 
 export default function MovimientoModal({ tipo: tipoInicial, movimiento, prefill, categorias, onSave, onClose }) {
   const isEditing = Boolean(movimiento);
@@ -12,7 +13,7 @@ export default function MovimientoModal({ tipo: tipoInicial, movimiento, prefill
     categoria_id: prefill?.categoria_id || '',
     monto:        prefill?.monto        || '',
     forma_pago:   prefill?.forma_pago   || 'efectivo',
-    fecha:        prefill?.fecha        || new Date().toISOString().split('T')[0],
+    fecha:        prefill?.fecha        || hoyLocal(),
     notas:        prefill?.notas        || '',
     empresa:      movimiento?.empresa || prefill?.empresa || empresaSugerida(),
   });
@@ -26,7 +27,7 @@ export default function MovimientoModal({ tipo: tipoInicial, movimiento, prefill
         categoria_id: movimiento.categoria_id || '',
         monto:        movimiento.monto || '',
         forma_pago:   movimiento.forma_pago || 'efectivo',
-        fecha:        movimiento.fecha?.split('T')[0] || new Date().toISOString().split('T')[0],
+        fecha:        movimiento.fecha?.split('T')[0] || hoyLocal(),
         notas:        movimiento.notas || '',
         empresa:      movimiento.empresa || 'giovanna',
       });

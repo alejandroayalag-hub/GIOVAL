@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getDocsByPaciente, createDoc, updateDoc, deleteDoc } from '../api/documentosClinicos';
 import PlanTratamientoBlock from './PlanTratamientoBlock';
 import { resumenPlan } from '../utils/resumenPlan';
+import { hoyLocal } from '../utils/fecha';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const inputCls = 'w-full border rounded-lg px-3 py-2 text-sm';
@@ -859,7 +860,7 @@ function renderForm(tipo, datos, set) {
 // ── Modal de edición/creación ─────────────────────────────────────────────────
 export function DocModal({ pacienteId, tipo, doc, citaId, onClose, onSaved }) {
   const [datos, setDatos] = useState(doc?.datos || {});
-  const [fecha, setFecha] = useState(doc?.fecha?.slice(0,10) || new Date().toISOString().slice(0,10));
+  const [fecha, setFecha] = useState(doc?.fecha?.slice(0,10) || hoyLocal());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const tipoInfo = TIPOS.find(t => t.key === tipo);

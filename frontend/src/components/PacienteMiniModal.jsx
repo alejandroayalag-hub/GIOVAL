@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { createPaciente } from '../api/pacientes';
+import { hoyLocal } from '../utils/fecha';
 
 export default function PacienteMiniModal({ onClose, onCreated }) {
   const [form, setForm] = useState({ apellido_paterno: '', nombre: '', telefono: '' });
@@ -14,7 +15,7 @@ export default function PacienteMiniModal({ onClose, onCreated }) {
     try {
       const paciente = await createPaciente({
         ...form,
-        fecha_registro: new Date().toISOString().split('T')[0],
+        fecha_registro: hoyLocal(),
       });
       onCreated(paciente);
     } catch (err) {

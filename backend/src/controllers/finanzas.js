@@ -2,6 +2,7 @@
 const { Categoria, Movimiento, CorteCaja, Reportes } = require('../models/finanzas');
 const { filtroEmpresa, empresaEscritura } = require('../utils/empresa');
 const { validarEdicionAbono } = require('../services/abonos');
+const { hoyMx } = require('../utils/fecha');
 
 // ── Categorías ────────────────────────────────────────────────────────────────
 
@@ -77,7 +78,7 @@ exports.createMovimiento = async (req, res, next) => {
     if (parseFloat(monto) <= 0)
       return res.status(400).json({ error: 'monto debe ser mayor a 0' });
     const empresa = empresaEscritura(req.body.empresa);
-    const fechaMov = fecha || new Date().toISOString().split('T')[0];
+    const fechaMov = fecha || hoyMx();
     if (await CorteCaja.estaCerrado(fechaMov, empresa))
       return res.status(409).json({ error: 'El corte de esa fecha ya está cerrado' });
     const pool = require('../db/pool');
@@ -146,7 +147,7 @@ exports.cerrarCorte = async (req, res, next) => {
   try {
     const empresa = filtroEmpresa(req.body);
     if (!empresa) return res.status(400).json({ error: 'Elige la empresa del corte (Giovanna o Elys)' });
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = hoyMx();
     if (await CorteCaja.estaCerrado(hoy, empresa))
       return res.status(409).json({ error: 'El corte de hoy ya está cerrado' });
     res.status(201).json(await CorteCaja.cerrar({ notas: req.body.notas, cerrado_por: req.user.id, empresa }));

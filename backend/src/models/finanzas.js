@@ -1,5 +1,6 @@
 // backend/src/models/finanzas.js
 const pool = require('../db/pool');
+const { hoyMx } = require('../utils/fecha');
 
 const Categoria = {
   async list(soloActivas = false) {
@@ -77,7 +78,7 @@ const Movimiento = {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
       [tipo, categoria_id || null, concepto, monto,
        forma_pago || 'efectivo',
-       fecha || new Date().toISOString().split('T')[0],
+       fecha || hoyMx(),
        notas || null, created_by, cita_id || null, empresa]
     );
     return rows[0];
@@ -136,7 +137,7 @@ const Movimiento = {
 const CorteCaja = {
   // empresa null = consolidado (solo lectura; el cierre siempre es por empresa)
   async calcularHoy(empresa = null) {
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = hoyMx();
     const { rows } = await pool.query(
       `SELECT
          COALESCE(SUM(CASE WHEN tipo='ingreso' THEN monto ELSE 0 END),0) AS total_ingresos,

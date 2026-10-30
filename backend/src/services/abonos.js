@@ -1,12 +1,10 @@
 const pool = require('../db/pool');
 const { empresaEscritura } = require('../utils/empresa');
 const { CorteCaja } = require('../models/finanzas');
+const { hoyMx, diaMx } = require('../utils/fecha');
 
 const err = (status, msg) => Object.assign(new Error(msg), { status });
 const round2 = n => Math.round(n * 100) / 100;
-// ponytail: misma fecha (UTC) que usan Caja y createMovimiento, para que el abono caiga en el mismo corte.
-// Si Caja pasa a hora de México, cambiar aquí también.
-const hoyCaja = () => new Date().toISOString().split('T')[0];
 const FORMAS = ['efectivo', 'tarjeta', 'transferencia'];
 
 // Abonado = abonos del item + lo pagado en citas del paquete (p. ej. anticipo en línea)
@@ -52,7 +50,7 @@ async function registrarAbono({ presupuesto_item_id, monto, forma_pago, empresa 
   if (!(importe > 0)) throw err(400, 'El abono debe ser mayor a 0');
   if (forma_pago && !FORMAS.includes(forma_pago)) throw err(400, 'Forma de pago inválida');
   const emp = empresaEscritura(empresa);
-  const fecha = hoyCaja();
+  const fecha = hoyMx();
   if (await CorteCaja.estaCerrado(fecha, emp)) throw err(409, 'El corte de hoy ya está cerrado');
 
   const client = await pool.connect();
@@ -109,7 +107,7 @@ async function ligarCitasSinPlan(fecha) {
      FROM (SELECT c.id, min(pt.id) AS plan_id
            FROM citas c JOIN plan_tratamientos pt ON pt.paciente_id = c.paciente_id
              AND pt.tratamiento_id = c.tratamiento_id AND pt.estatus = 'aceptado'
-           WHERE c.plan_tratamiento_id IS NULL AND c.estatus = 'realizada' AND NOT c.cobrado AND DATE(c.fecha_hora) = $1
+           WHERE c.plan_tratamiento_id IS NULL AND c.estatus = 'realizada' AND NOT c.cobrado AND ${diaMx('c.fecha_hora')} = $1
            GROUP BY c.id HAVING count(*) = 1) u
      WHERE c.id = u.id RETURNING c.plan_tratamiento_id`, [fecha]);
   const { actualizarAvance } = require('./planTratamiento'); // aquí para evitar require circular

@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPaciente, updatePaciente, uploadFotoPaciente } from '../api/pacientes';
+import { hoyLocal } from '../utils/fecha';
 
 const EMPTY = {
   apellido_paterno: '', apellido_materno: '', nombre: '',
-  fecha_registro: new Date().toISOString().split('T')[0],
+  fecha_registro: hoyLocal(),
   fecha_nacimiento: '', edad: '', sexo: '', ocupacion: '',
   estado_civil: '', escolaridad: '', grupo_etnico: '',
   telefono: '', telefono_alterno: '', email: '',

@@ -2,6 +2,7 @@ const pool = require('../db/pool');
 const { actualizarAvance } = require('../services/planTratamiento');
 const { requisitosProcedimiento, mensajeFaltan } = require('../services/requisitosProcedimiento');
 const { PAQUETE_JOIN, PAQUETE_COLS, conPaquete } = require('../services/abonos');
+const { hoyMx, diaMx } = require('../utils/fecha');
 
 const ORDEN_ESTATUS = {
   checkin: 1, en_consultorio: 2, en_procedimiento: 3,
@@ -26,7 +27,7 @@ const HORA_CAMPO = {
 
 exports.hoy = async (req, res, next) => {
   try {
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = hoyMx();
 
     // Auto-completar flujos en_caja donde ya se cobró
     await pool.query(
@@ -36,7 +37,7 @@ exports.hoy = async (req, res, next) => {
        WHERE fp.cita_id = c.id
          AND fp.estatus = 'en_caja'
          AND c.cobrado = true
-         AND DATE(c.fecha_hora) = $1`,
+         AND ${diaMx('c.fecha_hora')} = $1`,
       [hoy]
     );
 
@@ -74,7 +75,7 @@ exports.hoy = async (req, res, next) => {
        LEFT JOIN tratamientos t    ON c.tratamiento_id = t.id
        LEFT JOIN empleados e       ON c.empleada_id = e.id
        LEFT JOIN consultorios co   ON fp.consultorio_id = co.id
-       WHERE DATE(c.fecha_hora) = $1
+       WHERE ${diaMx('c.fecha_hora')} = $1
          AND c.estatus IN ('pendiente', 'realizada')
        ORDER BY c.fecha_hora`,
       [hoy]
@@ -97,9 +98,9 @@ exports.checkin = async (req, res, next) => {
     const { consultorio_id } = req.body;
     if (!consultorio_id) return res.status(400).json({ error: 'consultorio_id es requerido' });
 
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = hoyMx();
     const { rows: citas } = await pool.query(
-      `SELECT id FROM citas WHERE id=$1 AND DATE(fecha_hora)=$2 AND estatus='pendiente'`,
+      `SELECT id FROM citas WHERE id=$1 AND ${diaMx('fecha_hora')}=$2 AND estatus='pendiente'`,
       [cita_id, hoy]
     );
     if (!citas[0]) return res.status(404).json({ error: 'Cita no encontrada o no es de hoy' });

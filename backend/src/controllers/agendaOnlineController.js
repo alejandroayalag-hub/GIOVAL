@@ -5,6 +5,7 @@ const gc = require('../services/googleCalendar');
 const mp = require('../services/mercadoPago');
 const { TZ, slotsDelDia, especialistas, esValoracion, esContinuacion, normalizaTel } = require('../services/agenda');
 const { syncToGoogle } = require('./citasController');
+const { hoyMx } = require('../utils/fecha');
 
 const ANTICIPO = 300;
 const MINUTOS_APARTADO = 30;
@@ -20,9 +21,9 @@ async function tratamiento(id) {
 
 async function registrarMovimiento({ tipo, concepto, monto, forma_pago, cita_id, created_by = null }) {
   await pool.query(
-    `INSERT INTO movimientos (tipo, categoria_id, concepto, monto, forma_pago, cita_id, created_by)
-     VALUES ($1, (SELECT id FROM categorias_movimiento WHERE nombre = 'Anticipo cita'), $2, $3, $4, $5, $6)`,
-    [tipo, concepto, monto, forma_pago, cita_id, created_by]
+    `INSERT INTO movimientos (tipo, categoria_id, concepto, monto, forma_pago, cita_id, created_by, fecha)
+     VALUES ($1, (SELECT id FROM categorias_movimiento WHERE nombre = 'Anticipo cita'), $2, $3, $4, $5, $6, $7)`,
+    [tipo, concepto, monto, forma_pago, cita_id, created_by, hoyMx()]
   );
 }
 

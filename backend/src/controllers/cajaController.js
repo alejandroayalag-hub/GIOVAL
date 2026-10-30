@@ -1,10 +1,11 @@
 const pool = require('../db/pool');
 const { filtroEmpresa } = require('../utils/empresa');
 const { PAQUETE_JOIN, PAQUETE_COLS, conPaquete, ligarCitasSinPlan } = require('../services/abonos');
+const { hoyMx, diaMx } = require('../utils/fecha');
 
 exports.hoy = async (req, res, next) => {
   try {
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = hoyMx();
     const empresa = filtroEmpresa(req.query);
 
     // Resumen ingresos de hoy por forma de pago
@@ -52,7 +53,7 @@ exports.hoy = async (req, res, next) => {
       ) cabina ON true
       WHERE c.estatus = 'realizada'
         AND c.cobrado = false
-        AND DATE(c.fecha_hora) = $1
+        AND ${diaMx('c.fecha_hora')} = $1
       ORDER BY c.fecha_hora
     `, [hoy]);
 

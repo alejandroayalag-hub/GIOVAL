@@ -5,6 +5,7 @@ import AbonoForm from './AbonoForm';
 import PaqueteInfo from '../PaqueteInfo';
 import MovimientoModal from './MovimientoModal';
 import { EMPRESAS, EmpresaToggle, empresaSugerida, empresaVista } from './empresa';
+import { hoyLocal } from '../../utils/fecha';
 
 const fmt = n => `$${parseFloat(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`;
 // Saldo a cobrar: precio del tratamiento menos el anticipo ya pagado
@@ -284,7 +285,7 @@ export default function CajaPanel() {
             concepto: movModal.cita.tratamiento_nombre || '',
             monto: saldo(movModal.cita) ?? '',
             forma_pago: 'efectivo',
-            fecha: new Date().toISOString().split('T')[0],
+            fecha: hoyLocal(),
             empresa: cobrarA,
           } : (cobrarA ? { empresa: cobrarA } : undefined)}
           categorias={categorias}
